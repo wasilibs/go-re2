@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -141,15 +142,18 @@ func BenchmarkMatch(b *testing.B) {
 		{
 			name: "tinygo",
 			compile: func(re string) interface{} {
-				defer swapInTinyGo()
+				f := swapInTinyGo()
+				defer f()
 				return MustCompile(re)
 			},
 			match: func(re interface{}, text []byte) bool {
-				defer swapInTinyGo()
+				f := swapInTinyGo()
+				defer f()
 				return re.(*Regexp).Match(text)
 			},
 			close: func(r interface{}) {
-				defer swapInTinyGo()
+				f := swapInTinyGo()
+				defer f()
 				r.(*Regexp).Close()
 			},
 		},
@@ -227,18 +231,19 @@ func init() {
 		panic(err)
 	}
 
-	mod, err := rt.InstantiateModuleFromBinary(ctx, tinygoWasm)
+	code, err := rt.CompileModule(ctx, tinygoWasm, wazero.NewCompileConfig())
+	mod, err := rt.InstantiateModule(ctx, code, wazero.NewModuleConfig().WithStdout(os.Stderr).WithStderr(os.Stderr))
 	if err != nil {
 		panic(err)
 	}
 
 	abi := libre2ABIDef{
-		cre2New:    mod.ExportedFunction("cre2_new"),
-		cre2Delete: mod.ExportedFunction("cre2_delete"),
-		cre2Match:  mod.ExportedFunction("cre2_match"),
+		cre2New:    mod.ExportedFunction("tg_new"),
+		cre2Delete: mod.ExportedFunction("tg_delete"),
+		cre2Match:  mod.ExportedFunction("tg_match"),
 
-		malloc: mod.ExportedFunction("malloc"),
-		free:   mod.ExportedFunction("free"),
+		malloc: mod.ExportedFunction("tg_malloc"),
+		free:   mod.ExportedFunction("tg_free"),
 
 		memory: mod.Memory(),
 	}
