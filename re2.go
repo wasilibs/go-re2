@@ -32,17 +32,15 @@ var libre2ABI libre2ABIDef
 
 func init() {
 	ctx := context.Background()
-	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().WithWasmCore2())
+	rt := wazero.NewRuntime(ctx)
 
 	if _, err := wasi_snapshot_preview1.Instantiate(ctx, rt); err != nil {
 		panic(err)
 	}
 
 	// TODO(anuraaga): Find a way to compile wasm without this import.
-	if _, err := rt.NewModuleBuilder("env").
-		ExportFunction("__main_argc_argv", func(int32, int32) int32 {
-			return 0
-		}).
+	if _, err := rt.NewHostModuleBuilder("env").
+		NewFunctionBuilder().WithFunc(func(int32, int32) int32 { return 0 }).Export("__main_argc_argv").
 		Instantiate(ctx, rt); err != nil {
 		panic(err)
 	}
