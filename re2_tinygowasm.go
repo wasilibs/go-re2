@@ -109,7 +109,7 @@ func findStringSubmatch(re *Regexp, s string) []string {
 
 	matchArr := make([]re2String, numGroups)
 
-	res := cre2Match(re.ptr, unsafe.Pointer(sh.Data), uint32(sh.Len), 0, uint32(sh.Len), 0, unsafe.Pointer(&matchArr[0]), uint32(numGroups))
+	res := cre2Match(unsafe.Pointer(re.ptr), unsafe.Pointer(sh.Data), uint32(sh.Len), 0, uint32(sh.Len), 0, unsafe.Pointer(&matchArr[0]), uint32(numGroups))
 	if res == 0 {
 		return nil
 	}

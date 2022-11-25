@@ -33,4 +33,4 @@ RUN clang++-15 -Wl,--no-entry --rtlib=compiler-rt --target=wasm32-wasi -shared -
     -Wl,--export=cre2_partial_match_re \
     -Wl,--export=cre2_find_and_consume_re
 
-CMD ["bash", "-c", "cp /cre2/.libs/libcre2.so /out/libcre2.so"]
+CMD ["bash", "-c", "cp /re2/obj/libre2.a /cre2/.libs/libcre2.so /cre2/.libs/libcre2.a /out/"]
