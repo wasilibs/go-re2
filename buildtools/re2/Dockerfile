@@ -28,9 +28,17 @@ RUN clang++-15 -Wl,--no-entry --rtlib=compiler-rt --target=wasm32-wasi -shared -
     -Wl,--export=cre2_opt_new \
     -Wl,--export=cre2_opt_delete \
     -Wl,--export=cre2_opt_set_max_mem \
+    -Wl,--export=cre2_opt_set_longest_match \
+    -Wl,--export=cre2_opt_set_posix_syntax \
+    -Wl,--export=cre2_error_code \
     -Wl,--export=cre2_num_capturing_groups \
     -Wl,--export=cre2_match \
     -Wl,--export=cre2_partial_match_re \
-    -Wl,--export=cre2_find_and_consume_re
+    -Wl,--export=cre2_find_and_consume_re \
+    -Wl,--export=cre2_named_groups_iter_new \
+    -Wl,--export=cre2_named_groups_iter_next \
+    -Wl,--export=cre2_named_groups_iter_delete \
+    -Wl,--export=cre2_replace_re \
+    -Wl,--export=cre2_global_replace_re
 
 CMD ["bash", "-c", "cp /re2/obj/libre2.a /cre2/.libs/libcre2.so /cre2/.libs/libcre2.a /out/"]

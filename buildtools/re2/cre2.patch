@@ -1,36 +1,41 @@
 diff --git a/src/cre2.cpp b/src/cre2.cpp
-index 5a63b93..54152ff 100644
+index 5a63b93..78d92c3 100644
 --- a/src/cre2.cpp
 +++ b/src/cre2.cpp
-@@ -288,6 +288,27 @@ cre2_match (const cre2_regexp_t *re , const char *text,
-   }
-   return (retval)? 1 : 0;
+@@ -216,7 +216,7 @@ cre2_program_size (const cre2_regexp_t *re)
+ struct cre2_named_groups_iter_t
+ {
+   const RE2 * re;
+-  std::map<std::string, int>::const_iterator it;
++  std::map<int, std::string>::const_iterator it;
+ };
+ 
+ cre2_named_groups_iter_t *
+@@ -224,19 +224,19 @@ cre2_named_groups_iter_new(const cre2_regexp_t *re)
+ {
+   cre2_named_groups_iter_t * iter = new (std::nothrow)cre2_named_groups_iter_t;
+   iter->re = TO_CONST_RE2(re);
+-  iter->it = iter->re->NamedCapturingGroups().begin();
++  iter->it = iter->re->CapturingGroupNames().begin();
+   return iter;
  }
-+
-+int
-+cre2_match8 (const cre2_regexp_t *re , const char *text,
-+            int textlen, int startpos, int endpos, cre2_anchor_t anchor,
-+            cre2_string_t *match, int nmatch)
-+{
-+  re2::StringPiece	text_re2(text, textlen);
-+  re2::StringPiece match_re2[8];
-+  RE2::Anchor		anchor_re2 = to_cre2_anchor(anchor);
-+  bool			retval; // 0 for no match
-+  // 1 for successful matching
-+  retval = TO_CONST_RE2(re)->Match(text_re2, startpos, endpos, anchor_re2, match_re2, 8);
-+  if (retval) {
-+    for (int i=0; i<8; i++) {
-+      match[i].data   = match_re2[i].data();
-+      match[i].length = match_re2[i].length();
-+    }
-+  }
-+  return (retval)? 1 : 0;
-+}
-+
- int
- cre2_easy_match (const char * pattern, int pattern_len,
- 		 const char *text, int text_len,
-@@ -462,7 +483,6 @@ DEFINE_MATCH_REX_FUN2(cre2_find_and_consume_re,FindAndConsumeN)
+ bool
+ cre2_named_groups_iter_next(cre2_named_groups_iter_t* iter, const char ** name, int *index)
+ {
+-  if (iter->it == iter->re->NamedCapturingGroups().end()) {
++  if (iter->it == iter->re->CapturingGroupNames().end()) {
+     *name = NULL;
+     *index = -1;
+     return false;
+   } else {
+-    *index = iter->it->second;
+-    *name = iter->it->first.c_str();
++    *index = iter->it->first;
++    *name = iter->it->second.c_str();
+     ++iter->it;
+     return true;
+   }
+@@ -462,7 +462,6 @@ DEFINE_MATCH_REX_FUN2(cre2_find_and_consume_re,FindAndConsumeN)
  int
  cre2_replace (const char * pattern, cre2_string_t * text_and_target, cre2_string_t * rewrite)
  {
@@ -38,7 +43,7 @@ index 5a63b93..54152ff 100644
      std::string		S(text_and_target->data, text_and_target->length);
      re2::StringPiece	R(rewrite->data, rewrite->length);
      char *		buffer; /* this exists to make GCC shut up about const */
-@@ -477,12 +497,6 @@ cre2_replace (const char * pattern, cre2_string_t * text_and_target, cre2_string
+@@ -477,12 +476,6 @@ cre2_replace (const char * pattern, cre2_string_t * text_and_target, cre2_string
      } else
        return -1;
      return int(retval);
@@ -51,19 +56,3 @@ index 5a63b93..54152ff 100644
  }
  int
  cre2_replace_re (cre2_regexp_t * rex, cre2_string_t * text_and_target, cre2_string_t * rewrite)
-diff --git a/src/cre2.h b/src/cre2.h
-index 92eaf65..a34051f 100644
---- a/src/cre2.h
-+++ b/src/cre2.h
-@@ -160,6 +160,11 @@ cre2_decl int cre2_match	(const cre2_regexp_t * re,
- 				 int startpos, int endpos, cre2_anchor_t anchor,
- 				 cre2_string_t * match, int nmatch);
- 
-+cre2_decl int cre2_match8	(const cre2_regexp_t * re,
-+                             const char * text, int textlen,
-+                             int startpos, int endpos, cre2_anchor_t anchor,
-+                             cre2_string_t * match, int nmatch);
-+
- cre2_decl int cre2_easy_match	(const char * pattern, int pattern_len,
- 				 const char * text, int text_len,
- 				 cre2_string_t * match, int nmatch);
