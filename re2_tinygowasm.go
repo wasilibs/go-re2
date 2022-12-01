@@ -11,7 +11,7 @@ import (
 func cre2New(patternPtr uint32, patternLen uint32, opts unsafe.Pointer) uint32
 
 //export cre2_delete
-func cre2Delete(rePtr unsafe.Pointer)
+func cre2Delete(rePtr uint32)
 
 //export cre2_opt_new
 func cre2OptNew() unsafe.Pointer
@@ -68,6 +68,10 @@ func newRE(pattern cString, longest bool) uint32 {
 	return cre2New(pattern.ptr, pattern.length, opts)
 }
 
+func deleteRE(rePtr uint32) {
+	cre2Delete(rePtr)
+}
+
 func reError(rePtr uint32) uint32 {
 	return cre2ErrorCode(rePtr)
 }
@@ -106,6 +110,13 @@ func (s cString) release() {
 }
 
 func newCString(s string) cString {
+	if len(s) == 0 {
+		// TinyGo uses a null pointer to represent an empty string, but this
+		// prevents us from distinguishing a match on the empty string vs no
+		// match for subexpressions. So we replace with an empty-length slice
+		// to a string that isn't null.
+		s = "a"[0:0]
+	}
 	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
 	return cString{
 		ptr:    uint32(sh.Data),
@@ -190,7 +201,7 @@ func globalReplace(rePtr uint32, textAndTargetPtr uint32, rewritePtr uint32) ([]
 func readMatch(cs cString, matchPtr uint32, dstCap []int) []int {
 	match := (*cString)(unsafe.Pointer(uintptr(matchPtr)))
 	subStrPtr := match.ptr
-	if subStrPtr == 0 && cs.ptr != 0 {
+	if subStrPtr == 0 {
 		return append(dstCap, -1, -1)
 	}
 	sIdx := subStrPtr - cs.ptr

@@ -17,7 +17,8 @@ type Regexp struct {
 	// regex for them.
 	parensPtr uint32
 
-	expr string
+	expr       string
+	exprParens string
 
 	subexpNames []string
 }
@@ -53,13 +54,19 @@ func Match(pattern string, b []byte) (matched bool, err error) {
 // Copy may still be appropriate if the reason for its use is to make
 // two copies with different Longest settings.
 func (re *Regexp) Copy() *Regexp {
-	re2 := *re
-	return &re2
+	// Recompiling is slower than this should be but for a deprecated method it
+	// is probably fine. The alternative would be to have reference counting to
+	// make sure regex is only deleted when the last reference is gone.
+	return MustCompile(re.expr)
 }
 
 func Compile(expr string) (*Regexp, error) {
+	return compile(expr, false)
+}
+
+func compile(expr string, longest bool) (*Regexp, error) {
 	cs := newCString(expr)
-	rePtr := newRE(cs, false)
+	rePtr := newRE(cs, longest)
 	errCode := reError(rePtr)
 	switch errCode {
 	case 0:
@@ -100,7 +107,7 @@ func Compile(expr string) (*Regexp, error) {
 
 	exprParens := fmt.Sprintf("(%s)", expr)
 	csParens := newCString(exprParens)
-	reParensPtr := newRE(csParens, false)
+	reParensPtr := newRE(csParens, longest)
 
 	subexp := subexpNames(rePtr)
 
@@ -108,6 +115,7 @@ func Compile(expr string) (*Regexp, error) {
 		ptr:         rePtr,
 		parensPtr:   reParensPtr,
 		expr:        expr,
+		exprParens:  exprParens,
 		subexpNames: subexp,
 	}, nil
 }
@@ -125,6 +133,85 @@ func MustCompile(expr string) *Regexp {
 // the literal text.
 func QuoteMeta(s string) string {
 	return regexp.QuoteMeta(s)
+}
+
+func (re *Regexp) Release() {
+	deleteRE(re.ptr)
+	deleteRE(re.parensPtr)
+}
+
+// Expand appends template to dst and returns the result; during the
+// append, Expand replaces variables in the template with corresponding
+// matches drawn from src. The match slice should have been returned by
+// FindSubmatchIndex.
+//
+// In the template, a variable is denoted by a substring of the form
+// $name or ${name}, where name is a non-empty sequence of letters,
+// digits, and underscores. A purely numeric name like $1 refers to
+// the submatch with the corresponding index; other names refer to
+// capturing parentheses named with the (?P<name>...) syntax. A
+// reference to an out of range or unmatched index or a name that is not
+// present in the regular expression is replaced with an empty slice.
+//
+// In the $name form, name is taken to be as long as possible: $1x is
+// equivalent to ${1x}, not ${1}x, and, $10 is equivalent to ${10}, not ${1}0.
+//
+// To insert a literal $ in the output, use $$ in the template.
+func (re *Regexp) Expand(dst []byte, template []byte, src []byte, match []int) []byte {
+	return re.expand(dst, string(template), src, "", match)
+}
+
+// ExpandString is like Expand but the template and source are strings.
+// It appends to and returns a byte slice in order to give the calling
+// code control over allocation.
+func (re *Regexp) ExpandString(dst []byte, template string, src string, match []int) []byte {
+	return re.expand(dst, template, nil, src, match)
+}
+
+func (re *Regexp) expand(dst []byte, template string, bsrc []byte, src string, match []int) []byte {
+	for len(template) > 0 {
+		before, after, ok := strings.Cut(template, "$")
+		if !ok {
+			break
+		}
+		dst = append(dst, before...)
+		template = after
+		if template != "" && template[0] == '$' {
+			// Treat $$ as $.
+			dst = append(dst, '$')
+			template = template[1:]
+			continue
+		}
+		name, num, rest, ok := extract(template)
+		if !ok {
+			// Malformed; treat $ as raw text.
+			dst = append(dst, '$')
+			continue
+		}
+		template = rest
+		if num >= 0 {
+			if 2*num+1 < len(match) && match[2*num] >= 0 {
+				if bsrc != nil {
+					dst = append(dst, bsrc[match[2*num]:match[2*num+1]]...)
+				} else {
+					dst = append(dst, src[match[2*num]:match[2*num+1]]...)
+				}
+			}
+		} else {
+			for i, namei := range re.subexpNames {
+				if name == namei && 2*i+1 < len(match) && match[2*i] >= 0 {
+					if bsrc != nil {
+						dst = append(dst, bsrc[match[2*i]:match[2*i+1]]...)
+					} else {
+						dst = append(dst, src[match[2*i]:match[2*i+1]]...)
+					}
+					break
+				}
+			}
+		}
+	}
+	dst = append(dst, template...)
+	return dst
 }
 
 // Find returns a slice holding the text of the leftmost match in b of the regular expression.
@@ -250,17 +337,6 @@ func (re *Regexp) FindAllStringIndex(s string, n int) [][]int {
 
 func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 	var dstCap [2]int
-
-	// If the pattern begins with ^ or ends with $, we know there can only be one match so
-	// delegate to find instead. Because multiple matches requires consuming
-	// the input each time, ^ would match after every consumption if we did
-	// not special case it.
-	if len(re.expr) > 0 && (re.expr[0] == '^' || re.expr[len(re.expr)-1] == '$') {
-		if res := re.find(cs, dstCap[:0]); res != nil {
-			deliver(res)
-		}
-		return
-	}
 
 	if n < 0 {
 		n = int(cs.length + 1)
@@ -389,21 +465,6 @@ func (re *Regexp) FindAllStringSubmatchIndex(s string, n int) [][]int {
 }
 
 func (re *Regexp) findAllSubmatch(cs cString, n int, deliver func(match [][]int)) {
-	// If the pattern begins with ^ or ends with $, we know there can only be one match so
-	// delegate to findSubmatch instead. Because multiple matches requires consuming
-	// the input each time, ^ would match after every consumption if we did
-	// not special case it.
-	if len(re.expr) > 0 && (re.expr[0] == '^' || re.expr[len(re.expr)-1] == '$') {
-		var res [][]int
-		re.findSubmatch(cs, func(match []int) {
-			res = append(res, append([]int(nil), match...))
-		})
-		if len(res) > 0 {
-			deliver(res)
-		}
-		return
-	}
-
 	if n < 0 {
 		n = int(cs.length + 1)
 	}
@@ -525,6 +586,21 @@ func (re *Regexp) findSubmatch(cs cString, deliver func(match []int)) {
 	}
 
 	readMatches(cs, matchesPtr, numGroups, deliver)
+}
+
+// Longest makes future searches prefer the leftmost-longest match.
+// That is, when matching against text, the regexp returns a match that
+// begins as early as possible in the input (leftmost), and among those
+// it chooses a match that is as long as possible.
+// This method modifies the Regexp and may not be called concurrently
+// with any other methods.
+func (re *Regexp) Longest() {
+	// longest is not a mutable option in re2 so we must release and recompile.
+	re.Release()
+	// Expression already compiled once so no chance of error
+	newRE, _ := compile(re.expr, true)
+	re.ptr = newRE.ptr
+	re.parensPtr = newRE.parensPtr
 }
 
 // NumSubexp returns the number of parenthesized subexpressions in this Regexp.

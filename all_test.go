@@ -2,6 +2,7 @@ package re2
 
 import (
 	"reflect"
+	"regexp/syntax"
 	"strings"
 	"testing"
 )
@@ -496,3 +497,108 @@ func TestSplit(t *testing.T) {
 		}
 	}
 }
+
+// The following sequence of Match calls used to panic. See issue #12980.
+func TestParseAndCompile(t *testing.T) {
+	expr := "a$"
+	s := "a\nb"
+
+	for i, tc := range []struct {
+		reFlags  syntax.Flags
+		expMatch bool
+	}{
+		{syntax.Perl | syntax.OneLine, false},
+		{syntax.Perl &^ syntax.OneLine, true},
+	} {
+		parsed, err := syntax.Parse(expr, tc.reFlags)
+		if err != nil {
+			t.Fatalf("%d: parse: %v", i, err)
+		}
+		re, err := Compile(parsed.String())
+		if err != nil {
+			t.Fatalf("%d: compile: %v", i, err)
+		}
+		if match := re.MatchString(s); match != tc.expMatch {
+			t.Errorf("%d: %q.MatchString(%q)=%t; expected=%t", i, re, s, match, tc.expMatch)
+		}
+	}
+}
+
+//// Check that one-pass cutoff does trigger.
+//func TestOnePassCutoff(t *testing.T) {
+//	re, err := syntax.Parse(`^x{1,1000}y{1,1000}$`, syntax.Perl)
+//	if err != nil {
+//		t.Fatalf("parse: %v", err)
+//	}
+//	p, err := syntax.Compile(re.Simplify())
+//	if err != nil {
+//		t.Fatalf("compile: %v", err)
+//	}
+//	if compileOnePass(p) != nil {
+//		t.Fatalf("makeOnePass succeeded; wanted nil")
+//	}
+//}
+
+// Check that the same machine can be used with the standard matcher
+// and then the backtracker when there are no captures.
+func TestSwitchBacktrack(t *testing.T) {
+	re := MustCompile(`a|b`)
+	long := make([]byte, maxBacktrackVector+1)
+
+	// The following sequence of Match calls used to panic. See issue #10319.
+	re.Match(long)     // triggers standard matcher
+	re.Match(long[:1]) // triggers backtracker
+}
+
+// GAP: Because we just wrap pointers to C++ structs, Go reflection cannot compare
+// for equality correctly.
+//func TestDeepEqual(t *testing.T) {
+//	re1 := MustCompile("a.*b.*c.*d")
+//	re2 := MustCompile("a.*b.*c.*d")
+//	if !reflect.DeepEqual(re1, re2) { // has always been true, since Go 1.
+//		t.Errorf("DeepEqual(re1, re2) = false, want true")
+//	}
+//
+//	re1.MatchString("abcdefghijklmn")
+//	if !reflect.DeepEqual(re1, re2) {
+//		t.Errorf("DeepEqual(re1, re2) = false, want true")
+//	}
+//
+//	re2.MatchString("abcdefghijklmn")
+//	if !reflect.DeepEqual(re1, re2) {
+//		t.Errorf("DeepEqual(re1, re2) = false, want true")
+//	}
+//
+//	re2.MatchString(strings.Repeat("abcdefghijklmn", 100))
+//	if !reflect.DeepEqual(re1, re2) {
+//		t.Errorf("DeepEqual(re1, re2) = false, want true")
+//	}
+//}
+
+//var minInputLenTests = []struct {
+//	Regexp string
+//	min    int
+//}{
+//	{``, 0},
+//	{`a`, 1},
+//	{`aa`, 2},
+//	{`(aa)a`, 3},
+//	{`(?:aa)a`, 3},
+//	{`a?a`, 1},
+//	{`(aaa)|(aa)`, 2},
+//	{`(aa)+a`, 3},
+//	{`(aa)*a`, 1},
+//	{`(aa){3,5}`, 6},
+//	{`[a-z]`, 1},
+//	{`日`, 3},
+//}
+//
+//func TestMinInputLen(t *testing.T) {
+//	for _, tt := range minInputLenTests {
+//		re, _ := syntax.Parse(tt.Regexp, syntax.Perl)
+//		m := minInputLen(re)
+//		if m != tt.min {
+//			t.Errorf("regexp %#q has minInputLen %d, should be %d", tt.Regexp, m, tt.min)
+//		}
+//	}
+//}

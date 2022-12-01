@@ -108,6 +108,13 @@ func newRE(pattern cString, longest bool) uint32 {
 	return uint32(res[0])
 }
 
+func deleteRE(rePtr uint32) {
+	ctx := context.Background()
+	if _, err := libre2ABI.cre2Delete.Call(ctx, uint64(rePtr)); err != nil {
+		panic(err)
+	}
+}
+
 func reError(rePtr uint32) uint32 {
 	ctx := context.Background()
 	res, err := libre2ABI.cre2ErrorCode.Call(ctx, uint64(rePtr))
