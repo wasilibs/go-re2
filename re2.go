@@ -123,7 +123,7 @@ func compile(expr string, longest bool) (*Regexp, error) {
 		abi:         abi,
 	}
 
-	// runtime.SetFinalizer(re, (*Regexp).Release)
+	runtime.SetFinalizer(re, (*Regexp).Release)
 
 	return re, nil
 }

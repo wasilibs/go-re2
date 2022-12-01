@@ -11,6 +11,8 @@ import (
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 )
 
 var errFailedWrite = errors.New("failed to read from wasm memory")
@@ -45,6 +47,8 @@ type libre2ABI struct {
 	memory api.Memory
 
 	mod api.Module
+
+	mu sync.Mutex
 }
 
 func init() {
@@ -62,15 +66,15 @@ func init() {
 	wasmRT = rt
 }
 
-var moduleIdx = 0
+var moduleIdx = uint64(0)
 
 func newABI() libre2ABI {
 	ctx := context.Background()
-	mod, err := wasmRT.InstantiateModule(ctx, wasmCompiled, wazero.NewModuleConfig().WithName(strconv.Itoa(moduleIdx)))
+	modIdx := atomic.AddUint64(&moduleIdx, 1)
+	mod, err := wasmRT.InstantiateModule(ctx, wasmCompiled, wazero.NewModuleConfig().WithName(strconv.FormatUint(modIdx, 10)))
 	if err != nil {
 		panic(err)
 	}
-	moduleIdx++
 
 	return libre2ABI{
 		cre2New:                   mod.ExportedFunction("cre2_new"),
@@ -152,6 +156,8 @@ func release(re *Regexp) {
 }
 
 func match(re *Regexp, s cString, matchesPtr uint32, nMatches uint32) bool {
+	re.abi.mu.Lock()
+	defer re.abi.mu.Unlock()
 	ctx := context.Background()
 	res, err := re.abi.cre2Match.Call(ctx, uint64(re.ptr), uint64(s.ptr), uint64(s.length), 0, uint64(s.length), 0, uint64(matchesPtr), uint64(nMatches))
 	if err != nil {
@@ -162,6 +168,8 @@ func match(re *Regexp, s cString, matchesPtr uint32, nMatches uint32) bool {
 }
 
 func findAndConsume(re *Regexp, csPtr pointer, matchPtr uint32, nMatch uint32) bool {
+	re.abi.mu.Lock()
+	defer re.abi.mu.Unlock()
 	ctx := context.Background()
 
 	sPtrOrig, ok := re.abi.memory.ReadUint32Le(ctx, csPtr.ptr)
@@ -198,6 +206,8 @@ func findAndConsume(re *Regexp, csPtr pointer, matchPtr uint32, nMatch uint32) b
 }
 
 func readMatch(re *Regexp, cs cString, matchPtr uint32, dstCap []int) []int {
+	re.abi.mu.Lock()
+	defer re.abi.mu.Unlock()
 	ctx := context.Background()
 	subStrPtr, ok := re.abi.memory.ReadUint32Le(ctx, matchPtr)
 	if !ok {
@@ -282,6 +292,8 @@ func namedGroupsIterDelete(abi *libre2ABI, iterPtr uint32) {
 }
 
 func globalReplace(re *Regexp, textAndTargetPtr uint32, rewritePtr uint32) ([]byte, bool) {
+	re.abi.mu.Lock()
+	defer re.abi.mu.Unlock()
 	ctx := context.Background()
 
 	res, err := re.abi.cre2GlobalReplace.Call(ctx, uint64(re.ptr), uint64(textAndTargetPtr), uint64(rewritePtr))
@@ -303,7 +315,7 @@ func globalReplace(re *Regexp, textAndTargetPtr uint32, rewritePtr uint32) ([]by
 		panic(errFailedRead)
 	}
 	// This was malloc'd by cre2, so free it
-	defer free(&re.abi, strPtr)
+	defer freeNoLock(&re.abi, strPtr)
 
 	strLen, ok := re.abi.memory.ReadUint32Le(ctx, textAndTargetPtr+4)
 	if !ok {
@@ -350,8 +362,10 @@ func newCStringFromBytes(abi *libre2ABI, s []byte) cString {
 }
 
 func newCStringPtr(abi *libre2ABI, cs cString) pointer {
+	abi.mu.Lock()
+	defer abi.mu.Unlock()
 	ctx := context.Background()
-	ptr := malloc(abi, 8)
+	ptr := mallocNoLock(abi, 8)
 	if !abi.memory.WriteUint32Le(ctx, ptr, cs.ptr) {
 		panic(errFailedWrite)
 	}
@@ -371,6 +385,12 @@ func (p pointer) release() {
 }
 
 func malloc(abi *libre2ABI, size uint32) uint32 {
+	abi.mu.Lock()
+	defer abi.mu.Unlock()
+	return mallocNoLock(abi, size)
+}
+
+func mallocNoLock(abi *libre2ABI, size uint32) uint32 {
 	res, err := abi.malloc.Call(context.Background(), uint64(size))
 	if err != nil {
 		panic(err)
@@ -379,6 +399,12 @@ func malloc(abi *libre2ABI, size uint32) uint32 {
 }
 
 func free(abi *libre2ABI, ptr uint32) {
+	abi.mu.Lock()
+	defer abi.mu.Unlock()
+	freeNoLock(abi, ptr)
+}
+
+func freeNoLock(abi *libre2ABI, ptr uint32) {
 	_, err := abi.free.Call(context.Background(), uint64(ptr))
 	if err != nil {
 		panic(err)
