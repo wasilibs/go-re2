@@ -9,6 +9,7 @@ import (
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
+	"strconv"
 	"strings"
 )
 
@@ -19,8 +20,9 @@ var errFailedRead = errors.New("failed to read from wasm memory")
 var libre2 []byte
 
 var wasmRT wazero.Runtime
+var wasmCompiled wazero.CompiledModule
 
-type libre2ABIDef struct {
+type libre2ABI struct {
 	cre2New                   api.Function
 	cre2Delete                api.Function
 	cre2Match                 api.Function
@@ -41,9 +43,9 @@ type libre2ABIDef struct {
 	free   api.Function
 
 	memory api.Memory
-}
 
-var libre2ABI libre2ABIDef
+	mod api.Module
+}
 
 func init() {
 	ctx := context.Background()
@@ -51,12 +53,26 @@ func init() {
 
 	wasi_snapshot_preview1.MustInstantiate(ctx, rt)
 
-	mod, err := rt.InstantiateModuleFromBinary(ctx, libre2)
+	code, err := rt.CompileModule(ctx, libre2)
 	if err != nil {
 		panic(err)
 	}
+	wasmCompiled = code
 
-	abi := libre2ABIDef{
+	wasmRT = rt
+}
+
+var moduleIdx = 0
+
+func newABI() libre2ABI {
+	ctx := context.Background()
+	mod, err := wasmRT.InstantiateModule(ctx, wasmCompiled, wazero.NewModuleConfig().WithName(strconv.Itoa(moduleIdx)))
+	if err != nil {
+		panic(err)
+	}
+	moduleIdx++
+
+	return libre2ABI{
 		cre2New:                   mod.ExportedFunction("cre2_new"),
 		cre2Delete:                mod.ExportedFunction("cre2_delete"),
 		cre2Match:                 mod.ExportedFunction("cre2_match"),
@@ -77,65 +93,67 @@ func init() {
 		free:   mod.ExportedFunction("free"),
 
 		memory: mod.Memory(),
+		mod:    mod,
 	}
-
-	wasmRT = rt
-	libre2ABI = abi
 }
 
-func newRE(pattern cString, longest bool) uint32 {
+func newRE(abi *libre2ABI, pattern cString, longest bool) uint32 {
 	ctx := context.Background()
-	res, err := libre2ABI.cre2OptNew.Call(ctx)
+	res, err := abi.cre2OptNew.Call(ctx)
 	if err != nil {
 		panic(err)
 	}
 	optPtr := uint32(res[0])
 	defer func() {
-		if _, err := libre2ABI.cre2OptDelete.Call(ctx, uint64(optPtr)); err != nil {
+		if _, err := abi.cre2OptDelete.Call(ctx, uint64(optPtr)); err != nil {
 			panic(err)
 		}
 	}()
 	if longest {
-		_, err = libre2ABI.cre2OptSetLongestMatch.Call(ctx, uint64(optPtr), 1)
+		_, err = abi.cre2OptSetLongestMatch.Call(ctx, uint64(optPtr), 1)
 		if err != nil {
 			panic(err)
 		}
 	}
-	res, err = libre2ABI.cre2New.Call(ctx, uint64(pattern.ptr), uint64(pattern.length), uint64(optPtr))
+	res, err = abi.cre2New.Call(ctx, uint64(pattern.ptr), uint64(pattern.length), uint64(optPtr))
 	if err != nil {
 		panic(err)
 	}
 	return uint32(res[0])
 }
 
-func deleteRE(rePtr uint32) {
+func reError(abi *libre2ABI, rePtr uint32) uint32 {
 	ctx := context.Background()
-	if _, err := libre2ABI.cre2Delete.Call(ctx, uint64(rePtr)); err != nil {
-		panic(err)
-	}
-}
-
-func reError(rePtr uint32) uint32 {
-	ctx := context.Background()
-	res, err := libre2ABI.cre2ErrorCode.Call(ctx, uint64(rePtr))
+	res, err := abi.cre2ErrorCode.Call(ctx, uint64(rePtr))
 	if err != nil {
 		panic(err)
 	}
 	return uint32(res[0])
 }
 
-func numCapturingGroups(rePtr uint32) int {
+func numCapturingGroups(abi *libre2ABI, rePtr uint32) int {
 	ctx := context.Background()
-	res, err := libre2ABI.cre2NumCapturingGroups.Call(ctx, uint64(rePtr))
+	res, err := abi.cre2NumCapturingGroups.Call(ctx, uint64(rePtr))
 	if err != nil {
 		panic(err)
 	}
 	return int(res[0])
 }
 
-func match(rePtr uint32, s cString, matchesPtr uint32, nMatches uint32) bool {
+func release(re *Regexp) {
 	ctx := context.Background()
-	res, err := libre2ABI.cre2Match.Call(ctx, uint64(rePtr), uint64(s.ptr), uint64(s.length), 0, uint64(s.length), 0, uint64(matchesPtr), uint64(nMatches))
+	if _, err := re.abi.cre2Delete.Call(ctx, uint64(re.ptr)); err != nil {
+		panic(err)
+	}
+	if _, err := re.abi.cre2Delete.Call(ctx, uint64(re.parensPtr)); err != nil {
+		panic(err)
+	}
+	re.abi.mod.Close(ctx)
+}
+
+func match(re *Regexp, s cString, matchesPtr uint32, nMatches uint32) bool {
+	ctx := context.Background()
+	res, err := re.abi.cre2Match.Call(ctx, uint64(re.ptr), uint64(s.ptr), uint64(s.length), 0, uint64(s.length), 0, uint64(matchesPtr), uint64(nMatches))
 	if err != nil {
 		panic(err)
 	}
@@ -146,32 +164,32 @@ func match(rePtr uint32, s cString, matchesPtr uint32, nMatches uint32) bool {
 func findAndConsume(re *Regexp, csPtr pointer, matchPtr uint32, nMatch uint32) bool {
 	ctx := context.Background()
 
-	sPtrOrig, ok := libre2ABI.memory.ReadUint32Le(ctx, csPtr.ptr)
+	sPtrOrig, ok := re.abi.memory.ReadUint32Le(ctx, csPtr.ptr)
 	if !ok {
 		panic(errFailedRead)
 	}
 
-	sLenOrig, ok := libre2ABI.memory.ReadUint32Le(ctx, csPtr.ptr+4)
+	sLenOrig, ok := re.abi.memory.ReadUint32Le(ctx, csPtr.ptr+4)
 	if !ok {
 		panic(errFailedRead)
 	}
 
-	res, err := libre2ABI.cre2FindAndConsume.Call(ctx, uint64(re.parensPtr), uint64(csPtr.ptr), uint64(matchPtr), uint64(nMatch))
+	res, err := re.abi.cre2FindAndConsume.Call(ctx, uint64(re.parensPtr), uint64(csPtr.ptr), uint64(matchPtr), uint64(nMatch))
 	if err != nil {
 		panic(err)
 	}
 
-	sPtrNew, ok := libre2ABI.memory.ReadUint32Le(ctx, csPtr.ptr)
+	sPtrNew, ok := re.abi.memory.ReadUint32Le(ctx, csPtr.ptr)
 	if !ok {
 		panic(errFailedRead)
 	}
 
 	// If the regex matched an empty string, consumption will not advance the input, so we must do it ourselves.
 	if sPtrNew == sPtrOrig && sLenOrig > 0 {
-		if !libre2ABI.memory.WriteUint32Le(ctx, csPtr.ptr, sPtrOrig+1) {
+		if !re.abi.memory.WriteUint32Le(ctx, csPtr.ptr, sPtrOrig+1) {
 			panic(errFailedWrite)
 		}
-		if !libre2ABI.memory.WriteUint32Le(ctx, csPtr.ptr+4, sLenOrig-1) {
+		if !re.abi.memory.WriteUint32Le(ctx, csPtr.ptr+4, sLenOrig-1) {
 			panic(errFailedWrite)
 		}
 	}
@@ -179,16 +197,16 @@ func findAndConsume(re *Regexp, csPtr pointer, matchPtr uint32, nMatch uint32) b
 	return res[0] != 0
 }
 
-func readMatch(cs cString, matchPtr uint32, dstCap []int) []int {
+func readMatch(re *Regexp, cs cString, matchPtr uint32, dstCap []int) []int {
 	ctx := context.Background()
-	subStrPtr, ok := libre2ABI.memory.ReadUint32Le(ctx, matchPtr)
+	subStrPtr, ok := re.abi.memory.ReadUint32Le(ctx, matchPtr)
 	if !ok {
 		panic(errFailedRead)
 	}
 	if subStrPtr == 0 {
 		return append(dstCap, -1, -1)
 	}
-	sLen, ok := libre2ABI.memory.ReadUint32Le(ctx, matchPtr+4)
+	sLen, ok := re.abi.memory.ReadUint32Le(ctx, matchPtr+4)
 	if !ok {
 		panic(errFailedRead)
 	}
@@ -198,10 +216,10 @@ func readMatch(cs cString, matchPtr uint32, dstCap []int) []int {
 	return append(dstCap, int(sIdx), int(sIdx+sLen))
 }
 
-func namedGroupsIter(rePtr uint32) uint32 {
+func namedGroupsIter(abi *libre2ABI, rePtr uint32) uint32 {
 	ctx := context.Background()
 
-	groupsIter, err := libre2ABI.cre2NamedGroupsIterNew.Call(ctx, uint64(rePtr))
+	groupsIter, err := abi.cre2NamedGroupsIterNew.Call(ctx, uint64(rePtr))
 	if err != nil {
 		panic(err)
 	}
@@ -209,16 +227,16 @@ func namedGroupsIter(rePtr uint32) uint32 {
 	return uint32(groupsIter[0])
 }
 
-func namedGroupsIterNext(iterPtr uint32) (string, int, bool) {
+func namedGroupsIterNext(abi *libre2ABI, iterPtr uint32) (string, int, bool) {
 	ctx := context.Background()
 
 	// Not on the hot path so don't bother optimizing this.
-	namePtrPtr := malloc(4)
-	defer free(namePtrPtr)
-	indexPtr := malloc(4)
-	defer free(indexPtr)
+	namePtrPtr := malloc(abi, 4)
+	defer free(abi, namePtrPtr)
+	indexPtr := malloc(abi, 4)
+	defer free(abi, indexPtr)
 
-	res, err := libre2ABI.cre2NamedGroupsIterNext.Call(ctx, uint64(iterPtr), uint64(namePtrPtr), uint64(indexPtr))
+	res, err := abi.cre2NamedGroupsIterNext.Call(ctx, uint64(iterPtr), uint64(namePtrPtr), uint64(indexPtr))
 	if err != nil {
 		panic(err)
 	}
@@ -227,7 +245,7 @@ func namedGroupsIterNext(iterPtr uint32) (string, int, bool) {
 		return "", 0, false
 	}
 
-	namePtr, ok := libre2ABI.memory.ReadUint32Le(ctx, namePtrPtr)
+	namePtr, ok := abi.memory.ReadUint32Le(ctx, namePtrPtr)
 	if !ok {
 		panic(errFailedRead)
 	}
@@ -235,7 +253,7 @@ func namedGroupsIterNext(iterPtr uint32) (string, int, bool) {
 	// C-string, read content until NULL.
 	name := strings.Builder{}
 	for {
-		b, ok := libre2ABI.memory.ReadByte(ctx, namePtr)
+		b, ok := abi.memory.ReadByte(ctx, namePtr)
 		if !ok {
 			panic(errFailedRead)
 		}
@@ -246,7 +264,7 @@ func namedGroupsIterNext(iterPtr uint32) (string, int, bool) {
 		namePtr++
 	}
 
-	index, ok := libre2ABI.memory.ReadUint32Le(ctx, indexPtr)
+	index, ok := abi.memory.ReadUint32Le(ctx, indexPtr)
 	if !ok {
 		panic(errFailedRead)
 	}
@@ -254,19 +272,19 @@ func namedGroupsIterNext(iterPtr uint32) (string, int, bool) {
 	return name.String(), int(index), true
 }
 
-func namedGroupsIterDelete(iterPtr uint32) {
+func namedGroupsIterDelete(abi *libre2ABI, iterPtr uint32) {
 	ctx := context.Background()
 
-	_, err := libre2ABI.cre2NamedGroupsIterDelete.Call(ctx, uint64(iterPtr))
+	_, err := abi.cre2NamedGroupsIterDelete.Call(ctx, uint64(iterPtr))
 	if err != nil {
 		panic(err)
 	}
 }
 
-func globalReplace(rePtr uint32, textAndTargetPtr uint32, rewritePtr uint32) ([]byte, bool) {
+func globalReplace(re *Regexp, textAndTargetPtr uint32, rewritePtr uint32) ([]byte, bool) {
 	ctx := context.Background()
 
-	res, err := libre2ABI.cre2GlobalReplace.Call(ctx, uint64(rePtr), uint64(textAndTargetPtr), uint64(rewritePtr))
+	res, err := re.abi.cre2GlobalReplace.Call(ctx, uint64(re.ptr), uint64(textAndTargetPtr), uint64(rewritePtr))
 	if err != nil {
 		panic(err)
 	}
@@ -280,19 +298,19 @@ func globalReplace(rePtr uint32, textAndTargetPtr uint32, rewritePtr uint32) ([]
 		return nil, false
 	}
 
-	strPtr, ok := libre2ABI.memory.ReadUint32Le(ctx, textAndTargetPtr)
+	strPtr, ok := re.abi.memory.ReadUint32Le(ctx, textAndTargetPtr)
 	if !ok {
 		panic(errFailedRead)
 	}
 	// This was malloc'd by cre2, so free it
-	defer free(strPtr)
+	defer free(&re.abi, strPtr)
 
-	strLen, ok := libre2ABI.memory.ReadUint32Le(ctx, textAndTargetPtr+4)
+	strLen, ok := re.abi.memory.ReadUint32Le(ctx, textAndTargetPtr+4)
 	if !ok {
 		panic(errFailedRead)
 	}
 
-	str, ok := libre2ABI.memory.Read(ctx, strPtr, strLen)
+	str, ok := re.abi.memory.Read(ctx, strPtr, strLen)
 	if !ok {
 		panic(errFailedRead)
 	}
@@ -304,96 +322,85 @@ func globalReplace(rePtr uint32, textAndTargetPtr uint32, rewritePtr uint32) ([]
 type cString struct {
 	ptr    uint32
 	length uint32
+	abi    *libre2ABI
 }
 
 func (s cString) release() {
-	free(s.ptr)
+	free(s.abi, s.ptr)
 }
 
-func newCString(s string) cString {
+func newCString(abi *libre2ABI, s string) cString {
 	ctx := context.Background()
-	ptr := mustWriteString(ctx, s)
+	ptr := mustWriteString(ctx, abi, s)
 	return cString{
-		ptr:    uint32(ptr),
+		ptr:    ptr,
 		length: uint32(len(s)),
+		abi:    abi,
 	}
 }
 
-func newCStringFromBytes(s []byte) cString {
+func newCStringFromBytes(abi *libre2ABI, s []byte) cString {
 	ctx := context.Background()
-	ptr := mustWrite(ctx, s)
+	ptr := mustWrite(ctx, abi, s)
 	return cString{
-		ptr:    uint32(ptr),
+		ptr:    ptr,
 		length: uint32(len(s)),
+		abi:    abi,
 	}
 }
 
-func newCStringPtr(cs cString) pointer {
+func newCStringPtr(abi *libre2ABI, cs cString) pointer {
 	ctx := context.Background()
-	ptr := mustMalloc(ctx, 8)
-	if !libre2ABI.memory.WriteUint32Le(ctx, uint32(ptr), cs.ptr) {
+	ptr := malloc(abi, 8)
+	if !abi.memory.WriteUint32Le(ctx, ptr, cs.ptr) {
 		panic(errFailedWrite)
 	}
-	if !libre2ABI.memory.WriteUint32Le(ctx, uint32(ptr+4), cs.length) {
+	if !abi.memory.WriteUint32Le(ctx, ptr+4, cs.length) {
 		panic(errFailedWrite)
 	}
-	return pointer{ptr: uint32(ptr)}
+	return pointer{ptr: ptr, abi: abi}
 }
 
 type pointer struct {
 	ptr uint32
+	abi *libre2ABI
 }
 
 func (p pointer) release() {
-	free(p.ptr)
+	free(p.abi, p.ptr)
 }
 
-func malloc(size uint32) uint32 {
-	res, err := libre2ABI.malloc.Call(context.Background(), uint64(size))
+func malloc(abi *libre2ABI, size uint32) uint32 {
+	res, err := abi.malloc.Call(context.Background(), uint64(size))
 	if err != nil {
 		panic(err)
 	}
 	return uint32(res[0])
 }
 
-func free(ptr uint32) {
-	_, err := libre2ABI.free.Call(context.Background(), uint64(ptr))
+func free(abi *libre2ABI, ptr uint32) {
+	_, err := abi.free.Call(context.Background(), uint64(ptr))
 	if err != nil {
 		panic(err)
 	}
 }
 
-func mustMalloc(ctx context.Context, size int) uint64 {
-	ret, err := libre2ABI.malloc.Call(ctx, uint64(size))
-	if err != nil {
-		panic(err)
-	}
-	return ret[0]
-}
+func mustWrite(ctx context.Context, abi *libre2ABI, s []byte) uint32 {
+	ptr := malloc(abi, uint32(len(s)))
 
-func mustWrite(ctx context.Context, s []byte) uint64 {
-	ptr := mustMalloc(ctx, len(s))
-
-	if !libre2ABI.memory.Write(ctx, uint32(ptr), s) {
+	if !abi.memory.Write(ctx, ptr, s) {
 		panic("failed to write string to wasm memory")
 	}
 
 	return ptr
 }
 
-func mustWriteString(ctx context.Context, s string) uint64 {
-	ptr := mustMalloc(ctx, len(s))
+func mustWriteString(ctx context.Context, abi *libre2ABI, s string) uint32 {
+	ptr := malloc(abi, uint32(len(s)))
 
-	if !libre2ABI.memory.WriteString(ctx, uint32(ptr), s) {
+	if !abi.memory.WriteString(ctx, ptr, s) {
 		panic("failed to write string to wasm memory")
 	}
 
 	return ptr
-}
-
-func mustFree(ctx context.Context, ptr uint64) {
-	_, err := libre2ABI.free.Call(ctx, ptr)
-	if err != nil {
-		panic(err)
-	}
 }

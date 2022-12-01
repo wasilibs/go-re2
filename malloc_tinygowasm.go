@@ -13,7 +13,7 @@ func posix_memalign(memptr *uint32, align uint32, size uint32) int32 {
 
 	// Ignore alignment and hope for best, TinyGo by default does not
 	// provide a way to allocate aligned memory.
-	mem := malloc(size)
+	mem := _malloc(size)
 	if mem == 0 {
 		// TODO(anuraaga): Needs to read errno to be precise
 		return 1
@@ -34,10 +34,10 @@ func __libc_calloc(num uint32, size uint32) uint32 {
 
 //export __libc_malloc
 func __libc_malloc(size uint32) uint32 {
-	return malloc(size)
+	return _malloc(size)
 }
 
 //export __libc_free
 func __libc_free(ptr uint32) {
-	free(ptr)
+	_free(ptr)
 }
