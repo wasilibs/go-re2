@@ -46,9 +46,13 @@ func numCapturingGroups(abi *libre2ABI, rePtr uintptr) int {
 	return cre2.NumCapturingGroups(unsafe.Pointer(rePtr))
 }
 
+func deleteRE(_ *libre2ABI, rePtr uintptr) {
+	cre2.Delete(unsafe.Pointer(rePtr))
+}
+
 func release(re *Regexp) {
-	cre2.Delete(unsafe.Pointer(re.ptr))
-	cre2.Delete(unsafe.Pointer(re.parensPtr))
+	deleteRE(re.abi, re.ptr)
+	deleteRE(re.abi, re.parensPtr)
 }
 
 func match(re *Regexp, s cString, matchesPtr uintptr, nMatches uint32) bool {

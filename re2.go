@@ -62,16 +62,16 @@ func (re *Regexp) Copy() *Regexp {
 }
 
 func Compile(expr string) (*Regexp, error) {
-	return compile(expr, false)
+	return compile(expr)
 }
 
-func compile(expr string, longest bool) (*Regexp, error) {
+func compile(expr string) (*Regexp, error) {
 	abi := newABI()
 	abi.startOperation(len(expr) + len(expr) + 2)
 	defer abi.endOperation()
 
 	cs := newCString(abi, expr)
-	rePtr := newRE(abi, cs, longest)
+	rePtr := newRE(abi, cs, false)
 	errCode := reError(abi, rePtr)
 	switch errCode {
 	case 0:
@@ -112,7 +112,7 @@ func compile(expr string, longest bool) (*Regexp, error) {
 
 	exprParens := fmt.Sprintf("(%s)", expr)
 	csParens := newCString(abi, exprParens)
-	reParensPtr := newRE(abi, csParens, longest)
+	reParensPtr := newRE(abi, csParens, false)
 
 	subexp := subexpNames(abi, rePtr)
 
@@ -125,7 +125,7 @@ func compile(expr string, longest bool) (*Regexp, error) {
 		abi:         abi,
 	}
 
-	runtime.SetFinalizer(re, (*Regexp).Release)
+	runtime.SetFinalizer(re, release)
 
 	return re, nil
 }
@@ -143,10 +143,6 @@ func MustCompile(expr string) *Regexp {
 // the literal text.
 func QuoteMeta(s string) string {
 	return regexp.QuoteMeta(s)
-}
-
-func (re *Regexp) Release() {
-	release(re)
 }
 
 // Expand appends template to dst and returns the result; during the
@@ -627,11 +623,18 @@ func (re *Regexp) findSubmatch(cs cString, deliver func(match []int)) {
 // This method modifies the Regexp and may not be called concurrently
 // with any other methods.
 func (re *Regexp) Longest() {
+	re.abi.startOperation(len(re.expr) + len(re.expr) + 2)
+	defer re.abi.endOperation()
+
 	// longest is not a mutable option in re2 so we must release and recompile.
-	re.Release()
-	// Expression already compiled once so no chance of error
-	newRE, _ := compile(re.expr, true)
-	*re = *newRE
+	deleteRE(re.abi, re.ptr)
+	deleteRE(re.abi, re.parensPtr)
+
+	cs := newCString(re.abi, re.expr)
+	re.ptr = newRE(re.abi, cs, true)
+	exprParens := fmt.Sprintf("(%s)", re.expr)
+	csParens := newCString(re.abi, exprParens)
+	re.parensPtr = newRE(re.abi, csParens, true)
 }
 
 // NumSubexp returns the number of parenthesized subexpressions in this Regexp.

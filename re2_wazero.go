@@ -7,14 +7,13 @@ import (
 	_ "embed"
 	"encoding/binary"
 	"errors"
+	"github.com/tetratelabs/wazero"
+	"github.com/tetratelabs/wazero/api"
+	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
-
-	"github.com/tetratelabs/wazero"
-	"github.com/tetratelabs/wazero/api"
-	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
 
 var errFailedWrite = errors.New("failed to read from wasm memory")
@@ -160,14 +159,17 @@ func numCapturingGroups(abi *libre2ABI, rePtr uintptr) int {
 	return int(res[0])
 }
 
+func deleteRE(abi *libre2ABI, rePtr uintptr) {
+	ctx := context.Background()
+	if _, err := abi.cre2Delete.Call(ctx, uint64(rePtr)); err != nil {
+		panic(err)
+	}
+}
+
 func release(re *Regexp) {
 	ctx := context.Background()
-	if _, err := re.abi.cre2Delete.Call(ctx, uint64(re.ptr)); err != nil {
-		panic(err)
-	}
-	if _, err := re.abi.cre2Delete.Call(ctx, uint64(re.parensPtr)); err != nil {
-		panic(err)
-	}
+	deleteRE(re.abi, re.ptr)
+	deleteRE(re.abi, re.parensPtr)
 	re.abi.mod.Close(ctx)
 }
 

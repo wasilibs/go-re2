@@ -20,4 +20,9 @@ func Check() error {
 	return sh.RunV("go", "run", fmt.Sprintf("github.com/golangci/golangci-lint/cmd/golangci-lint@%s", golangCILintVer), "run")
 }
 
+// Bench runs benchmarks in the default configuration for a Go app, using wazero.
+func Bench() error {
+	return sh.RunV("go", "test", "-bench=.", "-v", "./...")
+}
+
 var Default = Test
