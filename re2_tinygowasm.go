@@ -135,15 +135,7 @@ func namedGroupsIterNext(_ *libre2ABI, iterPtr uintptr) (string, int, bool) {
 		return "", 0, false
 	}
 
-	// C-string, find NULL
-	nameLen := 0
-	for *(*byte)(unsafe.Add(namePtr, nameLen)) != 0 {
-		nameLen++
-	}
-
-	// Convert to Go string. The results are aliases into strings stored in the regexp,
-	// so it is safe to alias them without copying.
-	name := aliasString(namePtr, nameLen)
+	name := cre2.CopyCString(namePtr)
 	return name, int(index), true
 }
 

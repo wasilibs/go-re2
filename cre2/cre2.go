@@ -89,6 +89,10 @@ func ReadCBytes(sPtr unsafe.Pointer, sLen int) []byte {
 	return C.GoBytes(sPtr, C.int(sLen))
 }
 
+func CopyCString(sPtr unsafe.Pointer) string {
+	return C.GoString((*C.char)(sPtr))
+}
+
 func cFlag(flag bool) C.int {
 	if flag {
 		return C.int(1)
