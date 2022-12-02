@@ -136,7 +136,7 @@ func namedGroupsIterNext(_ *libre2ABI, iterPtr uintptr) (string, int, bool) {
 	}
 
 	name := cre2.CopyCString(namePtr)
-	return name, int(index), true
+	return name, index, true
 }
 
 func namedGroupsIterDelete(_ *libre2ABI, iterPtr uintptr) {

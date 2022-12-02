@@ -1,6 +1,8 @@
 package cre2
 
 /*
+#include <stdbool.h>
+
 void* cre2_new(void* pattern, int pattern_len, void* opts);
 void cre2_delete(void* re);
 int cre2_error_code(void* re);
@@ -54,7 +56,7 @@ func NamedGroupsIterNext(iterPtr unsafe.Pointer, namePtr *unsafe.Pointer, indexP
 	cIndex := C.int(0)
 	res := C.cre2_named_groups_iter_next(iterPtr, namePtr, &cIndex)
 	*indexPtr = int(cIndex)
-	return res
+	return bool(res)
 }
 
 func NamedGroupsIterDelete(iterPtr unsafe.Pointer) {
