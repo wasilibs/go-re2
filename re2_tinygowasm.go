@@ -1,4 +1,4 @@
-//go:build tinygo.wasm
+//go:build tinygo.wasm || re2_cgo
 
 package re2
 
@@ -138,11 +138,7 @@ func namedGroupsIterNext(_ *libre2ABI, iterPtr uintptr) (string, int, bool) {
 
 	// Convert to Go string. The results are aliases into strings stored in the regexp,
 	// so it is safe to alias them without copying.
-	name := *(*string)(unsafe.Pointer(&reflect.StringHeader{
-		Data: uintptr(namePtr),
-		Len:  uintptr(nameLen),
-	}))
-
+	name := aliasString(namePtr, nameLen)
 	return name, int(index), true
 }
 
@@ -160,14 +156,8 @@ func globalReplace(re *Regexp, textAndTargetPtr uintptr, rewritePtr uintptr) ([]
 	// This was malloc'd by cre2, so free it
 	defer cre2.Free(unsafe.Pointer(textAndTarget.ptr))
 
-	var buf []byte
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&buf))
-	sh.Data = textAndTarget.ptr
-	sh.Len = uintptr(textAndTarget.length)
-	sh.Cap = uintptr(textAndTarget.length)
-
 	// content of buf will be free'd, so copy it
-	return append([]byte{}, buf...), true
+	return cre2.ReadCBytes(unsafe.Pointer(textAndTarget.ptr), textAndTarget.length), true
 }
 
 func readMatch(abi *libre2ABI, cs cString, matchPtr uintptr, dstCap []int) []int {

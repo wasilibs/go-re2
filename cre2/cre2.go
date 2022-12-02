@@ -85,6 +85,10 @@ func Free(ptr unsafe.Pointer) {
 	C.free(ptr)
 }
 
+func ReadCBytes(sPtr unsafe.Pointer, sLen int) []byte {
+	return C.GoBytes(sPtr, C.int(sLen))
+}
+
 func cFlag(flag bool) C.int {
 	if flag {
 		return C.int(1)
