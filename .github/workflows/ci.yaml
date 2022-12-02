@@ -43,7 +43,7 @@ jobs:
         with:
           tinygo-version: 0.26.0
       - name: setup wasmtime for tinygo (linux or mac)
-        if: ${{ (startsWith(matrix.os, 'ubuntu-') || startsWith(matrix.os, 'macos-') && matrix.mode == 'tinygo' }}
+        if: ${{ (startsWith(matrix.os, 'ubuntu-') || startsWith(matrix.os, 'macos-')) && matrix.mode == 'tinygo' }}
         run: |
           curl https://wasmtime.dev/install.sh -sSf | bash
           echo "$HOME/.wasmtime/bin" >> $GITHUB_PATH
