@@ -282,13 +282,14 @@ func (re *Regexp) FindStringIndex(s string) (loc []int) {
 }
 
 func (re *Regexp) find(cs cString, dstCap []int) []int {
-	matchBuf, matchPtr := re.abi.memory.allocate(8)
+	matchPtr := re.abi.memory.allocate(8)
 
 	res := match(re, cs, matchPtr, 1)
 	if !res {
 		return nil
 	}
 
+	matchBuf := re.abi.memory.read(matchPtr, 8)
 	return readMatch(cs, matchBuf, dstCap)
 }
 
@@ -376,7 +377,7 @@ func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 	csPtr := newCStringPtr(re.abi, cs)
 	defer csPtr.release()
 
-	matchBuf, matchPtr := re.abi.memory.allocate(8)
+	matchPtr := re.abi.memory.allocate(8)
 
 	count := 0
 	prevMatchEnd := -1
@@ -385,6 +386,7 @@ func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 			break
 		}
 
+		matchBuf := re.abi.memory.read(matchPtr, 8)
 		matches := readMatch(csOrig, matchBuf, dstCap[:0])
 		accept := true
 		if matches[0] == matches[1] {
@@ -515,7 +517,7 @@ func (re *Regexp) findAllSubmatch(cs cString, n int, deliver func(match [][]int)
 	defer csPtr.release()
 
 	numGroups := len(re.subexpNames)
-	matchesBuf, matchesPtr := re.abi.memory.allocate(uint32(8 * numGroups))
+	matchesPtr := re.abi.memory.allocate(uint32(8 * numGroups))
 
 	count := 0
 	prevMatchEnd := -1
@@ -526,6 +528,7 @@ func (re *Regexp) findAllSubmatch(cs cString, n int, deliver func(match [][]int)
 
 		var matches [][]int
 		accept := true
+		matchesBuf := re.abi.memory.read(matchesPtr, uint32(8*numGroups))
 		readMatches(csOrig, matchesBuf, numGroups, func(match []int) {
 			if len(matches) == 0 {
 				// First match, check if it's an empty match following a match, which we ignore.
@@ -628,15 +631,13 @@ func (re *Regexp) FindStringSubmatchIndex(s string) []int {
 
 func (re *Regexp) findSubmatch(cs cString, deliver func(match []int)) {
 	numGroups := len(re.subexpNames)
-	matchesBuf, matchesPtr := re.abi.memory.allocate(uint32(8 * numGroups))
-	for i := range matchesBuf {
-		matchesBuf[i] = 0
-	}
+	matchesPtr := re.abi.memory.allocate(uint32(8 * numGroups))
 
 	if !match(re, cs, matchesPtr, uint32(numGroups)) {
 		return
 	}
 
+	matchesBuf := re.abi.memory.read(matchesPtr, uint32(8*numGroups))
 	readMatches(cs, matchesBuf, numGroups, deliver)
 }
 

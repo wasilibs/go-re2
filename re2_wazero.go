@@ -235,9 +235,6 @@ func readMatches(cs cString, matchesBuf []byte, n int, deliver func([]int)) {
 		}
 		sLen := binary.LittleEndian.Uint32(matchesBuf[8*i+4:])
 		sIdx := subStrPtr - cs.ptr
-		if sIdx+sLen > 3070285412 {
-			panic("invalid match")
-		}
 		deliver(append(dstCap[:0], int(sIdx), int(sIdx+sLen)))
 	}
 }
@@ -426,7 +423,7 @@ func mustWriteString(ctx context.Context, abi *libre2ABI, s string) uint32 {
 }
 
 type sharedMemory struct {
-	buf     []byte
+	size    uint32
 	bufPtr  uint32
 	nextIdx uint32
 	abi     *libre2ABI
@@ -434,7 +431,7 @@ type sharedMemory struct {
 
 func (m *sharedMemory) reserve(size uint32) {
 	m.nextIdx = 0
-	if len(m.buf) >= int(size) {
+	if m.size >= size {
 		return
 	}
 
@@ -450,35 +447,37 @@ func (m *sharedMemory) reserve(size uint32) {
 	if err != nil {
 		panic(err)
 	}
-	bufPtr := uint32(res[0])
-	buf, ok := m.abi.wasmMemory.Read(ctx, bufPtr, size)
-	if !ok {
-		panic(errFailedRead)
-	}
 
-	m.buf = buf
+	m.size = size
 	m.bufPtr = uint32(res[0])
 }
 
-func (m *sharedMemory) allocate(size uint32) ([]byte, uint32) {
-	if int(m.nextIdx+size) > len(m.buf) {
+func (m *sharedMemory) allocate(size uint32) uint32 {
+	if m.nextIdx+size > m.size {
 		panic("not enough reserved shared memory")
 	}
 
 	ptr := m.bufPtr + m.nextIdx
-	buf := m.buf[m.nextIdx : m.nextIdx+size]
 	m.nextIdx += size
-	return buf, ptr
+	return ptr
+}
+
+func (m *sharedMemory) read(ptr uint32, size uint32) []byte {
+	buf, ok := m.abi.wasmMemory.Read(context.Background(), ptr, size)
+	if !ok {
+		panic(errFailedRead)
+	}
+	return buf
 }
 
 func (m *sharedMemory) write(b []byte) uint32 {
-	buf, ptr := m.allocate(uint32(len(b)))
-	copy(buf, b)
+	ptr := m.allocate(uint32(len(b)))
+	m.abi.wasmMemory.Write(context.Background(), ptr, b)
 	return ptr
 }
 
 func (m *sharedMemory) writeString(s string) uint32 {
-	buf, ptr := m.allocate(uint32(len(s)))
-	copy(buf, s)
+	ptr := m.allocate(uint32(len(s)))
+	m.abi.wasmMemory.WriteString(context.Background(), ptr, s)
 	return ptr
 }
