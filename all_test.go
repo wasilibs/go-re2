@@ -249,18 +249,6 @@ var replaceLiteralTests = []ReplaceTest{
 	{"a+", "$", "aaa", "$"},
 }
 
-type ReplaceFuncTest struct {
-	pattern       string
-	replacement   func(string) string
-	input, output string
-}
-
-var replaceFuncTests = []ReplaceFuncTest{
-	{"[a-c]", func(s string) string { return "x" + s + "y" }, "defabcdef", "defxayxbyxcydef"},
-	{"[a-c]+", func(s string) string { return "x" + s + "y" }, "defabcdef", "defxabcydef"},
-	{"[a-c]*", func(s string) string { return "x" + s + "y" }, "defabcdef", "xydxyexyfxabcydxyexyfxy"},
-}
-
 func TestReplaceAll(t *testing.T) {
 	for _, tc := range replaceTests {
 		re, err := Compile(tc.pattern)
@@ -339,22 +327,6 @@ var metaTests = []MetaTest{
 	{`foo\.\$`, `foo\\\.\\\$`, `foo.$`, true}, // has meta but no operator
 	{`foo.\$`, `foo\.\\\$`, `foo`, false},     // has escaped operators and real operators
 	{`!@#$%^&*()_+-=[{]}\|,<.>/?~`, `!@#\$%\^&\*\(\)_\+-=\[\{\]\}\\\|,<\.>/\?~`, `!@#`, false},
-}
-
-var literalPrefixTests = []MetaTest{
-	// See golang.org/issue/11175.
-	// output is unused.
-	{`^0^0$`, ``, `0`, false},
-	{`^0^`, ``, ``, false},
-	{`^0$`, ``, `0`, true},
-	{`$0^`, ``, ``, false},
-	{`$0$`, ``, ``, false},
-	{`^^0$$`, ``, ``, false},
-	{`^$^$`, ``, ``, false},
-	{`$$0^^`, ``, ``, false},
-	{`a\x{fffd}b`, ``, `a`, false},
-	{`\x{fffd}b`, ``, ``, false},
-	{"\ufffd", ``, ``, false},
 }
 
 func TestQuoteMeta(t *testing.T) {
@@ -524,21 +496,6 @@ func TestParseAndCompile(t *testing.T) {
 	}
 }
 
-//// Check that one-pass cutoff does trigger.
-//func TestOnePassCutoff(t *testing.T) {
-//	re, err := syntax.Parse(`^x{1,1000}y{1,1000}$`, syntax.Perl)
-//	if err != nil {
-//		t.Fatalf("parse: %v", err)
-//	}
-//	p, err := syntax.Compile(re.Simplify())
-//	if err != nil {
-//		t.Fatalf("compile: %v", err)
-//	}
-//	if compileOnePass(p) != nil {
-//		t.Fatalf("makeOnePass succeeded; wanted nil")
-//	}
-//}
-
 // Check that the same machine can be used with the standard matcher
 // and then the backtracker when there are no captures.
 func TestSwitchBacktrack(t *testing.T) {
@@ -572,33 +529,5 @@ func TestSwitchBacktrack(t *testing.T) {
 //	re2.MatchString(strings.Repeat("abcdefghijklmn", 100))
 //	if !reflect.DeepEqual(re1, re2) {
 //		t.Errorf("DeepEqual(re1, re2) = false, want true")
-//	}
-//}
-
-//var minInputLenTests = []struct {
-//	Regexp string
-//	min    int
-//}{
-//	{``, 0},
-//	{`a`, 1},
-//	{`aa`, 2},
-//	{`(aa)a`, 3},
-//	{`(?:aa)a`, 3},
-//	{`a?a`, 1},
-//	{`(aaa)|(aa)`, 2},
-//	{`(aa)+a`, 3},
-//	{`(aa)*a`, 1},
-//	{`(aa){3,5}`, 6},
-//	{`[a-z]`, 1},
-//	{`日`, 3},
-//}
-//
-//func TestMinInputLen(t *testing.T) {
-//	for _, tt := range minInputLenTests {
-//		re, _ := syntax.Parse(tt.Regexp, syntax.Perl)
-//		m := minInputLen(re)
-//		if m != tt.min {
-//			t.Errorf("regexp %#q has minInputLen %d, should be %d", tt.Regexp, m, tt.min)
-//		}
 //	}
 //}
