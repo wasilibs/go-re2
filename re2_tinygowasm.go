@@ -73,6 +73,12 @@ func newABI() libre2ABI {
 	return libre2ABI{}
 }
 
+func (abi *libre2ABI) startOperation(memorySize uint32) {
+}
+
+func (abi *libre2ABI) endOperation() {
+}
+
 func newRE(abi *libre2ABI, pattern cString, longest bool) uint32 {
 	opts := cre2OptNew()
 	defer cre2OptDelete(opts)
@@ -221,4 +227,13 @@ func readMatch(_ *Regexp, cs cString, matchPtr uint32, dstCap []int) []int {
 	}
 	sIdx := subStrPtr - cs.ptr
 	return append(dstCap, int(sIdx), int(sIdx+match.length))
+}
+
+func readMatches(re *Regexp, cs cString, matchPtr uint32, n int, deliver func([]int)) {
+	var dstCap [2]int
+
+	for i := 0; i < n; i++ {
+		dst := readMatch(re, cs, matchPtr+uint32(8*i), dstCap[:0])
+		deliver(dst)
+	}
 }

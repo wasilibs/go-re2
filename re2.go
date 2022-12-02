@@ -8,7 +8,6 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
-	"unsafe"
 )
 
 type Regexp struct {
@@ -22,7 +21,7 @@ type Regexp struct {
 
 	subexpNames []string
 
-	abi libre2ABI
+	abi *libre2ABI
 }
 
 // MatchString reports whether the string s
@@ -68,9 +67,12 @@ func Compile(expr string) (*Regexp, error) {
 
 func compile(expr string, longest bool) (*Regexp, error) {
 	abi := newABI()
-	cs := newCString(&abi, expr)
-	rePtr := newRE(&abi, cs, longest)
-	errCode := reError(&abi, rePtr)
+	abi.startOperation(len(expr) + len(expr) + 2)
+	defer abi.endOperation()
+
+	cs := newCString(abi, expr)
+	rePtr := newRE(abi, cs, longest)
+	errCode := reError(abi, rePtr)
 	switch errCode {
 	case 0:
 	// No error.
@@ -109,10 +111,10 @@ func compile(expr string, longest bool) (*Regexp, error) {
 	}
 
 	exprParens := fmt.Sprintf("(%s)", expr)
-	csParens := newCString(&abi, exprParens)
-	reParensPtr := newRE(&abi, csParens, longest)
+	csParens := newCString(abi, exprParens)
+	reParensPtr := newRE(abi, csParens, longest)
 
-	subexp := subexpNames(&abi, rePtr)
+	subexp := subexpNames(abi, rePtr)
 
 	re := &Regexp{
 		ptr:         rePtr,
@@ -123,7 +125,7 @@ func compile(expr string, longest bool) (*Regexp, error) {
 		abi:         abi,
 	}
 
-	runtime.SetFinalizer(re, (*Regexp).Release)
+	// runtime.SetFinalizer(re, (*Regexp).Release)
 
 	return re, nil
 }
@@ -224,7 +226,10 @@ func (re *Regexp) expand(dst []byte, template string, bsrc []byte, src string, m
 // Find returns a slice holding the text of the leftmost match in b of the regular expression.
 // A return value of nil indicates no match.
 func (re *Regexp) Find(b []byte) []byte {
-	cs := newCStringFromBytes(&re.abi, b)
+	re.abi.startOperation(len(b) + 8)
+	defer re.abi.endOperation()
+
+	cs := newCStringFromBytes(re.abi, b)
 	defer cs.release()
 
 	var dstCap [2]int
@@ -238,7 +243,9 @@ func (re *Regexp) Find(b []byte) []byte {
 // b[loc[0]:loc[1]].
 // A return value of nil indicates no match.
 func (re *Regexp) FindIndex(b []byte) (loc []int) {
-	cs := newCStringFromBytes(&re.abi, b)
+	re.abi.startOperation(len(b) + 8)
+	defer re.abi.endOperation()
+	cs := newCStringFromBytes(re.abi, b)
 	defer cs.release()
 
 	return re.find(cs, nil)
@@ -250,7 +257,9 @@ func (re *Regexp) FindIndex(b []byte) (loc []int) {
 // an empty string. Use FindStringIndex or FindStringSubmatch if it is
 // necessary to distinguish these cases.
 func (re *Regexp) FindString(s string) string {
-	cs := newCString(&re.abi, s)
+	re.abi.startOperation(len(s) + 8)
+	defer re.abi.endOperation()
+	cs := newCString(re.abi, s)
 	defer cs.release()
 
 	var dstCap [2]int
@@ -264,22 +273,23 @@ func (re *Regexp) FindString(s string) string {
 // itself is at s[loc[0]:loc[1]].
 // A return value of nil indicates no match.
 func (re *Regexp) FindStringIndex(s string) (loc []int) {
-	cs := newCString(&re.abi, s)
+	re.abi.startOperation(len(s) + 8)
+	defer re.abi.endOperation()
+	cs := newCString(re.abi, s)
 	defer cs.release()
 
 	return re.find(cs, nil)
 }
 
 func (re *Regexp) find(cs cString, dstCap []int) []int {
-	matchPtr := malloc(&re.abi, uint32(unsafe.Sizeof(cString{})))
-	defer free(&re.abi, matchPtr)
+	matchBuf, matchPtr := re.abi.memory.allocate(8)
 
 	res := match(re, cs, matchPtr, 1)
 	if !res {
 		return nil
 	}
 
-	return readMatch(re, cs, matchPtr, dstCap)
+	return readMatch(cs, matchBuf, dstCap)
 }
 
 // FindAll is the 'All' version of Find; it returns a slice of all successive
@@ -287,7 +297,10 @@ func (re *Regexp) find(cs cString, dstCap []int) []int {
 // package comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindAll(b []byte, n int) [][]byte {
-	cs := newCStringFromBytes(&re.abi, b)
+	re.abi.startOperation(len(b) + 8)
+	defer re.abi.endOperation()
+
+	cs := newCStringFromBytes(re.abi, b)
 	defer cs.release()
 
 	var matches [][]byte
@@ -304,7 +317,10 @@ func (re *Regexp) FindAll(b []byte, n int) [][]byte {
 // in the package comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindAllIndex(b []byte, n int) [][]int {
-	cs := newCStringFromBytes(&re.abi, b)
+	re.abi.startOperation(len(b) + 8)
+	defer re.abi.endOperation()
+
+	cs := newCStringFromBytes(re.abi, b)
 	defer cs.release()
 
 	var matches [][]int
@@ -317,7 +333,10 @@ func (re *Regexp) FindAllIndex(b []byte, n int) [][]int {
 }
 
 func (re *Regexp) FindAllString(s string, n int) []string {
-	cs := newCString(&re.abi, s)
+	re.abi.startOperation(len(s) + 8)
+	defer re.abi.endOperation()
+
+	cs := newCString(re.abi, s)
 	defer cs.release()
 
 	var matches []string
@@ -330,7 +349,10 @@ func (re *Regexp) FindAllString(s string, n int) []string {
 }
 
 func (re *Regexp) FindAllStringIndex(s string, n int) [][]int {
-	cs := newCString(&re.abi, s)
+	re.abi.startOperation(len(s) + 8)
+	defer re.abi.endOperation()
+
+	cs := newCString(re.abi, s)
 	defer cs.release()
 
 	var matches [][]int
@@ -351,11 +373,10 @@ func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 
 	csOrig := cs
 
-	csPtr := newCStringPtr(&re.abi, cs)
+	csPtr := newCStringPtr(re.abi, cs)
 	defer csPtr.release()
 
-	matchPtr := malloc(&re.abi, 8)
-	defer free(&re.abi, matchPtr)
+	matchBuf, matchPtr := re.abi.memory.allocate(8)
 
 	count := 0
 	prevMatchEnd := -1
@@ -364,7 +385,7 @@ func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 			break
 		}
 
-		matches := readMatch(re, csOrig, matchPtr, dstCap[:0])
+		matches := readMatch(csOrig, matchBuf, dstCap[:0])
 		accept := true
 		if matches[0] == matches[1] {
 			// We've found an empty match.
@@ -391,7 +412,10 @@ func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 // description in the package comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindAllSubmatch(b []byte, n int) [][][]byte {
-	cs := newCStringFromBytes(&re.abi, b)
+	re.abi.startOperation(len(b) + 8*len(re.subexpNames) + 8)
+	defer re.abi.endOperation()
+
+	cs := newCStringFromBytes(re.abi, b)
 	defer cs.release()
 
 	var matches [][][]byte
@@ -412,7 +436,10 @@ func (re *Regexp) FindAllSubmatch(b []byte, n int) [][][]byte {
 // 'All' description in the package comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindAllSubmatchIndex(b []byte, n int) [][]int {
-	cs := newCStringFromBytes(&re.abi, b)
+	re.abi.startOperation(len(b) + 8*len(re.subexpNames) + 8)
+	defer re.abi.endOperation()
+
+	cs := newCStringFromBytes(re.abi, b)
 	defer cs.release()
 
 	var matches [][]int
@@ -433,7 +460,10 @@ func (re *Regexp) FindAllSubmatchIndex(b []byte, n int) [][]int {
 // the 'All' description in the package comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindAllStringSubmatch(s string, n int) [][]string {
-	cs := newCString(&re.abi, s)
+	re.abi.startOperation(len(s) + 8*len(re.subexpNames) + 8)
+	defer re.abi.endOperation()
+
+	cs := newCString(re.abi, s)
 	defer cs.release()
 
 	var matches [][]string
@@ -455,7 +485,10 @@ func (re *Regexp) FindAllStringSubmatch(s string, n int) [][]string {
 // comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindAllStringSubmatchIndex(s string, n int) [][]int {
-	cs := newCString(&re.abi, s)
+	re.abi.startOperation(len(s) + 8*len(re.subexpNames) + 8)
+	defer re.abi.endOperation()
+
+	cs := newCString(re.abi, s)
 	defer cs.release()
 
 	var matches [][]int
@@ -478,23 +511,22 @@ func (re *Regexp) findAllSubmatch(cs cString, n int, deliver func(match [][]int)
 
 	csOrig := cs
 
-	csPtr := newCStringPtr(&re.abi, cs)
+	csPtr := newCStringPtr(re.abi, cs)
 	defer csPtr.release()
 
 	numGroups := len(re.subexpNames)
-	matchPtr := malloc(&re.abi, uint32(8*numGroups))
-	defer free(&re.abi, matchPtr)
+	matchesBuf, matchesPtr := re.abi.memory.allocate(uint32(8 * numGroups))
 
 	count := 0
 	prevMatchEnd := -1
 	for i := 0; i < n; i++ {
-		if !findAndConsume(re, csPtr, matchPtr, uint32(numGroups)) {
+		if !findAndConsume(re, csPtr, matchesPtr, uint32(numGroups)) {
 			break
 		}
 
 		var matches [][]int
 		accept := true
-		readMatches(re, csOrig, matchPtr, numGroups, func(match []int) {
+		readMatches(csOrig, matchesBuf, numGroups, func(match []int) {
 			if len(matches) == 0 {
 				// First match, check if it's an empty match following a match, which we ignore.
 				// TODO: Don't iterate further when ignoring.
@@ -522,7 +554,10 @@ func (re *Regexp) findAllSubmatch(cs cString, n int, deliver func(match [][]int)
 // comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindSubmatch(b []byte) [][]byte {
-	cs := newCStringFromBytes(&re.abi, b)
+	re.abi.startOperation(len(b) + 8*len(re.subexpNames))
+	defer re.abi.endOperation()
+
+	cs := newCStringFromBytes(re.abi, b)
 	defer cs.release()
 
 	var matches [][]byte
@@ -540,7 +575,10 @@ func (re *Regexp) FindSubmatch(b []byte) [][]byte {
 // in the package comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindSubmatchIndex(b []byte) []int {
-	cs := newCStringFromBytes(&re.abi, b)
+	re.abi.startOperation(len(b) + 8*len(re.subexpNames))
+	defer re.abi.endOperation()
+
+	cs := newCStringFromBytes(re.abi, b)
 	defer cs.release()
 
 	var matches []int
@@ -553,8 +591,10 @@ func (re *Regexp) FindSubmatchIndex(b []byte) []int {
 }
 
 func (re *Regexp) FindStringSubmatch(s string) []string {
-	cs := newCString(&re.abi, s)
-	defer cs.release()
+	re.abi.startOperation(len(s) + 8*len(re.subexpNames))
+	defer re.abi.endOperation()
+
+	cs := newCString(re.abi, s)
 
 	var matches []string
 
@@ -571,7 +611,10 @@ func (re *Regexp) FindStringSubmatch(s string) []string {
 // 'Index' descriptions in the package comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindStringSubmatchIndex(s string) []int {
-	cs := newCString(&re.abi, s)
+	re.abi.startOperation(len(s) + 8*len(re.subexpNames))
+	defer re.abi.endOperation()
+
+	cs := newCString(re.abi, s)
 	defer cs.release()
 
 	var matches []int
@@ -585,14 +628,16 @@ func (re *Regexp) FindStringSubmatchIndex(s string) []int {
 
 func (re *Regexp) findSubmatch(cs cString, deliver func(match []int)) {
 	numGroups := len(re.subexpNames)
-	matchesPtr := malloc(&re.abi, uint32(8*numGroups))
-	defer free(&re.abi, matchesPtr)
+	matchesBuf, matchesPtr := re.abi.memory.allocate(uint32(8 * numGroups))
+	for i := range matchesBuf {
+		matchesBuf[i] = 0
+	}
 
 	if !match(re, cs, matchesPtr, uint32(numGroups)) {
 		return
 	}
 
-	readMatches(re, cs, matchesPtr, numGroups, deliver)
+	readMatches(cs, matchesBuf, numGroups, deliver)
 }
 
 // Longest makes future searches prefer the leftmost-longest match.
@@ -697,7 +742,10 @@ func (re *Regexp) SubexpIndex(name string) int {
 }
 
 func (re *Regexp) Match(s []byte) bool {
-	cs := newCStringFromBytes(&re.abi, s)
+	re.abi.startOperation(len(s))
+	defer re.abi.endOperation()
+
+	cs := newCStringFromBytes(re.abi, s)
 	defer cs.release()
 	res := match(re, cs, 0, 0)
 	runtime.KeepAlive(s)
@@ -705,7 +753,10 @@ func (re *Regexp) Match(s []byte) bool {
 }
 
 func (re *Regexp) MatchString(s string) bool {
-	cs := newCString(&re.abi, s)
+	re.abi.startOperation(len(s))
+	defer re.abi.endOperation()
+
+	cs := newCString(re.abi, s)
 	defer cs.release()
 	res := match(re, cs, 0, 0)
 	runtime.KeepAlive(s)
@@ -720,7 +771,10 @@ func (re *Regexp) ReplaceAll(src, repl []byte) []byte {
 	// so follow suit for now.
 	replRE2 := convertReplacement(string(repl), re.subexpNames)
 
-	srcCS := newCStringFromBytes(&re.abi, src)
+	re.abi.startOperation(len(src) + len(replRE2) + 16)
+	defer re.abi.endOperation()
+
+	srcCS := newCStringFromBytes(re.abi, src)
 	defer srcCS.release()
 
 	res, matched := re.replaceAll(srcCS, replRE2)
@@ -736,7 +790,10 @@ func (re *Regexp) ReplaceAll(src, repl []byte) []byte {
 func (re *Regexp) ReplaceAllLiteral(src, repl []byte) []byte {
 	replRE2 := []byte(escapeReplacement(string(repl)))
 
-	srcCS := newCStringFromBytes(&re.abi, src)
+	re.abi.startOperation(len(src) + len(replRE2) + 16)
+	defer re.abi.endOperation()
+
+	srcCS := newCStringFromBytes(re.abi, src)
 	defer srcCS.release()
 
 	res, matched := re.replaceAll(srcCS, replRE2)
@@ -753,7 +810,10 @@ func (re *Regexp) ReplaceAllLiteral(src, repl []byte) []byte {
 func (re *Regexp) ReplaceAllLiteralString(src, repl string) string {
 	replRE2 := []byte(escapeReplacement(repl))
 
-	srcCS := newCString(&re.abi, src)
+	re.abi.startOperation(len(src) + len(replRE2) + 16)
+	defer re.abi.endOperation()
+
+	srcCS := newCString(re.abi, src)
 	defer srcCS.release()
 
 	res, matched := re.replaceAll(srcCS, replRE2)
@@ -770,7 +830,10 @@ func (re *Regexp) ReplaceAllLiteralString(src, repl string) string {
 func (re *Regexp) ReplaceAllString(src, repl string) string {
 	replRE2 := convertReplacement(repl, re.subexpNames)
 
-	srcCS := newCString(&re.abi, src)
+	re.abi.startOperation(len(src) + len(replRE2) + 16)
+	defer re.abi.endOperation()
+
+	srcCS := newCString(re.abi, src)
 	defer srcCS.release()
 
 	res, matched := re.replaceAll(srcCS, replRE2)
@@ -782,13 +845,13 @@ func (re *Regexp) ReplaceAllString(src, repl string) string {
 }
 
 func (re *Regexp) replaceAll(srcCS cString, repl []byte) ([]byte, bool) {
-	replCS := newCStringFromBytes(&re.abi, repl)
+	replCS := newCStringFromBytes(re.abi, repl)
 	defer replCS.release()
 
-	replCSPtr := newCStringPtr(&re.abi, replCS)
+	replCSPtr := newCStringPtr(re.abi, replCS)
 	defer replCSPtr.release()
 
-	srcCSPtr := newCStringPtr(&re.abi, srcCS)
+	srcCSPtr := newCStringPtr(re.abi, srcCS)
 	defer srcCSPtr.release()
 
 	res, matched := globalReplace(re, srcCSPtr.ptr, replCSPtr.ptr)
@@ -946,13 +1009,4 @@ func matchedString(s string, match []int) string {
 		return ""
 	}
 	return s[match[0]:match[1]]
-}
-
-func readMatches(re *Regexp, cs cString, matchPtr uint32, n int, deliver func([]int)) {
-	var dstCap [2]int
-
-	for i := 0; i < n; i++ {
-		dst := readMatch(re, cs, matchPtr+uint32(8*i), dstCap[:0])
-		deliver(dst)
-	}
 }
