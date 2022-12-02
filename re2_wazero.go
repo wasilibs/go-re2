@@ -116,13 +116,13 @@ func (abi *libre2ABI) endOperation() {
 	abi.mu.Unlock()
 }
 
-func newRE(abi *libre2ABI, pattern cString, longest bool) uint32 {
+func newRE(abi *libre2ABI, pattern cString, longest bool) uintptr {
 	ctx := context.Background()
 	res, err := abi.cre2OptNew.Call(ctx)
 	if err != nil {
 		panic(err)
 	}
-	optPtr := uint32(res[0])
+	optPtr := uintptr(res[0])
 	defer func() {
 		if _, err := abi.cre2OptDelete.Call(ctx, uint64(optPtr)); err != nil {
 			panic(err)
@@ -138,19 +138,19 @@ func newRE(abi *libre2ABI, pattern cString, longest bool) uint32 {
 	if err != nil {
 		panic(err)
 	}
-	return uint32(res[0])
+	return uintptr(res[0])
 }
 
-func reError(abi *libre2ABI, rePtr uint32) uint32 {
+func reError(abi *libre2ABI, rePtr uintptr) int {
 	ctx := context.Background()
 	res, err := abi.cre2ErrorCode.Call(ctx, uint64(rePtr))
 	if err != nil {
 		panic(err)
 	}
-	return uint32(res[0])
+	return int(res[0])
 }
 
-func numCapturingGroups(abi *libre2ABI, rePtr uint32) int {
+func numCapturingGroups(abi *libre2ABI, rePtr uintptr) int {
 	ctx := context.Background()
 	res, err := abi.cre2NumCapturingGroups.Call(ctx, uint64(rePtr))
 	if err != nil {
@@ -170,7 +170,7 @@ func release(re *Regexp) {
 	re.abi.mod.Close(ctx)
 }
 
-func match(re *Regexp, s cString, matchesPtr uint32, nMatches uint32) bool {
+func match(re *Regexp, s cString, matchesPtr uintptr, nMatches uint32) bool {
 	ctx := context.Background()
 	res, err := re.abi.cre2Match.Call(ctx, uint64(re.ptr), uint64(s.ptr), uint64(s.length), 0, uint64(s.length), 0, uint64(matchesPtr), uint64(nMatches))
 	if err != nil {
@@ -180,15 +180,15 @@ func match(re *Regexp, s cString, matchesPtr uint32, nMatches uint32) bool {
 	return res[0] == 1
 }
 
-func findAndConsume(re *Regexp, csPtr pointer, matchPtr uint32, nMatch uint32) bool {
+func findAndConsume(re *Regexp, csPtr pointer, matchPtr uintptr, nMatch uint32) bool {
 	ctx := context.Background()
 
-	sPtrOrig, ok := re.abi.wasmMemory.ReadUint32Le(ctx, csPtr.ptr)
+	sPtrOrig, ok := re.abi.wasmMemory.ReadUint32Le(ctx, uint32(csPtr.ptr))
 	if !ok {
 		panic(errFailedRead)
 	}
 
-	sLenOrig, ok := re.abi.wasmMemory.ReadUint32Le(ctx, csPtr.ptr+4)
+	sLenOrig, ok := re.abi.wasmMemory.ReadUint32Le(ctx, uint32(csPtr.ptr+4))
 	if !ok {
 		panic(errFailedRead)
 	}
@@ -198,17 +198,17 @@ func findAndConsume(re *Regexp, csPtr pointer, matchPtr uint32, nMatch uint32) b
 		panic(err)
 	}
 
-	sPtrNew, ok := re.abi.wasmMemory.ReadUint32Le(ctx, csPtr.ptr)
+	sPtrNew, ok := re.abi.wasmMemory.ReadUint32Le(ctx, uint32(csPtr.ptr))
 	if !ok {
 		panic(errFailedRead)
 	}
 
 	// If the regex matched an empty string, consumption will not advance the input, so we must do it ourselves.
 	if sPtrNew == sPtrOrig && sLenOrig > 0 {
-		if !re.abi.wasmMemory.WriteUint32Le(ctx, csPtr.ptr, sPtrOrig+1) {
+		if !re.abi.wasmMemory.WriteUint32Le(ctx, uint32(csPtr.ptr), sPtrOrig+1) {
 			panic(errFailedWrite)
 		}
-		if !re.abi.wasmMemory.WriteUint32Le(ctx, csPtr.ptr+4, sLenOrig-1) {
+		if !re.abi.wasmMemory.WriteUint32Le(ctx, uint32(csPtr.ptr+4), sLenOrig-1) {
 			panic(errFailedWrite)
 		}
 	}
@@ -216,43 +216,43 @@ func findAndConsume(re *Regexp, csPtr pointer, matchPtr uint32, nMatch uint32) b
 	return res[0] != 0
 }
 
-func readMatch(abi *libre2ABI, cs cString, matchPtr uint32, dstCap []int) []int {
+func readMatch(abi *libre2ABI, cs cString, matchPtr uintptr, dstCap []int) []int {
 	matchBuf := abi.memory.read(matchPtr, 8)
-	subStrPtr := binary.LittleEndian.Uint32(matchBuf)
-	sLen := binary.LittleEndian.Uint32(matchBuf[4:])
+	subStrPtr := uintptr(binary.LittleEndian.Uint32(matchBuf))
+	sLen := uintptr(binary.LittleEndian.Uint32(matchBuf[4:]))
 	sIdx := subStrPtr - cs.ptr
 
 	return append(dstCap, int(sIdx), int(sIdx+sLen))
 }
 
-func readMatches(abi *libre2ABI, cs cString, matchesPtr uint32, n int, deliver func([]int)) {
+func readMatches(abi *libre2ABI, cs cString, matchesPtr uintptr, n int, deliver func([]int)) {
 	var dstCap [2]int
 
-	matchesBuf := abi.memory.read(matchesPtr, uint32(8*n))
+	matchesBuf := abi.memory.read(matchesPtr, 8*n)
 	for i := 0; i < n; i++ {
-		subStrPtr := binary.LittleEndian.Uint32(matchesBuf[8*i:])
+		subStrPtr := uintptr(binary.LittleEndian.Uint32(matchesBuf[8*i:]))
 		if subStrPtr == 0 {
 			deliver(append(dstCap[:0], -1, -1))
 			continue
 		}
-		sLen := binary.LittleEndian.Uint32(matchesBuf[8*i+4:])
+		sLen := uintptr(binary.LittleEndian.Uint32(matchesBuf[8*i+4:]))
 		sIdx := subStrPtr - cs.ptr
 		deliver(append(dstCap[:0], int(sIdx), int(sIdx+sLen)))
 	}
 }
 
-func namedGroupsIter(abi *libre2ABI, rePtr uint32) uint32 {
+func namedGroupsIter(abi *libre2ABI, rePtr uintptr) uintptr {
 	ctx := context.Background()
 
-	groupsIter, err := abi.cre2NamedGroupsIterNew.Call(ctx, uint64(rePtr))
+	res, err := abi.cre2NamedGroupsIterNew.Call(ctx, uint64(rePtr))
 	if err != nil {
 		panic(err)
 	}
 
-	return uint32(groupsIter[0])
+	return uintptr(res[0])
 }
 
-func namedGroupsIterNext(abi *libre2ABI, iterPtr uint32) (string, int, bool) {
+func namedGroupsIterNext(abi *libre2ABI, iterPtr uintptr) (string, int, bool) {
 	ctx := context.Background()
 
 	// Not on the hot path so don't bother optimizing this yet.
@@ -270,7 +270,7 @@ func namedGroupsIterNext(abi *libre2ABI, iterPtr uint32) (string, int, bool) {
 		return "", 0, false
 	}
 
-	namePtr, ok := abi.wasmMemory.ReadUint32Le(ctx, namePtrPtr)
+	namePtr, ok := abi.wasmMemory.ReadUint32Le(ctx, uint32(namePtrPtr))
 	if !ok {
 		panic(errFailedRead)
 	}
@@ -289,7 +289,7 @@ func namedGroupsIterNext(abi *libre2ABI, iterPtr uint32) (string, int, bool) {
 		namePtr++
 	}
 
-	index, ok := abi.wasmMemory.ReadUint32Le(ctx, indexPtr)
+	index, ok := abi.wasmMemory.ReadUint32Le(ctx, uint32(indexPtr))
 	if !ok {
 		panic(errFailedRead)
 	}
@@ -297,7 +297,7 @@ func namedGroupsIterNext(abi *libre2ABI, iterPtr uint32) (string, int, bool) {
 	return name.String(), int(index), true
 }
 
-func namedGroupsIterDelete(abi *libre2ABI, iterPtr uint32) {
+func namedGroupsIterDelete(abi *libre2ABI, iterPtr uintptr) {
 	ctx := context.Background()
 
 	_, err := abi.cre2NamedGroupsIterDelete.Call(ctx, uint64(iterPtr))
@@ -306,7 +306,7 @@ func namedGroupsIterDelete(abi *libre2ABI, iterPtr uint32) {
 	}
 }
 
-func globalReplace(re *Regexp, textAndTargetPtr uint32, rewritePtr uint32) ([]byte, bool) {
+func globalReplace(re *Regexp, textAndTargetPtr uintptr, rewritePtr uintptr) ([]byte, bool) {
 	ctx := context.Background()
 
 	res, err := re.abi.cre2GlobalReplace.Call(ctx, uint64(re.ptr), uint64(textAndTargetPtr), uint64(rewritePtr))
@@ -323,14 +323,14 @@ func globalReplace(re *Regexp, textAndTargetPtr uint32, rewritePtr uint32) ([]by
 		return nil, false
 	}
 
-	strPtr, ok := re.abi.wasmMemory.ReadUint32Le(ctx, textAndTargetPtr)
+	strPtr, ok := re.abi.wasmMemory.ReadUint32Le(ctx, uint32(textAndTargetPtr))
 	if !ok {
 		panic(errFailedRead)
 	}
 	// This was malloc'd by cre2, so free it
-	defer free(re.abi, strPtr)
+	defer free(re.abi, uintptr(strPtr))
 
-	strLen, ok := re.abi.wasmMemory.ReadUint32Le(ctx, textAndTargetPtr+4)
+	strLen, ok := re.abi.wasmMemory.ReadUint32Le(ctx, uint32(textAndTargetPtr+4))
 	if !ok {
 		panic(errFailedRead)
 	}
@@ -345,15 +345,15 @@ func globalReplace(re *Regexp, textAndTargetPtr uint32, rewritePtr uint32) ([]by
 }
 
 type cString struct {
-	ptr    uint32
-	length uint32
+	ptr    uintptr
+	length int
 }
 
 func newCString(abi *libre2ABI, s string) cString {
 	ptr := abi.memory.writeString(s)
 	return cString{
 		ptr:    ptr,
-		length: uint32(len(s)),
+		length: len(s),
 	}
 }
 
@@ -361,24 +361,24 @@ func newCStringFromBytes(abi *libre2ABI, s []byte) cString {
 	ptr := abi.memory.write(s)
 	return cString{
 		ptr:    ptr,
-		length: uint32(len(s)),
+		length: len(s),
 	}
 }
 
 func newCStringPtr(abi *libre2ABI, cs cString) pointer {
 	ctx := context.Background()
 	ptr := abi.memory.allocate(8)
-	if !abi.wasmMemory.WriteUint32Le(ctx, ptr, cs.ptr) {
+	if !abi.wasmMemory.WriteUint32Le(ctx, uint32(ptr), uint32(cs.ptr)) {
 		panic(errFailedWrite)
 	}
-	if !abi.wasmMemory.WriteUint32Le(ctx, ptr+4, cs.length) {
+	if !abi.wasmMemory.WriteUint32Le(ctx, uint32(ptr+4), uint32(cs.length)) {
 		panic(errFailedWrite)
 	}
 	return pointer{ptr: ptr, abi: abi}
 }
 
 type cStringArray struct {
-	ptr uint32
+	ptr uintptr
 }
 
 func newCStringArray(abi *libre2ABI, n int) cStringArray {
@@ -387,19 +387,19 @@ func newCStringArray(abi *libre2ABI, n int) cStringArray {
 }
 
 type pointer struct {
-	ptr uint32
+	ptr uintptr
 	abi *libre2ABI
 }
 
-func malloc(abi *libre2ABI, size uint32) uint32 {
+func malloc(abi *libre2ABI, size uint32) uintptr {
 	res, err := abi.malloc.Call(context.Background(), uint64(size))
 	if err != nil {
 		panic(err)
 	}
-	return uint32(res[0])
+	return uintptr(res[0])
 }
 
-func free(abi *libre2ABI, ptr uint32) {
+func free(abi *libre2ABI, ptr uintptr) {
 	_, err := abi.free.Call(context.Background(), uint64(ptr))
 	if err != nil {
 		panic(err)
@@ -436,32 +436,32 @@ func (m *sharedMemory) reserve(size uint32) {
 	m.bufPtr = uint32(res[0])
 }
 
-func (m *sharedMemory) allocate(size uint32) uint32 {
+func (m *sharedMemory) allocate(size uint32) uintptr {
 	if m.nextIdx+size > m.size {
 		panic("not enough reserved shared memory")
 	}
 
 	ptr := m.bufPtr + m.nextIdx
 	m.nextIdx += size
-	return ptr
+	return uintptr(ptr)
 }
 
-func (m *sharedMemory) read(ptr uint32, size uint32) []byte {
-	buf, ok := m.abi.wasmMemory.Read(context.Background(), ptr, size)
+func (m *sharedMemory) read(ptr uintptr, size int) []byte {
+	buf, ok := m.abi.wasmMemory.Read(context.Background(), uint32(ptr), uint32(size))
 	if !ok {
 		panic(errFailedRead)
 	}
 	return buf
 }
 
-func (m *sharedMemory) write(b []byte) uint32 {
+func (m *sharedMemory) write(b []byte) uintptr {
 	ptr := m.allocate(uint32(len(b)))
-	m.abi.wasmMemory.Write(context.Background(), ptr, b)
+	m.abi.wasmMemory.Write(context.Background(), uint32(ptr), b)
 	return ptr
 }
 
-func (m *sharedMemory) writeString(s string) uint32 {
+func (m *sharedMemory) writeString(s string) uintptr {
 	ptr := m.allocate(uint32(len(s)))
-	m.abi.wasmMemory.WriteString(context.Background(), ptr, s)
+	m.abi.wasmMemory.WriteString(context.Background(), uint32(ptr), s)
 	return ptr
 }

@@ -11,10 +11,10 @@ import (
 )
 
 type Regexp struct {
-	ptr uint32
+	ptr uintptr
 	// Find methods seem to require the pattern to be enclosed in parentheses, so we keep a second
 	// regex for them.
-	parensPtr uint32
+	parensPtr uintptr
 
 	expr       string
 	exprParens string
@@ -125,7 +125,7 @@ func compile(expr string, longest bool) (*Regexp, error) {
 		abi:         abi,
 	}
 
-	// runtime.SetFinalizer(re, (*Regexp).Release)
+	runtime.SetFinalizer(re, (*Regexp).Release)
 
 	return re, nil
 }
@@ -836,7 +836,7 @@ func (re *Regexp) String() string {
 	return re.expr
 }
 
-func subexpNames(abi *libre2ABI, rePtr uint32) []string {
+func subexpNames(abi *libre2ABI, rePtr uintptr) []string {
 	// Does not include whole expression match, e.g. $0
 	numGroups := numCapturingGroups(abi, rePtr)
 

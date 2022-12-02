@@ -22,8 +22,8 @@ void free(void* ptr);
 import "C"
 import "unsafe"
 
-func New(patternPtr unsafe.Pointer, patternLen int, opts unsafe.Pointer) uintptr {
-	return uintptr(C.cre2_new(patternPtr, C.int(patternLen), opts))
+func New(patternPtr unsafe.Pointer, patternLen int, opts unsafe.Pointer) unsafe.Pointer {
+	return C.cre2_new(patternPtr, C.int(patternLen), opts)
 }
 
 func Delete(ptr unsafe.Pointer) {
