@@ -1,6 +1,8 @@
 package cre2
 
 /*
+#include <stdbool.h>
+
 void* cre2_new(void* pattern, int pattern_len, void* opts);
 void cre2_delete(void* re);
 int cre2_error_code(void* re);
@@ -9,7 +11,7 @@ int cre2_find_and_consume_re(void* re, void* text, void* match, int nmatch);
 int cre2_global_replace_re(void* re, void* textAndTarget, void* rewrite);
 int cre2_num_capturing_groups(void* re);
 void* cre2_named_groups_iter_new(void* re);
-int cre2_named_groups_iter_next(void* iter, void** name, int* index);
+bool cre2_named_groups_iter_next(void* iter, void** name, int* index);
 void cre2_named_groups_iter_delete(void* iter);
 
 void* cre2_opt_new();
@@ -54,7 +56,7 @@ func NamedGroupsIterNext(iterPtr unsafe.Pointer, namePtr *unsafe.Pointer, indexP
 	cIndex := C.int(0)
 	res := C.cre2_named_groups_iter_next(iterPtr, namePtr, &cIndex)
 	*indexPtr = int(cIndex)
-	return res > 0
+	return bool(res)
 }
 
 func NamedGroupsIterDelete(iterPtr unsafe.Pointer) {
@@ -87,6 +89,10 @@ func Free(ptr unsafe.Pointer) {
 
 func ReadCBytes(sPtr unsafe.Pointer, sLen int) []byte {
 	return C.GoBytes(sPtr, C.int(sLen))
+}
+
+func CopyCString(sPtr unsafe.Pointer) string {
+	return C.GoString((*C.char)(sPtr))
 }
 
 func cFlag(flag bool) C.int {

@@ -1,0 +1,56 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        mode:
+          - cgo
+          - tinygo
+          - wazero
+        os:
+          - macos-12
+          - ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '^1.18.8'
+          cache: true
+
+      - name: setup re2 for cgo (linux)
+        if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.mode == 'cgo' }}
+        run: sudo apt-get update && sudo apt-get install -y libre2-dev
+      - name: setup re2 for cgo (mac)
+        if: ${{ startsWith(matrix.os, 'macos-') && matrix.mode == 'cgo' }}
+        run: brew install re2
+
+      - name: setup tinygo
+        if: ${{ matrix.mode == 'tinygo' }}
+        uses: acifani/setup-tinygo@v1
+        with:
+          tinygo-version: 0.26.0
+      - name: setup wasmtime for tinygo (linux or mac)
+        if: ${{ (startsWith(matrix.os, 'ubuntu-') || startsWith(matrix.os, 'macos-')) && matrix.mode == 'tinygo' }}
+        run: |
+          curl https://wasmtime.dev/install.sh -sSf | bash -s -- --version v3.0.1
+          echo "$HOME/.wasmtime/bin" >> $GITHUB_PATH
+
+      - run: go run mage.go check
+        env:
+          RE2_TEST_MODE: ${{ matrix.mode }}
+          # General coverage should be good enough to not need to slow down development
+          # on these slow tests.
+          RE2_TEST_EXHAUSTIVE: ${{ github.event_name != 'pull_request' && '1' || '0'}}
