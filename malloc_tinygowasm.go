@@ -2,6 +2,11 @@
 
 package re2
 
+import (
+	"github.com/anuraaga/re2-go/cre2"
+	"unsafe"
+)
+
 // TinyGo currently only includes a subset of malloc functions by default, so we
 // reimplement the remaining here.
 
@@ -13,7 +18,7 @@ func posix_memalign(memptr *uint32, align uint32, size uint32) int32 {
 
 	// Ignore alignment and hope for best, TinyGo by default does not
 	// provide a way to allocate aligned memory.
-	mem := _malloc(size)
+	mem := uint32(uintptr(cre2.Malloc(int(size))))
 	if mem == 0 {
 		// TODO(anuraaga): Needs to read errno to be precise
 		return 1
@@ -34,10 +39,10 @@ func __libc_calloc(num uint32, size uint32) uint32 {
 
 //export __libc_malloc
 func __libc_malloc(size uint32) uint32 {
-	return _malloc(size)
+	return uint32(uintptr(cre2.Malloc(int(size))))
 }
 
 //export __libc_free
 func __libc_free(ptr uint32) {
-	_free(ptr)
+	cre2.Free(unsafe.Pointer(uintptr(ptr)))
 }

@@ -3,68 +3,17 @@
 package re2
 
 import (
+	"github.com/anuraaga/re2-go/cre2"
 	"reflect"
 	"unsafe"
 )
 
-//export cre2_new
-func cre2New(patternPtr uint32, patternLen uint32, opts unsafe.Pointer) uint32
-
-//export cre2_delete
-func cre2Delete(rePtr uint32)
-
-//export cre2_opt_new
-func cre2OptNew() unsafe.Pointer
-
-//export cre2_opt_delete
-func cre2OptDelete(ptr unsafe.Pointer)
-
-//export cre2_opt_set_max_mem
-func cre2OptSetMaxMem(ptr unsafe.Pointer, maxMem uint64)
-
-//export cre2_opt_set_longest_match
-func cre2OptSetLongestMatch(ptr unsafe.Pointer, flag bool)
-
-//export cre2_opt_set_posix_syntax
-func cre2OptSetPosixSyntax(ptr unsafe.Pointer, flag bool)
-
-//export cre2_match
-func cre2Match(rePtr uint32, textPtr uint32, textLen uint32, startPos uint32, endPos uint32,
-	anchor uint32, matchArrPtr uint32, nmatch uint32) bool
-
-//export cre2_find_and_consume_re
-func cre2FindAndConsumeRE(rePtr uint32, textRE2String uint32, match uint32, nMatch uint32) bool
-
-//export cre2_num_capturing_groups
-func cre2NumCapturingGroups(rePtr uint32) uint32
-
-//export cre2_error_code
-func cre2ErrorCode(rePtr uint32) uint32
-
-//export cre2_named_groups_iter_new
-func cre2NamedGroupsIterNew(rePtr uint32) uint32
-
-//export cre2_named_groups_iter_next
-func cre2NamedGroupsIterNext(iterPtr uint32, namePtrPtr *uint32, indexPtr *uint32) uint32
-
-//export cre2_named_groups_iter_delete
-func cre2NamedGroupsIterDelete(iterPtr uint32)
-
-//export cre2_global_replace_re
-func cre2GlobalReplaceRE(rePtr uint32, textAndTargetPtr uint32, rewritePtr uint32) int32
-
-//export malloc
-func _malloc(size uint32) uint32
-
-//export free
-func _free(ptr uint32)
-
 func malloc(_ *libre2ABI, size uint32) uint32 {
-	return _malloc(size)
+	return uint32(uintptr(cre2.Malloc(int(size))))
 }
 
 func free(_ *libre2ABI, ptr uint32) {
-	_free(ptr)
+	cre2.Free(unsafe.Pointer(uintptr(ptr)))
 }
 
 type libre2ABI struct{}
@@ -80,29 +29,30 @@ func (abi *libre2ABI) endOperation() {
 }
 
 func newRE(abi *libre2ABI, pattern cString, longest bool) uint32 {
-	opts := cre2OptNew()
-	defer cre2OptDelete(opts)
+	opt := cre2.NewOpt()
+	defer cre2.DeleteOpt(opt)
 	if longest {
-		cre2OptSetLongestMatch(opts, true)
+		cre2.OptSetLongestMatch(opt, true)
 	}
-	return cre2New(pattern.ptr, pattern.length, opts)
+	return uint32(cre2.New(unsafe.Pointer(uintptr(pattern.ptr)), int(pattern.length), opt))
 }
 
 func reError(abi *libre2ABI, rePtr uint32) uint32 {
-	return cre2ErrorCode(rePtr)
+	return uint32(cre2.ErrorCode(unsafe.Pointer(uintptr(rePtr))))
 }
 
 func numCapturingGroups(abi *libre2ABI, rePtr uint32) int {
-	return int(cre2NumCapturingGroups(rePtr))
+	return cre2.NumCapturingGroups(unsafe.Pointer(uintptr(rePtr)))
 }
 
 func release(re *Regexp) {
-	cre2Delete(re.ptr)
-	cre2Delete(re.parensPtr)
+	cre2.Delete(unsafe.Pointer(uintptr(re.ptr)))
+	cre2.Delete(unsafe.Pointer(uintptr(re.parensPtr)))
 }
 
 func match(re *Regexp, s cString, matchesPtr uint32, nMatches uint32) bool {
-	return cre2Match(re.ptr, s.ptr, s.length, 0, s.length, 0, matchesPtr, nMatches)
+	return cre2.Match(unsafe.Pointer(uintptr(re.ptr)), unsafe.Pointer(uintptr(s.ptr)),
+		int(s.length), 0, int(s.length), 0, unsafe.Pointer(uintptr(matchesPtr)), int(nMatches))
 }
 
 func findAndConsume(re *Regexp, csPtr pointer, matchPtr uint32, nMatch uint32) bool {
@@ -110,7 +60,7 @@ func findAndConsume(re *Regexp, csPtr pointer, matchPtr uint32, nMatch uint32) b
 
 	sPtrOrig := cs.ptr
 
-	res := cre2FindAndConsumeRE(re.parensPtr, csPtr.ptr, matchPtr, nMatch)
+	res := cre2.FindAndConsume(unsafe.Pointer(uintptr(re.parensPtr)), unsafe.Pointer(uintptr(csPtr.ptr)), unsafe.Pointer(uintptr(matchPtr)), int(nMatch))
 
 	// If the regex matched an empty string, consumption will not advance the input, so we must do it ourselves.
 	if cs.ptr == sPtrOrig && cs.length > 0 {
@@ -170,19 +120,19 @@ type pointer struct {
 }
 
 func namedGroupsIter(_ *libre2ABI, rePtr uint32) uint32 {
-	return cre2NamedGroupsIterNew(rePtr)
+	return uint32(uintptr(cre2.NamedGroupsIterNew(unsafe.Pointer(uintptr(rePtr)))))
 }
 
 func namedGroupsIterNext(_ *libre2ABI, iterPtr uint32) (string, int, bool) {
-	var namePtr uint32
-	var index uint32
-	if cre2NamedGroupsIterNext(iterPtr, &namePtr, &index) == 0 {
+	var namePtr unsafe.Pointer
+	var index int
+	if !cre2.NamedGroupsIterNext(unsafe.Pointer(uintptr(iterPtr)), &namePtr, &index) {
 		return "", 0, false
 	}
 
 	// C-string, find NULL
 	nameLen := 0
-	for *(*byte)(unsafe.Pointer(uintptr(namePtr + uint32(nameLen)))) != 0 {
+	for *(*byte)(unsafe.Add(namePtr, nameLen)) != 0 {
 		nameLen++
 	}
 
@@ -197,22 +147,18 @@ func namedGroupsIterNext(_ *libre2ABI, iterPtr uint32) (string, int, bool) {
 }
 
 func namedGroupsIterDelete(_ *libre2ABI, iterPtr uint32) {
-	cre2NamedGroupsIterDelete(iterPtr)
+	cre2.NamedGroupsIterDelete(unsafe.Pointer(uintptr(iterPtr)))
 }
 
 func globalReplace(re *Regexp, textAndTargetPtr uint32, rewritePtr uint32) ([]byte, bool) {
-	res := cre2GlobalReplaceRE(re.ptr, textAndTargetPtr, rewritePtr)
-	if res == -1 {
-		panic("out of memory")
-	}
-	if res == 0 {
+	if !cre2.GlobalReplace(unsafe.Pointer(uintptr(re.ptr)), unsafe.Pointer(uintptr(textAndTargetPtr)), unsafe.Pointer(uintptr(rewritePtr))) {
 		// No replacements
 		return nil, false
 	}
 
 	textAndTarget := (*cString)(unsafe.Pointer(uintptr(textAndTargetPtr)))
 	// This was malloc'd by cre2, so free it
-	defer _free(textAndTarget.ptr)
+	defer cre2.Free(unsafe.Pointer(uintptr(textAndTarget.ptr)))
 
 	var buf []byte
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&buf))
