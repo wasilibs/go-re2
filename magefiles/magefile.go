@@ -8,8 +8,26 @@ import (
 	"github.com/magefile/mage/sh"
 )
 
+// Test runs unit tests in the default configuration for a Go app, using wazero.
 func Test() error {
 	return sh.RunV("go", "test", "./...")
+}
+
+// TestExhaustive runs unit tests in the default configuration for a Go app, using wazero, with exhaustive tests
+// enabled. This will take a long time even on a fast computer.
+func TestExhaustive() error {
+	return sh.RunV("go", "test", "-tags=re2_test_exhaustive", "./...")
+}
+
+// TestCGO runs unit tests with re2 accessed using cgo. A C++ toolchain and libre2 must be installed to run.
+func TestCGO() error {
+	return sh.RunV("go", "test", "-tags=re2_cgo", "./...")
+}
+
+// TestCGOExhaustive unit tests with re2 accessed using cgo, with exhaustive tests enabled.
+// A C++ toolchain and libre2 must be installed to run
+func TestCGOExhaustive() error {
+	return sh.RunV("go", "test", "-tags=re2_cgo,re2_test_exhaustive", "./...")
 }
 
 func Format() error {

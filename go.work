@@ -3,5 +3,6 @@ go 1.18
 use (
 	.
 	./cre2
+	./magefiles
 	./wafbench
 )

@@ -7,13 +7,14 @@ import (
 	_ "embed"
 	"encoding/binary"
 	"errors"
-	"github.com/tetratelabs/wazero"
-	"github.com/tetratelabs/wazero/api"
-	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/tetratelabs/wazero"
+	"github.com/tetratelabs/wazero/api"
+	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
 
 var errFailedWrite = errors.New("failed to read from wasm memory")
