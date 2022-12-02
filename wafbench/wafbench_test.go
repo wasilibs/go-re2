@@ -6,15 +6,6 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
-	"github.com/bmatcuk/doublestar/v4"
-	"github.com/corazawaf/coraza/v3"
-	txhttp "github.com/corazawaf/coraza/v3/http"
-	"github.com/corazawaf/coraza/v3/types"
-	"github.com/coreruleset/go-ftw/config"
-	"github.com/coreruleset/go-ftw/output"
-	"github.com/coreruleset/go-ftw/runner"
-	"github.com/coreruleset/go-ftw/test"
-	"github.com/rs/zerolog"
 	"io"
 	"io/fs"
 	"net/http"
@@ -25,6 +16,16 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/bmatcuk/doublestar/v4"
+	"github.com/corazawaf/coraza/v3"
+	txhttp "github.com/corazawaf/coraza/v3/http"
+	"github.com/corazawaf/coraza/v3/types"
+	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/output"
+	"github.com/coreruleset/go-ftw/runner"
+	"github.com/coreruleset/go-ftw/test"
+	"github.com/rs/zerolog"
 )
 
 //go:embed coreruleset-32e6d80419d386a330ddaf5e60047a4a1c38a160.zip

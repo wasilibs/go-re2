@@ -3,9 +3,10 @@
 package re2
 
 import (
-	"github.com/anuraaga/re2-go/cre2"
 	"reflect"
 	"unsafe"
+
+	"github.com/anuraaga/re2-go/cre2"
 )
 
 func malloc(_ *libre2ABI, size uint32) uintptr {

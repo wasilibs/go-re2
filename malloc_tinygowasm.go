@@ -3,8 +3,9 @@
 package re2
 
 import (
-	"github.com/anuraaga/re2-go/cre2"
 	"unsafe"
+
+	"github.com/anuraaga/re2-go/cre2"
 )
 
 // TinyGo currently only includes a subset of malloc functions by default, so we
