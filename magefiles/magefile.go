@@ -4,30 +4,31 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 )
 
-// Test runs unit tests in the default configuration for a Go app, using wazero.
+// Test runs unit tests - by default, it uses wazero; set RE2_TEST_MODE=cgo or RE2_TEST_MODE=tinygo to use either, or
+// RE2_TEST_EXHAUSTIVE=1 to enable exhaustive tests that may take a long time.
 func Test() error {
-	return sh.RunV("go", "test", "./...")
-}
+	mode := strings.ToLower(os.Getenv("RE2_TEST_MODE"))
+	exhaustive := os.Getenv("RE2_TEST_EXHAUSTIVE") == "1"
 
-// TestExhaustive runs unit tests in the default configuration for a Go app, using wazero, with exhaustive tests
-// enabled. This will take a long time even on a fast computer.
-func TestExhaustive() error {
-	return sh.RunV("go", "test", "-tags=re2_test_exhaustive", "./...")
-}
+	tags := []string{}
+	if mode == "cgo" {
+		tags = append(tags, "re2_cgo")
+	}
+	if exhaustive {
+		tags = append(tags, "re2_test_exhaustive")
+	}
 
-// TestCGO runs unit tests with re2 accessed using cgo. A C++ toolchain and libre2 must be installed to run.
-func TestCGO() error {
-	return sh.RunV("go", "test", "-tags=re2_cgo", "./...")
-}
+	if mode != "tinygo" {
+		return sh.RunV("go", "test", "-tags", strings.Join(tags, ","), "./...")
+	}
 
-// TestCGOExhaustive unit tests with re2 accessed using cgo, with exhaustive tests enabled.
-// A C++ toolchain and libre2 must be installed to run
-func TestCGOExhaustive() error {
-	return sh.RunV("go", "test", "-tags=re2_cgo,re2_test_exhaustive", "./...")
+	return sh.RunV("tinygo", "test", "-target=wasi", "-v", "-tags", strings.Join(tags, ","), "./...")
 }
 
 func Format() error {
@@ -36,8 +37,13 @@ func Format() error {
 		".")
 }
 
-func Check() error {
+func Lint() error {
 	return sh.RunV("go", "run", fmt.Sprintf("github.com/golangci/golangci-lint/cmd/golangci-lint@%s", golangCILintVer), "run")
+}
+
+// Check runs lint and tests.
+func Check() {
+	mg.SerialDeps(Lint, Test)
 }
 
 var benchArgs = []string{"test", "-bench=.", "-run=^$", "-v", "./..."}

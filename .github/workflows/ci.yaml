@@ -1,0 +1,51 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        mode:
+          - cgo
+          - tinygo
+          - wazero
+        os:
+          - ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '^1.18.8'
+          cache: true
+
+      - name: setup re2 for cgo (linux)
+        if: ${{ matrix.os == 'ubuntu-22.04' && matrix.mode == 'cgo' }}
+        run: apt-get update && apt-get install -y libre2-dev
+      - name: setup tinygo
+        if: ${{ matrix.mode == 'tinygo' }}
+        uses: acifani/setup-tinygo@v1
+        with:
+          tinygo-version: 0.26.0
+      - name: setup wasmtime for tinygo
+        if: ${{ matrix.mode == 'tinygo' }}
+        run: |
+          curl https://wasmtime.dev/install.sh -sSf | bash
+          echo "$HOME/.wasmtime/bin" >> $GITHUB_PATH
+
+      - run: go run mage.go check
+        env:
+          RE2_TEST_MODE: ${{ matrix.mode }}
+          # General coverage should be good enough to not need to slow down development
+          # on these slow tests.
+          RE2_TEST_EXHAUSTIVE: ${{ github.event_name != 'pull_request' && '1' || '0'}}
