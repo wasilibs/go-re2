@@ -69,11 +69,11 @@ func free(_ *libre2ABI, ptr uint32) {
 
 type libre2ABI struct{}
 
-func newABI() libre2ABI {
-	return libre2ABI{}
+func newABI() *libre2ABI {
+	return &libre2ABI{}
 }
 
-func (abi *libre2ABI) startOperation(memorySize uint32) {
+func (abi *libre2ABI) startOperation(memorySize int) {
 }
 
 func (abi *libre2ABI) endOperation() {
@@ -126,10 +126,6 @@ type cString struct {
 	length uint32
 }
 
-func (s cString) release() {
-	// no-op
-}
-
 func newCString(_ *libre2ABI, s string) cString {
 	if len(s) == 0 {
 		// TinyGo uses a null pointer to represent an empty string, but this
@@ -157,11 +153,20 @@ func newCStringPtr(_ *libre2ABI, cs cString) pointer {
 	return pointer{ptr: uint32(uintptr(unsafe.Pointer(&cs)))}
 }
 
-type pointer struct {
+type cStringArray struct {
+	// Reference to keep the array alive.
+	arr []cString
 	ptr uint32
 }
 
-func (p pointer) release() {
+func newCStringArray(abi *libre2ABI, n int) cStringArray {
+	arr := make([]cString, n)
+	ptr := uint32(uintptr(unsafe.Pointer(&arr[0])))
+	return cStringArray{arr: arr, ptr: ptr}
+}
+
+type pointer struct {
+	ptr uint32
 }
 
 func namedGroupsIter(_ *libre2ABI, rePtr uint32) uint32 {
@@ -219,7 +224,7 @@ func globalReplace(re *Regexp, textAndTargetPtr uint32, rewritePtr uint32) ([]by
 	return append([]byte{}, buf...), true
 }
 
-func readMatch(_ *Regexp, cs cString, matchPtr uint32, dstCap []int) []int {
+func readMatch(abi *libre2ABI, cs cString, matchPtr uint32, dstCap []int) []int {
 	match := (*cString)(unsafe.Pointer(uintptr(matchPtr)))
 	subStrPtr := match.ptr
 	if subStrPtr == 0 {
@@ -229,11 +234,11 @@ func readMatch(_ *Regexp, cs cString, matchPtr uint32, dstCap []int) []int {
 	return append(dstCap, int(sIdx), int(sIdx+match.length))
 }
 
-func readMatches(re *Regexp, cs cString, matchPtr uint32, n int, deliver func([]int)) {
+func readMatches(abi *libre2ABI, cs cString, matchesPtr uint32, n int, deliver func([]int)) {
 	var dstCap [2]int
 
 	for i := 0; i < n; i++ {
-		dst := readMatch(re, cs, matchPtr+uint32(8*i), dstCap[:0])
+		dst := readMatch(abi, cs, matchesPtr+uint32(8*i), dstCap[:0])
 		deliver(dst)
 	}
 }

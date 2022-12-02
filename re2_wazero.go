@@ -216,7 +216,8 @@ func findAndConsume(re *Regexp, csPtr pointer, matchPtr uint32, nMatch uint32) b
 	return res[0] != 0
 }
 
-func readMatch(cs cString, matchBuf []byte, dstCap []int) []int {
+func readMatch(abi *libre2ABI, cs cString, matchPtr uint32, dstCap []int) []int {
+	matchBuf := abi.memory.read(matchPtr, 8)
 	subStrPtr := binary.LittleEndian.Uint32(matchBuf)
 	sLen := binary.LittleEndian.Uint32(matchBuf[4:])
 	sIdx := subStrPtr - cs.ptr
@@ -224,9 +225,10 @@ func readMatch(cs cString, matchBuf []byte, dstCap []int) []int {
 	return append(dstCap, int(sIdx), int(sIdx+sLen))
 }
 
-func readMatches(cs cString, matchesBuf []byte, n int, deliver func([]int)) {
+func readMatches(abi *libre2ABI, cs cString, matchesPtr uint32, n int, deliver func([]int)) {
 	var dstCap [2]int
 
+	matchesBuf := abi.memory.read(matchesPtr, uint32(8*n))
 	for i := 0; i < n; i++ {
 		subStrPtr := binary.LittleEndian.Uint32(matchesBuf[8*i:])
 		if subStrPtr == 0 {
@@ -347,9 +349,6 @@ type cString struct {
 	length uint32
 }
 
-func (s cString) release() {
-}
-
 func newCString(abi *libre2ABI, s string) cString {
 	ptr := abi.memory.writeString(s)
 	return cString{
@@ -368,7 +367,7 @@ func newCStringFromBytes(abi *libre2ABI, s []byte) cString {
 
 func newCStringPtr(abi *libre2ABI, cs cString) pointer {
 	ctx := context.Background()
-	ptr := malloc(abi, 8)
+	ptr := abi.memory.allocate(8)
 	if !abi.wasmMemory.WriteUint32Le(ctx, ptr, cs.ptr) {
 		panic(errFailedWrite)
 	}
@@ -378,13 +377,18 @@ func newCStringPtr(abi *libre2ABI, cs cString) pointer {
 	return pointer{ptr: ptr, abi: abi}
 }
 
+type cStringArray struct {
+	ptr uint32
+}
+
+func newCStringArray(abi *libre2ABI, n int) cStringArray {
+	ptr := abi.memory.allocate(uint32(n * 8))
+	return cStringArray{ptr: ptr}
+}
+
 type pointer struct {
 	ptr uint32
 	abi *libre2ABI
-}
-
-func (p pointer) release() {
-	free(p.abi, p.ptr)
 }
 
 func malloc(abi *libre2ABI, size uint32) uint32 {
@@ -400,26 +404,6 @@ func free(abi *libre2ABI, ptr uint32) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func mustWrite(ctx context.Context, abi *libre2ABI, s []byte) uint32 {
-	ptr := malloc(abi, uint32(len(s)))
-
-	if !abi.wasmMemory.Write(ctx, ptr, s) {
-		panic("failed to write string to wasm memory")
-	}
-
-	return ptr
-}
-
-func mustWriteString(ctx context.Context, abi *libre2ABI, s string) uint32 {
-	ptr := malloc(abi, uint32(len(s)))
-
-	if !abi.wasmMemory.WriteString(ctx, ptr, s) {
-		panic("failed to write string to wasm memory")
-	}
-
-	return ptr
 }
 
 type sharedMemory struct {
