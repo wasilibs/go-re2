@@ -174,7 +174,7 @@ func readMatches(abi *libre2ABI, cs cString, matchesPtr uintptr, n int, deliver 
 	var dstCap [2]int
 
 	for i := 0; i < n; i++ {
-		dst := readMatch(abi, cs, matchesPtr+uintptr(8*i), dstCap[:0])
+		dst := readMatch(abi, cs, matchesPtr+unsafe.Sizeof(cString{})*uintptr(i), dstCap[:0])
 		deliver(dst)
 	}
 }
