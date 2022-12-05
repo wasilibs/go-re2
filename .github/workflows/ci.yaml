@@ -48,7 +48,7 @@ jobs:
           curl https://wasmtime.dev/install.sh -sSf | bash -s -- --version v3.0.1
           echo "$HOME/.wasmtime/bin" >> $GITHUB_PATH
 
-      - run: go run mage.go check
+      - run: go test -v -tags=re2_test_exhaustive ./...
         env:
           RE2_TEST_MODE: ${{ matrix.mode }}
           # General coverage should be good enough to not need to slow down development
