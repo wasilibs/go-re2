@@ -9,14 +9,6 @@ import (
 	"github.com/anuraaga/re2-go/cre2"
 )
 
-func malloc(_ *libre2ABI, size uint32) uintptr {
-	return uintptr(cre2.Malloc(int(size)))
-}
-
-func free(_ *libre2ABI, ptr uintptr) {
-	cre2.Free(unsafe.Pointer(uintptr(ptr)))
-}
-
 type libre2ABI struct{}
 
 func newABI() *libre2ABI {
