@@ -634,8 +634,7 @@ func (re *Regexp) Longest() {
 	deleteRE(re.abi, re.ptr)
 	deleteRE(re.abi, re.parensPtr)
 
-	exprParens := fmt.Sprintf("(%s)", re.expr)
-	csParens := newCString(re.abi, exprParens)
+	csParens := newCString(re.abi, re.exprParens)
 	cs := cString{ptr: csParens.ptr + 1, length: csParens.length - 2}
 	re.ptr = newRE(re.abi, cs, true)
 	re.parensPtr = newRE(re.abi, csParens, true)
