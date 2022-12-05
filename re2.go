@@ -125,7 +125,7 @@ func compile(expr string) (*Regexp, error) {
 		abi:         abi,
 	}
 
-	runtime.SetFinalizer(re, release)
+	runtime.SetFinalizer(re, (*Regexp).release)
 
 	return re, nil
 }
@@ -742,6 +742,12 @@ func (re *Regexp) MatchString(s string) bool {
 	res := match(re, cs, 0, 0)
 	runtime.KeepAlive(s)
 	return res
+}
+
+func (re *Regexp) release() {
+	re.abi.startOperation(0)
+	defer re.abi.endOperation()
+	release(re)
 }
 
 // ReplaceAll returns a copy of src, replacing matches of the Regexp
