@@ -91,7 +91,7 @@ func testRE2(t *testing.T, file string, content []byte) {
 	)
 	for lineno := 1; scanner.Scan(); lineno++ {
 		if lineno%10000 == 0 {
-			t.Logf("processed line %d", lineno)
+			t.Logf("processed line %d\n", lineno)
 		}
 		line := scanner.Text()
 		switch {
