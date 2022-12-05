@@ -750,7 +750,6 @@ func (re *Regexp) MatchString(s string) bool {
 func (re *Regexp) release() {
 	re.abi.startOperation(0)
 	defer re.abi.endOperation()
-	fmt.Printf("releasing: %p\n", re)
 	release(re)
 }
 
