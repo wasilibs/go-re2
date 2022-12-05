@@ -260,10 +260,10 @@ func namedGroupsIterNext(abi *libre2ABI, iterPtr uintptr) (string, int, bool) {
 	ctx := context.Background()
 
 	// Not on the hot path so don't bother optimizing this yet.
-	namePtrPtr := malloc(abi, 4)
-	defer free(abi, namePtrPtr)
-	indexPtr := malloc(abi, 4)
-	defer free(abi, indexPtr)
+	ptrs := malloc(abi, 8)
+	defer free(abi, ptrs)
+	namePtrPtr := ptrs
+	indexPtr := namePtrPtr + 4
 
 	res, err := abi.cre2NamedGroupsIterNext.Call(ctx, uint64(iterPtr), uint64(namePtrPtr), uint64(indexPtr))
 	if err != nil {

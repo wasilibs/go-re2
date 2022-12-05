@@ -67,7 +67,7 @@ func Compile(expr string) (*Regexp, error) {
 
 func compile(expr string) (*Regexp, error) {
 	abi := newABI()
-	abi.startOperation(len(expr) + len(expr) + 2)
+	abi.startOperation(len(expr) + len(expr) + 2 + 8)
 	defer abi.endOperation()
 
 	cs := newCString(abi, expr)
