@@ -627,17 +627,17 @@ func (re *Regexp) findSubmatch(cs cString, deliver func(match []int)) {
 // This method modifies the Regexp and may not be called concurrently
 // with any other methods.
 func (re *Regexp) Longest() {
-	re.abi.startOperation(len(re.expr) + len(re.expr) + 2)
+	re.abi.startOperation(len(re.expr) + 2)
 	defer re.abi.endOperation()
 
 	// longest is not a mutable option in re2 so we must release and recompile.
 	deleteRE(re.abi, re.ptr)
 	deleteRE(re.abi, re.parensPtr)
 
-	cs := newCString(re.abi, re.expr)
-	re.ptr = newRE(re.abi, cs, true)
 	exprParens := fmt.Sprintf("(%s)", re.expr)
 	csParens := newCString(re.abi, exprParens)
+	cs := cString{ptr: csParens.ptr + 1, length: csParens.length - 2}
+	re.ptr = newRE(re.abi, cs, true)
 	re.parensPtr = newRE(re.abi, csParens, true)
 }
 
