@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -171,7 +172,9 @@ func release(re *Regexp) {
 	ctx := context.Background()
 	deleteRE(re.abi, re.ptr)
 	deleteRE(re.abi, re.parensPtr)
-	re.abi.mod.Close(ctx)
+	if err := re.abi.mod.Close(ctx); err != nil {
+		fmt.Printf("error closing wazero module: %v", err)
+	}
 }
 
 func match(re *Regexp, s cString, matchesPtr uintptr, nMatches uint32) bool {
