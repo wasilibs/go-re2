@@ -21,6 +21,10 @@ jobs:
         os:
           - macos-12
           - ubuntu-22.04
+        include:
+          # TODO: Enable tinygo after setting up wasmtime
+          - os: windows-2022
+            mode: wazero
     steps:
       - uses: actions/checkout@v3
         with:
