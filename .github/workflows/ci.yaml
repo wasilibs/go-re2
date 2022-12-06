@@ -58,4 +58,4 @@ jobs:
           # General coverage should be good enough to not need to slow down development
           # on these slow tests.
           RE2_TEST_EXHAUSTIVE: 1 # ${{ github.event_name != 'pull_request' && '1' || '0'}}
-          GODEBUG: gctrace=1,madvdontneed=0
+          GODEBUG: gctrace=1,scavtrace=1
