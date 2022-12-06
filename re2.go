@@ -22,6 +22,8 @@ type Regexp struct {
 	subexpNames []string
 
 	abi *libre2ABI
+
+	released bool
 }
 
 // MatchString reports whether the string s
@@ -750,6 +752,10 @@ func (re *Regexp) MatchString(s string) bool {
 func (re *Regexp) release() {
 	re.abi.startOperation(0)
 	defer re.abi.endOperation()
+	if re.released {
+		return
+	}
+	re.released = true
 	release(re)
 }
 
