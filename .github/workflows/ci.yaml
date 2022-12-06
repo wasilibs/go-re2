@@ -21,6 +21,10 @@ jobs:
         os:
           - macos-12
           - ubuntu-22.04
+        include:
+          # TODO: Enable tinygo after setting up wasmtime
+          - os: windows-2022
+            mode: wazero
     steps:
       - uses: actions/checkout@v3
         with:
@@ -54,3 +58,4 @@ jobs:
           # General coverage should be good enough to not need to slow down development
           # on these slow tests.
           RE2_TEST_EXHAUSTIVE: ${{ github.event_name != 'pull_request' && '1' || '0'}}
+          GOMEMLIMIT: ${{ github.event_name != 'pull_request' && '2GiB' || ''}}

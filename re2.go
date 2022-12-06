@@ -22,6 +22,8 @@ type Regexp struct {
 	subexpNames []string
 
 	abi *libre2ABI
+
+	released bool
 }
 
 // MatchString reports whether the string s
@@ -67,10 +69,16 @@ func Compile(expr string) (*Regexp, error) {
 
 func compile(expr string) (*Regexp, error) {
 	abi := newABI()
-	abi.startOperation(len(expr) + len(expr) + 2)
+	abi.startOperation(len(expr) + 2)
 	defer abi.endOperation()
 
-	cs := newCString(abi, expr)
+	// Find requires the expression to be wrapped in parentheses to match Go's semantics.
+	// We end up compiling two regexes, one with parens and one without. We can pass a single
+	// input string if we use the parens version and take a slice of that for the non-parens.
+	exprParens := fmt.Sprintf("(%s)", expr)
+	csParens := newCString(abi, exprParens)
+	cs := cString{ptr: csParens.ptr + 1, length: csParens.length - 2}
+
 	rePtr := newRE(abi, cs, false)
 	errCode := reError(abi, rePtr)
 	switch errCode {
@@ -110,8 +118,6 @@ func compile(expr string) (*Regexp, error) {
 		return nil, fmt.Errorf("error parsing regexp: expression too large")
 	}
 
-	exprParens := fmt.Sprintf("(%s)", expr)
-	csParens := newCString(abi, exprParens)
 	reParensPtr := newRE(abi, csParens, false)
 
 	subexp := subexpNames(abi, rePtr)
@@ -125,7 +131,7 @@ func compile(expr string) (*Regexp, error) {
 		abi:         abi,
 	}
 
-	runtime.SetFinalizer(re, release)
+	runtime.SetFinalizer(re, (*Regexp).release)
 
 	return re, nil
 }
@@ -356,7 +362,7 @@ func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 	var dstCap [2]int
 
 	if n < 0 {
-		n = int(cs.length + 1)
+		n = cs.length + 1
 	}
 
 	csOrig := cs
@@ -623,17 +629,16 @@ func (re *Regexp) findSubmatch(cs cString, deliver func(match []int)) {
 // This method modifies the Regexp and may not be called concurrently
 // with any other methods.
 func (re *Regexp) Longest() {
-	re.abi.startOperation(len(re.expr) + len(re.expr) + 2)
+	re.abi.startOperation(len(re.expr) + 2)
 	defer re.abi.endOperation()
 
 	// longest is not a mutable option in re2 so we must release and recompile.
 	deleteRE(re.abi, re.ptr)
 	deleteRE(re.abi, re.parensPtr)
 
-	cs := newCString(re.abi, re.expr)
+	csParens := newCString(re.abi, re.exprParens)
+	cs := cString{ptr: csParens.ptr + 1, length: csParens.length - 2}
 	re.ptr = newRE(re.abi, cs, true)
-	exprParens := fmt.Sprintf("(%s)", re.expr)
-	csParens := newCString(re.abi, exprParens)
 	re.parensPtr = newRE(re.abi, csParens, true)
 }
 
@@ -742,6 +747,16 @@ func (re *Regexp) MatchString(s string) bool {
 	res := match(re, cs, 0, 0)
 	runtime.KeepAlive(s)
 	return res
+}
+
+func (re *Regexp) release() {
+	re.abi.startOperation(0)
+	defer re.abi.endOperation()
+	if re.released {
+		return
+	}
+	re.released = true
+	release(re)
 }
 
 // ReplaceAll returns a copy of src, replacing matches of the Regexp

@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -103,14 +104,12 @@ func newABI() *libre2ABI {
 		mod:        mod,
 	}
 
-	abi.memory.abi = abi
-
 	return abi
 }
 
 func (abi *libre2ABI) startOperation(memorySize int) {
 	abi.mu.Lock()
-	abi.memory.reserve(uint32(memorySize))
+	abi.memory.reserve(abi, uint32(memorySize))
 }
 
 func (abi *libre2ABI) endOperation() {
@@ -171,7 +170,9 @@ func release(re *Regexp) {
 	ctx := context.Background()
 	deleteRE(re.abi, re.ptr)
 	deleteRE(re.abi, re.parensPtr)
-	re.abi.mod.Close(ctx)
+	if err := re.abi.mod.Close(ctx); err != nil {
+		fmt.Printf("error closing wazero module: %v", err)
+	}
 }
 
 func match(re *Regexp, s cString, matchesPtr uintptr, nMatches uint32) bool {
@@ -221,7 +222,7 @@ func findAndConsume(re *Regexp, csPtr pointer, matchPtr uintptr, nMatch uint32) 
 }
 
 func readMatch(abi *libre2ABI, cs cString, matchPtr uintptr, dstCap []int) []int {
-	matchBuf := abi.memory.read(matchPtr, 8)
+	matchBuf := abi.memory.read(abi, matchPtr, 8)
 	subStrPtr := uintptr(binary.LittleEndian.Uint32(matchBuf))
 	sLen := uintptr(binary.LittleEndian.Uint32(matchBuf[4:]))
 	sIdx := subStrPtr - cs.ptr
@@ -232,7 +233,7 @@ func readMatch(abi *libre2ABI, cs cString, matchPtr uintptr, dstCap []int) []int
 func readMatches(abi *libre2ABI, cs cString, matchesPtr uintptr, n int, deliver func([]int)) {
 	var dstCap [2]int
 
-	matchesBuf := abi.memory.read(matchesPtr, 8*n)
+	matchesBuf := abi.memory.read(abi, matchesPtr, 8*n)
 	for i := 0; i < n; i++ {
 		subStrPtr := uintptr(binary.LittleEndian.Uint32(matchesBuf[8*i:]))
 		if subStrPtr == 0 {
@@ -260,10 +261,10 @@ func namedGroupsIterNext(abi *libre2ABI, iterPtr uintptr) (string, int, bool) {
 	ctx := context.Background()
 
 	// Not on the hot path so don't bother optimizing this yet.
-	namePtrPtr := malloc(abi, 4)
-	defer free(abi, namePtrPtr)
-	indexPtr := malloc(abi, 4)
-	defer free(abi, indexPtr)
+	ptrs := malloc(abi, 8)
+	defer free(abi, ptrs)
+	namePtrPtr := ptrs
+	indexPtr := namePtrPtr + 4
 
 	res, err := abi.cre2NamedGroupsIterNext.Call(ctx, uint64(iterPtr), uint64(namePtrPtr), uint64(indexPtr))
 	if err != nil {
@@ -354,7 +355,7 @@ type cString struct {
 }
 
 func newCString(abi *libre2ABI, s string) cString {
-	ptr := abi.memory.writeString(s)
+	ptr := abi.memory.writeString(abi, s)
 	return cString{
 		ptr:    ptr,
 		length: len(s),
@@ -362,7 +363,7 @@ func newCString(abi *libre2ABI, s string) cString {
 }
 
 func newCStringFromBytes(abi *libre2ABI, s []byte) cString {
-	ptr := abi.memory.write(s)
+	ptr := abi.memory.write(abi, s)
 	return cString{
 		ptr:    ptr,
 		length: len(s),
@@ -414,10 +415,9 @@ type sharedMemory struct {
 	size    uint32
 	bufPtr  uint32
 	nextIdx uint32
-	abi     *libre2ABI
 }
 
-func (m *sharedMemory) reserve(size uint32) {
+func (m *sharedMemory) reserve(abi *libre2ABI, size uint32) {
 	m.nextIdx = 0
 	if m.size >= size {
 		return
@@ -425,13 +425,13 @@ func (m *sharedMemory) reserve(size uint32) {
 
 	ctx := context.Background()
 	if m.bufPtr != 0 {
-		_, err := m.abi.free.Call(ctx, uint64(m.bufPtr))
+		_, err := abi.free.Call(ctx, uint64(m.bufPtr))
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	res, err := m.abi.malloc.Call(ctx, uint64(size))
+	res, err := abi.malloc.Call(ctx, uint64(size))
 	if err != nil {
 		panic(err)
 	}
@@ -450,22 +450,22 @@ func (m *sharedMemory) allocate(size uint32) uintptr {
 	return uintptr(ptr)
 }
 
-func (m *sharedMemory) read(ptr uintptr, size int) []byte {
-	buf, ok := m.abi.wasmMemory.Read(context.Background(), uint32(ptr), uint32(size))
+func (m *sharedMemory) read(abi *libre2ABI, ptr uintptr, size int) []byte {
+	buf, ok := abi.wasmMemory.Read(context.Background(), uint32(ptr), uint32(size))
 	if !ok {
 		panic(errFailedRead)
 	}
 	return buf
 }
 
-func (m *sharedMemory) write(b []byte) uintptr {
+func (m *sharedMemory) write(abi *libre2ABI, b []byte) uintptr {
 	ptr := m.allocate(uint32(len(b)))
-	m.abi.wasmMemory.Write(context.Background(), uint32(ptr), b)
+	abi.wasmMemory.Write(context.Background(), uint32(ptr), b)
 	return ptr
 }
 
-func (m *sharedMemory) writeString(s string) uintptr {
+func (m *sharedMemory) writeString(abi *libre2ABI, s string) uintptr {
 	ptr := m.allocate(uint32(len(s)))
-	m.abi.wasmMemory.WriteString(context.Background(), uint32(ptr), s)
+	abi.wasmMemory.WriteString(context.Background(), uint32(ptr), s)
 	return ptr
 }
