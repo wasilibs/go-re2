@@ -57,7 +57,7 @@ type libre2ABI struct {
 
 func init() {
 	ctx := context.Background()
-	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfigInterpreter())
+	rt := wazero.NewRuntime(ctx)
 
 	wasi_snapshot_preview1.MustInstantiate(ctx, rt)
 

@@ -25,7 +25,7 @@ func Test() error {
 	}
 
 	if mode != "tinygo" {
-		return sh.RunV("go", "test", "-v", "-timeout=60m", "-tags", strings.Join(tags, ","), "./...")
+		return sh.RunV("go", "test", "-v", "-tags", strings.Join(tags, ","), "./...")
 	}
 
 	return sh.RunV("tinygo", "test", "-target=wasi", "-v", "-tags", strings.Join(tags, ","), "./...")
