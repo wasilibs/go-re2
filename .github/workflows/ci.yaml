@@ -54,8 +54,9 @@ jobs:
       - name: setup wasmtime for tinygo (windows)
         if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'tinygo' }}
         run: |
-          gh release download v3.0.1 -p '*-windows.msi' -D ~ -R github.com/bytecodealliance/wasmtime
-          msiexec /i ~\wasmtime-v3.0.1-x86_64-windows.msi /norestart
+          gh release download v3.0.1 -p '*-windows.zip' -D ~ -R github.com/bytecodealliance/wasmtime
+          Expand-Archive -Path ~\wasmtime-v3.0.1-windows.zip -DestinationPath ~
+          Add-Content $env:GITHUB_PATH "~\wasmtime-v3.0.1-x86_64-windows"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
