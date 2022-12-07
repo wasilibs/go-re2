@@ -55,7 +55,7 @@ jobs:
         if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'tinygo' }}
         run: |
           gh release download v3.0.1 -p '*-windows.msi' -D ~ -R github.com/bytecodealliance/wasmtime
-          msiexec /i ~\wasmtime-*-windows.msi /quiet /norestart
+          msiexec /i ~\wasmtime-v3.0.1-x86_64-windows.msi /quiet /norestart
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
