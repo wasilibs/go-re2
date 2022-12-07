@@ -21,10 +21,10 @@ jobs:
         os:
           - macos-12
           - ubuntu-22.04
-        include:
-          # TODO: Enable tinygo after setting up wasmtime
+          - windows-2022
+        exclude:
           - os: windows-2022
-            mode: wazero
+            mode: cgo
     steps:
       - uses: actions/checkout@v3
         with:
@@ -51,6 +51,11 @@ jobs:
         run: |
           curl https://wasmtime.dev/install.sh -sSf | bash -s -- --version v3.0.1
           echo "$HOME/.wasmtime/bin" >> $GITHUB_PATH
+      - name: setup wasmtime for tinygo (windows)
+        if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'tinygo' }}
+        run: |
+          gh release download v3.0.1 -p '*-windows.msi' -D ~ -R github.com/bytecodealliance/wasmtime
+          msiexec /i ~\wasmtime-*-windows.msi /quiet /norestart
 
       - run: go run mage.go check
         env:
