@@ -57,4 +57,4 @@ jobs:
           RE2_TEST_MODE: ${{ matrix.mode }}
           # General coverage should be good enough to not need to slow down development
           # on these slow tests.
-          RE2_TEST_EXHAUSTIVE: 1 # ${{ github.event_name != 'pull_request' && '1' || '0'}}
+          RE2_TEST_EXHAUSTIVE: ${{ github.event_name != 'pull_request' && '1' || '0'}}
