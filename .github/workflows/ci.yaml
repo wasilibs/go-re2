@@ -55,7 +55,6 @@ jobs:
         if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'tinygo' }}
         run: |
           gh release download v3.0.1 -p '*-windows.zip' -D $HOME -R github.com/bytecodealliance/wasmtime
-          ls $HOME
           Expand-Archive -Path $HOME\wasmtime-v3.0.1-x86_64-windows.zip -DestinationPath $HOME
           Add-Content $env:GITHUB_PATH "$HOME\wasmtime-v3.0.1-x86_64-windows"
         env:
