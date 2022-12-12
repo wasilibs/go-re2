@@ -373,7 +373,7 @@ func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 
 	count := 0
 	prevMatchEnd := -1
-	for i := 0; i < n; i++ {
+	for i := 0; i < cs.length + 1; i++ {
 		if !findAndConsume(re, csPtr, matchArr.ptr, 1) {
 			break
 		}
@@ -495,7 +495,7 @@ func (re *Regexp) FindAllStringSubmatchIndex(s string, n int) [][]int {
 
 func (re *Regexp) findAllSubmatch(cs cString, n int, deliver func(match [][]int)) {
 	if n < 0 {
-		n = int(cs.length + 1)
+		n = cs.length + 1
 	}
 
 	csOrig := cs
@@ -507,7 +507,7 @@ func (re *Regexp) findAllSubmatch(cs cString, n int, deliver func(match [][]int)
 
 	count := 0
 	prevMatchEnd := -1
-	for i := 0; i < n; i++ {
+	for i := 0; i < cs.length + 1; i++ {
 		if !findAndConsume(re, csPtr, matchArr.ptr, uint32(numGroups)) {
 			break
 		}

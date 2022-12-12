@@ -443,8 +443,7 @@ var splitTests = []struct {
 	{"", ".+", -1, []string{""}},
 	{"", "", -1, []string{}},
 	{"foobar", "", -1, []string{"f", "o", "o", "b", "a", "r"}},
-	// TODO: Fix
-	// {"abaabaccadaaae", "a*", 5, []string{"", "b", "b", "c", "cadaaae"}},
+	{"abaabaccadaaae", "a*", 5, []string{"", "b", "b", "c", "cadaaae"}},
 	{":x:y:z:", ":", -1, []string{"", "x", "y", "z", ""}},
 }
 
