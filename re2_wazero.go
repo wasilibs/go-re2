@@ -35,6 +35,7 @@ type libre2ABI struct {
 	cre2FindAndConsume        api.Function
 	cre2NumCapturingGroups    api.Function
 	cre2ErrorCode             api.Function
+	cre2ErrorArg             api.Function
 	cre2NamedGroupsIterNew    api.Function
 	cre2NamedGroupsIterNext   api.Function
 	cre2NamedGroupsIterDelete api.Function
@@ -88,6 +89,7 @@ func newABI() *libre2ABI {
 		cre2FindAndConsume:        mod.ExportedFunction("cre2_find_and_consume_re"),
 		cre2NumCapturingGroups:    mod.ExportedFunction("cre2_num_capturing_groups"),
 		cre2ErrorCode:             mod.ExportedFunction("cre2_error_code"),
+		cre2ErrorArg:             mod.ExportedFunction("cre2_error_arg"),
 		cre2NamedGroupsIterNew:    mod.ExportedFunction("cre2_named_groups_iter_new"),
 		cre2NamedGroupsIterNext:   mod.ExportedFunction("cre2_named_groups_iter_next"),
 		cre2NamedGroupsIterDelete: mod.ExportedFunction("cre2_named_groups_iter_delete"),
@@ -141,13 +143,26 @@ func newRE(abi *libre2ABI, pattern cString, longest bool) uintptr {
 	return uintptr(res[0])
 }
 
-func reError(abi *libre2ABI, rePtr uintptr) int {
+func reError(abi *libre2ABI, rePtr uintptr) (int, string) {
 	ctx := context.Background()
 	res, err := abi.cre2ErrorCode.Call(ctx, uint64(rePtr))
 	if err != nil {
 		panic(err)
 	}
-	return int(res[0])
+	code := int(res[0])
+	if code == 0 {
+		return 0, ""
+	}
+
+	argPtr := newCStringArray(abi, 1)
+	_, err = abi.cre2ErrorArg.Call(ctx, uint64(rePtr), uint64(argPtr.ptr))
+	if err != nil {
+		panic(err)
+	}
+	sPtr := binary.LittleEndian.Uint32(abi.memory.read(abi, argPtr.ptr, 4))
+	sLen := binary.LittleEndian.Uint32(abi.memory.read(abi, argPtr.ptr+4, 4))
+
+	return code, string(abi.memory.read(abi, uintptr(sPtr), int(sLen)))
 }
 
 func numCapturingGroups(abi *libre2ABI, rePtr uintptr) int {

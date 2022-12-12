@@ -31,6 +31,7 @@ RUN clang++-15 -Wl,--no-entry --rtlib=compiler-rt --target=wasm32-wasi -shared -
     -Wl,--export=cre2_opt_set_longest_match \
     -Wl,--export=cre2_opt_set_posix_syntax \
     -Wl,--export=cre2_error_code \
+    -Wl,--export=cre2_error_arg \
     -Wl,--export=cre2_num_capturing_groups \
     -Wl,--export=cre2_match \
     -Wl,--export=cre2_partial_match_re \

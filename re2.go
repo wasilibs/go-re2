@@ -69,7 +69,7 @@ func Compile(expr string) (*Regexp, error) {
 
 func compile(expr string) (*Regexp, error) {
 	abi := newABI()
-	abi.startOperation(len(expr) + 2)
+	abi.startOperation(len(expr) + 2 + 8)
 	defer abi.endOperation()
 
 	// Find requires the expression to be wrapped in parentheses to match Go's semantics.
@@ -80,38 +80,38 @@ func compile(expr string) (*Regexp, error) {
 	cs := cString{ptr: csParens.ptr + 1, length: csParens.length - 2}
 
 	rePtr := newRE(abi, cs, false)
-	errCode := reError(abi, rePtr)
+	errCode, errArg := reError(abi, rePtr)
 	switch errCode {
 	case 0:
 	// No error.
 	case 1:
-		return nil, fmt.Errorf("error parsing regexp: unexpected error: %#q", expr)
+		return nil, fmt.Errorf("error parsing regexp: unexpected error: %#q", errArg)
 	case 2:
-		return nil, fmt.Errorf("error parsing regexp: invalid escape sequence: %#q", expr)
+		return nil, fmt.Errorf("error parsing regexp: invalid escape sequence: %#q", errArg)
 	case 3:
-		return nil, fmt.Errorf("error parsing regexp: bad character class: %#q", expr)
+		return nil, fmt.Errorf("error parsing regexp: bad character class: %#q", errArg)
 	case 4:
-		return nil, fmt.Errorf("error parsing regexp: invalid character class range: %#q", expr)
+		return nil, fmt.Errorf("error parsing regexp: invalid character class range: %#q", errArg)
 	case 5:
-		return nil, fmt.Errorf("error parsing regexp: missing closing ]: %#q", expr)
+		return nil, fmt.Errorf("error parsing regexp: missing closing ]: %#q", errArg)
 	case 6:
-		return nil, fmt.Errorf("error parsing regexp: missing closing ): %#q", expr)
+		return nil, fmt.Errorf("error parsing regexp: missing closing ): %#q", errArg)
 	case 7:
-		return nil, fmt.Errorf("error parsing regexp: unexpected ): %#q", expr)
+		return nil, fmt.Errorf("error parsing regexp: unexpected ): %#q", errArg)
 	case 8:
-		return nil, fmt.Errorf("error parsing regexp: trailing backslash at end of expression: %#q", expr)
+		return nil, fmt.Errorf("error parsing regexp: trailing backslash at end of expression: %#q", errArg)
 	case 9:
-		return nil, fmt.Errorf("error parsing regexp: missing argument to repetition operator: %#q", expr)
+		return nil, fmt.Errorf("error parsing regexp: missing argument to repetition operator: %#q", errArg)
 	case 10:
-		return nil, fmt.Errorf("error parsing regexp: bad repitition argument: %#q", expr)
+		return nil, fmt.Errorf("error parsing regexp: bad repitition argument: %#q", errArg)
 	case 11:
-		return nil, fmt.Errorf("error parsing regexp: invalid nested repetition operator: %#q", expr)
+		return nil, fmt.Errorf("error parsing regexp: invalid nested repetition operator: %#q", errArg)
 	case 12:
-		return nil, fmt.Errorf("error parsing regexp: bad perl operator: %#q", expr)
+		return nil, fmt.Errorf("error parsing regexp: bad perl operator: %#q", errArg)
 	case 13:
-		return nil, fmt.Errorf("error parsing regexp: invalid UTF-8 in regexp: %#q", expr)
+		return nil, fmt.Errorf("error parsing regexp: invalid UTF-8 in regexp: %#q", errArg)
 	case 14:
-		return nil, fmt.Errorf("error parsing regexp: bad named capture group: %#q", expr)
+		return nil, fmt.Errorf("error parsing regexp: bad named capture group: %#q", errArg)
 	case 15:
 		// TODO(anuraaga): While the unit test passes, it is likely that the actual limit is currently
 		// different than regexp.
