@@ -3,8 +3,6 @@
 
 FROM ghcr.io/corazawaf/coraza-proxy-wasm/buildtools-wasi-sdk:main
 
-RUN apt-get install -y patch
-
 # Use post-release commit for now as it includes support for no-threads
 RUN mkdir -p /re2 && curl -L https://github.com/google/re2/archive/954656f47fe8fb505d4818da1e128417a79ea500.tar.gz | tar -xz --strip-components 1 -C /re2
 WORKDIR /re2

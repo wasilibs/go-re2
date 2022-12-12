@@ -46,6 +46,18 @@ func Check() {
 	mg.SerialDeps(Lint, Test)
 }
 
+// UpdateLibs updates the precompiled wasm libraries.
+func UpdateLibs() error {
+	if err := sh.RunV("docker", "build", "-t", "ghcr.io/anuraaga/re2-go/buildtools-re2", "-f", filepath.Join("buildtools", "re2", "Dockerfile"), "."); err != nil {
+		return err
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	return sh.RunV("docker", "run", "-it", "--rm", "-v", fmt.Sprintf("%s:/out", filepath.Join(wd, "wasm")), "ghcr.io/anuraaga/re2-go/buildtools-re2")
+}
+
 // Bench runs benchmarks in the default configuration for a Go app, using wazero.
 func Bench() error {
 	return sh.RunV("go", benchArgs("./...", 1, benchModeWazero)...)
