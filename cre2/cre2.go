@@ -17,7 +17,10 @@ void cre2_named_groups_iter_delete(void* iter);
 
 void* cre2_opt_new();
 void cre2_opt_delete(void* opts);
+void cre2_opt_set_log_errors(void* opt, int flag);
 void cre2_opt_set_longest_match(void* opt, int flag);
+void cre2_opt_set_posix_syntax(void* opt, int flag);
+void cre2_opt_set_case_sensitive(void* opt, int flag);
 
 void* malloc(unsigned long size);
 void free(void* ptr);
@@ -80,8 +83,20 @@ func DeleteOpt(opt unsafe.Pointer) {
 	C.cre2_opt_delete(opt)
 }
 
+func OptSetLogErrors(opt unsafe.Pointer, flag bool) {
+	C.cre2_opt_set_log_errors(opt, cFlag(flag))
+}
+
 func OptSetLongestMatch(opt unsafe.Pointer, flag bool) {
 	C.cre2_opt_set_longest_match(opt, cFlag(flag))
+}
+
+func OptSetPosixSyntax(opt unsafe.Pointer, flag bool) {
+	C.cre2_opt_set_posix_syntax(opt, cFlag(flag))
+}
+
+func OptSetCaseSensitive(opt unsafe.Pointer, flag bool) {
+	C.cre2_opt_set_case_sensitive(opt, cFlag(flag))
 }
 
 func Malloc(size int) unsafe.Pointer {

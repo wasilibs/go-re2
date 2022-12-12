@@ -16,6 +16,9 @@ type Regexp struct {
 	// regex for them.
 	parensPtr uintptr
 
+	posix   bool
+	longest bool
+
 	expr       string
 	exprParens string
 
@@ -63,11 +66,44 @@ func (re *Regexp) Copy() *Regexp {
 	return MustCompile(re.expr)
 }
 
+// Compile parses a regular expression and returns, if successful,
+// a Regexp object that can be used to match against text.
+//
+// When matching against text, the regexp returns a match that
+// begins as early as possible in the input (leftmost), and among those
+// it chooses the one that a backtracking search would have found first.
+// This so-called leftmost-first matching is the same semantics
+// that Perl, Python, and other implementations use, although this
+// package implements it without the expense of backtracking.
+// For POSIX leftmost-longest matching, see CompilePOSIX.
 func Compile(expr string) (*Regexp, error) {
-	return compile(expr)
+	return compile(expr, false, false, false)
 }
 
-func compile(expr string) (*Regexp, error) {
+// CompilePOSIX is like Compile but restricts the regular expression
+// to POSIX ERE (egrep) syntax and changes the match semantics to
+// leftmost-longest.
+//
+// That is, when matching against text, the regexp returns a match that
+// begins as early as possible in the input (leftmost), and among those
+// it chooses a match that is as long as possible.
+// This so-called leftmost-longest matching is the same semantics
+// that early regular expression implementations used and that POSIX
+// specifies.
+//
+// However, there can be multiple leftmost-longest matches, with different
+// submatch choices, and here this package diverges from POSIX.
+// Among the possible leftmost-longest matches, this package chooses
+// the one that a backtracking search would have found first, while POSIX
+// specifies that the match be chosen to maximize the length of the first
+// subexpression, then the second, and so on from left to right.
+// The POSIX rule is computationally prohibitive and not even well-defined.
+// See https://swtch.com/~rsc/regexp/regexp2.html#posix for details.
+func CompilePOSIX(expr string) (*Regexp, error) {
+	return compile(expr, true, true, false)
+}
+
+func compile(expr string, posix bool, longest bool, caseInsensitive bool) (*Regexp, error) {
 	abi := newABI()
 	abi.startOperation(len(expr) + 2 + 8)
 	defer abi.endOperation()
@@ -79,7 +115,7 @@ func compile(expr string) (*Regexp, error) {
 	csParens := newCString(abi, exprParens)
 	cs := cString{ptr: csParens.ptr + 1, length: csParens.length - 2}
 
-	rePtr := newRE(abi, cs, false)
+	rePtr := newRE(abi, cs, longest, posix, caseInsensitive)
 	errCode, errArg := reError(abi, rePtr)
 	switch errCode {
 	case 0:
@@ -118,13 +154,15 @@ func compile(expr string) (*Regexp, error) {
 		return nil, fmt.Errorf("error parsing regexp: expression too large")
 	}
 
-	reParensPtr := newRE(abi, csParens, false)
+	reParensPtr := newRE(abi, csParens, longest, posix, caseInsensitive)
 
 	subexp := subexpNames(abi, rePtr)
 
 	re := &Regexp{
 		ptr:         rePtr,
 		parensPtr:   reParensPtr,
+		posix:       posix,
+		longest:     longest,
 		expr:        expr,
 		exprParens:  exprParens,
 		subexpNames: subexp,
@@ -136,12 +174,33 @@ func compile(expr string) (*Regexp, error) {
 	return re, nil
 }
 
-func MustCompile(expr string) *Regexp {
-	re, err := Compile(expr)
+// MustCompile is like Compile but panics if the expression cannot be parsed.
+// It simplifies safe initialization of global variables holding compiled regular
+// expressions.
+func MustCompile(str string) *Regexp {
+	re, err := Compile(str)
 	if err != nil {
-		panic(err)
+		panic(`regexp: Compile(` + quote(str) + `): ` + err.Error())
 	}
 	return re
+}
+
+// MustCompilePOSIX is like CompilePOSIX but panics if the expression cannot be parsed.
+// It simplifies safe initialization of global variables holding compiled regular
+// expressions.
+func MustCompilePOSIX(str string) *Regexp {
+	regexp, err := CompilePOSIX(str)
+	if err != nil {
+		panic(`regexp: CompilePOSIX(` + quote(str) + `): ` + err.Error())
+	}
+	return regexp
+}
+
+func quote(s string) string {
+	if strconv.CanBackquote(s) {
+		return "`" + s + "`"
+	}
+	return strconv.Quote(s)
 }
 
 // QuoteMeta returns a string that escapes all regular expression metacharacters
@@ -373,7 +432,7 @@ func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 
 	count := 0
 	prevMatchEnd := -1
-	for i := 0; i < cs.length + 1; i++ {
+	for i := 0; i < cs.length+1; i++ {
 		if !findAndConsume(re, csPtr, matchArr.ptr, 1) {
 			break
 		}
@@ -507,7 +566,7 @@ func (re *Regexp) findAllSubmatch(cs cString, n int, deliver func(match [][]int)
 
 	count := 0
 	prevMatchEnd := -1
-	for i := 0; i < cs.length + 1; i++ {
+	for i := 0; i < cs.length+1; i++ {
 		if !findAndConsume(re, csPtr, matchArr.ptr, uint32(numGroups)) {
 			break
 		}
@@ -632,14 +691,18 @@ func (re *Regexp) Longest() {
 	re.abi.startOperation(len(re.expr) + 2)
 	defer re.abi.endOperation()
 
+	if re.longest {
+		return
+	}
+
 	// longest is not a mutable option in re2 so we must release and recompile.
 	deleteRE(re.abi, re.ptr)
 	deleteRE(re.abi, re.parensPtr)
 
 	csParens := newCString(re.abi, re.exprParens)
 	cs := cString{ptr: csParens.ptr + 1, length: csParens.length - 2}
-	re.ptr = newRE(re.abi, cs, true)
-	re.parensPtr = newRE(re.abi, csParens, true)
+	re.ptr = newRE(re.abi, cs, true, re.posix, false)
+	re.parensPtr = newRE(re.abi, csParens, true, re.posix, false)
 }
 
 // NumSubexp returns the number of parenthesized subexpressions in this Regexp.

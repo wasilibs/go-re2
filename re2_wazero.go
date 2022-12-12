@@ -35,15 +35,17 @@ type libre2ABI struct {
 	cre2FindAndConsume        api.Function
 	cre2NumCapturingGroups    api.Function
 	cre2ErrorCode             api.Function
-	cre2ErrorArg             api.Function
+	cre2ErrorArg              api.Function
 	cre2NamedGroupsIterNew    api.Function
 	cre2NamedGroupsIterNext   api.Function
 	cre2NamedGroupsIterDelete api.Function
 	cre2GlobalReplace         api.Function
 	cre2OptNew                api.Function
 	cre2OptDelete             api.Function
+	cre2OptSetLogErrors       api.Function
 	cre2OptSetLongestMatch    api.Function
 	cre2OptSetPosixSyntax     api.Function
+	cre2OptSetCaseSensitive   api.Function
 
 	malloc api.Function
 	free   api.Function
@@ -89,15 +91,17 @@ func newABI() *libre2ABI {
 		cre2FindAndConsume:        mod.ExportedFunction("cre2_find_and_consume_re"),
 		cre2NumCapturingGroups:    mod.ExportedFunction("cre2_num_capturing_groups"),
 		cre2ErrorCode:             mod.ExportedFunction("cre2_error_code"),
-		cre2ErrorArg:             mod.ExportedFunction("cre2_error_arg"),
+		cre2ErrorArg:              mod.ExportedFunction("cre2_error_arg"),
 		cre2NamedGroupsIterNew:    mod.ExportedFunction("cre2_named_groups_iter_new"),
 		cre2NamedGroupsIterNext:   mod.ExportedFunction("cre2_named_groups_iter_next"),
 		cre2NamedGroupsIterDelete: mod.ExportedFunction("cre2_named_groups_iter_delete"),
 		cre2GlobalReplace:         mod.ExportedFunction("cre2_global_replace_re"),
 		cre2OptNew:                mod.ExportedFunction("cre2_opt_new"),
 		cre2OptDelete:             mod.ExportedFunction("cre2_opt_delete"),
+		cre2OptSetLogErrors:       mod.ExportedFunction("cre2_opt_set_log_errors"),
 		cre2OptSetLongestMatch:    mod.ExportedFunction("cre2_opt_set_longest_match"),
 		cre2OptSetPosixSyntax:     mod.ExportedFunction("cre2_opt_set_posix_syntax"),
+		cre2OptSetCaseSensitive:   mod.ExportedFunction("cre2_opt_set_case_sensitive"),
 
 		malloc: mod.ExportedFunction("malloc"),
 		free:   mod.ExportedFunction("free"),
@@ -118,7 +122,7 @@ func (abi *libre2ABI) endOperation() {
 	abi.mu.Unlock()
 }
 
-func newRE(abi *libre2ABI, pattern cString, longest bool) uintptr {
+func newRE(abi *libre2ABI, pattern cString, longest bool, posix bool, caseInsensitive bool) uintptr {
 	ctx := context.Background()
 	res, err := abi.cre2OptNew.Call(ctx)
 	if err != nil {
@@ -130,8 +134,23 @@ func newRE(abi *libre2ABI, pattern cString, longest bool) uintptr {
 			panic(err)
 		}
 	}()
+	if _, err := abi.cre2OptSetLogErrors.Call(ctx, uint64(optPtr), 0); err != nil {
+		panic(err)
+	}
 	if longest {
 		_, err = abi.cre2OptSetLongestMatch.Call(ctx, uint64(optPtr), 1)
+		if err != nil {
+			panic(err)
+		}
+	}
+	if posix {
+		_, err = abi.cre2OptSetPosixSyntax.Call(ctx, uint64(optPtr), 1)
+		if err != nil {
+			panic(err)
+		}
+	}
+	if caseInsensitive {
+		_, err = abi.cre2OptSetCaseSensitive.Call(ctx, uint64(optPtr), 0)
 		if err != nil {
 			panic(err)
 		}
