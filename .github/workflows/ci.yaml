@@ -66,3 +66,5 @@ jobs:
           # General coverage should be good enough to not need to slow down development
           # on these slow tests.
           RE2_TEST_EXHAUSTIVE: ${{ github.event_name != 'pull_request' && '1' || '0'}}
+          # Windows runner seems to not have enough CPU performance to keep up without a memory limit
+          GOMEMLIMIT: ${{ (github.event_name != 'pull_request' && matrix.os == 'windows-2022') && '1GiB' || '' }}

@@ -38,15 +38,11 @@ var badRe = []stringError{
 	{`?`, "missing argument to repetition operator: `?`"},
 	{`(abc`, "missing closing ): `(abc`"},
 	{`abc)`, "unexpected ): `abc)`"},
-	// GAP - Go sometimes outputs the fragment of the regexp that fails parsing but re2 provides no mechanism for it, so we always output the whole pattern.
-	{`x[a-z`, "missing closing ]: `x[a-z`"},
-	// GAP - Go sometimes outputs the fragment of the regexp that fails parsing but re2 provides no mechanism for it, so we always output the whole pattern.
-	{`[z-a]`, "invalid character class range: `[z-a]`"},
+	{`x[a-z`, "missing closing ]: `[a-z`"},
+	{`[z-a]`, "invalid character class range: `z-a`"},
 	{`abc\`, "trailing backslash at end of expression"},
-	// GAP - Go sometimes outputs the fragment of the regexp that fails parsing but re2 provides no mechanism for it, so we always output the whole pattern.
-	{`a**`, "invalid nested repetition operator: `a**`"},
-	// GAP - Go sometimes outputs the fragment of the regexp that fails parsing but re2 provides no mechanism for it, so we always output the whole pattern.
-	{`a*+`, "invalid nested repetition operator: `a*+`"},
+	{`a**`, "invalid nested repetition operator: `**`"},
+	{`a*+`, "invalid nested repetition operator: `*+`"},
 	{`\x`, "invalid escape sequence: `\\x`"},
 	// TODO(anuraaga): This test passes with Go but does not complete in a practical time with wasm.
 	// {strings.Repeat(`\pL`, 27000), "expression too large"},

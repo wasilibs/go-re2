@@ -6,6 +6,7 @@ package cre2
 void* cre2_new(void* pattern, int pattern_len, void* opts);
 void cre2_delete(void* re);
 int cre2_error_code(void* re);
+void cre2_error_arg(void* re, void* arg);
 int cre2_match(void* re, void* text, int text_len, int startpos, int endpos, int anchor, void* match_arr, int nmatch);
 int cre2_find_and_consume_re(void* re, void* text, void* match, int nmatch);
 int cre2_global_replace_re(void* re, void* textAndTarget, void* rewrite);
@@ -34,6 +35,10 @@ func Delete(ptr unsafe.Pointer) {
 
 func ErrorCode(rePtr unsafe.Pointer) int {
 	return int(C.cre2_error_code(rePtr))
+}
+
+func ErrorArg(rePtr unsafe.Pointer, argPtr unsafe.Pointer) {
+	C.cre2_error_arg(rePtr, argPtr)
 }
 
 func FindAndConsume(rePtr unsafe.Pointer, textPtr unsafe.Pointer, matchPtr unsafe.Pointer, nMatch int) bool {
