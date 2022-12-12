@@ -27,8 +27,10 @@ RUN $CXX -Wl,--no-entry --rtlib=compiler-rt --target=wasm32-wasi -shared -nostdl
     -Wl,--export=cre2_opt_new \
     -Wl,--export=cre2_opt_delete \
     -Wl,--export=cre2_opt_set_max_mem \
+    -Wl,--export=cre2_opt_set_log_errors \
     -Wl,--export=cre2_opt_set_longest_match \
     -Wl,--export=cre2_opt_set_posix_syntax \
+    -Wl,--export=cre2_opt_set_case_sensitive \
     -Wl,--export=cre2_error_code \
     -Wl,--export=cre2_error_arg \
     -Wl,--export=cre2_num_capturing_groups \
