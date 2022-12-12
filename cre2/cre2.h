@@ -31,16 +31,6 @@ extern "C" {
 
 
 /** --------------------------------------------------------------------
- ** Version functions.
- ** ----------------------------------------------------------------- */
-
-cre2_decl const char *	cre2_version_string (void);
-cre2_decl int		cre2_version_interface_current	(void);
-cre2_decl int		cre2_version_interface_revision	(void);
-cre2_decl int		cre2_version_interface_age	(void);
-
-
-/** --------------------------------------------------------------------
  ** Regular expressions configuration options.
  ** ----------------------------------------------------------------- */
 

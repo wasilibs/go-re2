@@ -22,11 +22,6 @@
 
 
 /** --------------------------------------------------------------------
- ** Version functions.
- ** ----------------------------------------------------------------- */
-
-
-/** --------------------------------------------------------------------
  ** Options objects.
  ** ----------------------------------------------------------------- */
 
@@ -441,27 +436,20 @@ DEFINE_MATCH_REX_FUN2(cre2_find_and_consume_re,FindAndConsumeN)
 int
 cre2_replace (const char * pattern, cre2_string_t * text_and_target, cre2_string_t * rewrite)
 {
-  try {
-    std::string		S(text_and_target->data, text_and_target->length);
-    re2::StringPiece	R(rewrite->data, rewrite->length);
-    char *		buffer; /* this exists to make GCC shut up about const */
-    bool		retval;
-    retval = RE2::Replace(&S, pattern, R);
-    text_and_target->length = S.length();
-    buffer = (char *)malloc(1+text_and_target->length);
-    if (buffer) {
-      S.copy(buffer, text_and_target->length);
-      buffer[text_and_target->length] = '\0';
-      text_and_target->data = buffer;
-    } else
-      return -1;
-    return int(retval);
-  } catch(const std::exception &e) {
-    // e.what();
+  std::string		S(text_and_target->data, text_and_target->length);
+  re2::StringPiece	R(rewrite->data, rewrite->length);
+  char *		buffer; /* this exists to make GCC shut up about const */
+  bool		retval;
+  retval = RE2::Replace(&S, pattern, R);
+  text_and_target->length = S.length();
+  buffer = (char *)malloc(1+text_and_target->length);
+  if (buffer) {
+    S.copy(buffer, text_and_target->length);
+    buffer[text_and_target->length] = '\0';
+    text_and_target->data = buffer;
+  } else
     return -1;
-  } catch(...) {
-    return -1;
-  }
+  return int(retval);
 }
 int
 cre2_replace_re (cre2_regexp_t * rex, cre2_string_t * text_and_target, cre2_string_t * rewrite)

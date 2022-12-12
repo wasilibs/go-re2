@@ -11,16 +11,17 @@ WORKDIR /re2
 ENV RE2_CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -I. -DRE2_NO_THREADS
 RUN make obj/libre2.a
 
-RUN mkdir -p /cre2 && curl -L https://bitbucket.org/marcomaggi/cre2/downloads/cre2-0.4.0-devel.2.tar.gz | tar -xz --strip-components 1 -C /cre2
 WORKDIR /cre2
-ADD cre2.patch cre2.patch
-RUN patch -p1 < cre2.patch
-# host is required by configure but not used so set it arbitrarily
-RUN RE2_CFLAGS=-I/re2 RE2_LIBS=/re2/obj ./configure --host=i686-pc-linux-gnu --enable-shared=false && \
-    make
-# We invoke linker for shared library directly to include flags for embedding all code into a single binary instead of
-# dynamic loading. Currently unknown if it's possible to nudge libtool to do this.
-RUN clang++-15 -Wl,--no-entry --rtlib=compiler-rt --target=wasm32-wasi -shared -nostdlib /usr/lib/llvm-15/lib/clang/15.*/lib/wasi/libclang_rt.builtins-wasm32.a /re2/obj/libre2.a /cre2/.libs/libcre2.a -L/wasi-sysroot/lib/wasm32-wasi -lc++ -lc++abi -lc -O3 --sysroot=/wasi-sysroot -Wl,--demangle -Wl,--allow-undefined -o .libs/libcre2.so \
+ADD cre2/cre2.cpp /cre2
+ADD cre2/cre2.h /cre2
+# Just one source file so not worth running make
+RUN $CXX -c cre2.cpp -o cre2.o -I. -I/re2 $CXXFLAGS && \
+    llvm-ar-15 cru libcre2.a  cre2.o && \
+    llvm-ranlib-15 libcre2.a
+
+# Separate step so exports can be updated without recompiling.
+# Number of layers isn't really a concern for this image.
+RUN $CXX -Wl,--no-entry --rtlib=compiler-rt --target=wasm32-wasi -shared -nostdlib /usr/lib/llvm-15/lib/clang/15.*/lib/wasi/libclang_rt.builtins-wasm32.a /re2/obj/libre2.a /cre2/libcre2.a -L/wasi-sysroot/lib/wasm32-wasi -lc++ -lc++abi -lc -O3 --sysroot=/wasi-sysroot -Wl,--demangle -Wl,--allow-undefined -o libcre2.so \
     -Wl,--export=malloc \
     -Wl,--export=free \
     -Wl,--export=cre2_new \
@@ -42,4 +43,4 @@ RUN clang++-15 -Wl,--no-entry --rtlib=compiler-rt --target=wasm32-wasi -shared -
     -Wl,--export=cre2_replace_re \
     -Wl,--export=cre2_global_replace_re
 
-CMD ["bash", "-c", "cp /re2/obj/libre2.a /cre2/.libs/libcre2.so /cre2/.libs/libcre2.a /out/"]
+CMD ["bash", "-c", "cp /re2/obj/libre2.a /cre2/libcre2.so /cre2/libcre2.a /out/"]
