@@ -37,6 +37,7 @@ func MatchString(pattern string, s string) (matched bool, err error) {
 	if err != nil {
 		return false, err
 	}
+	defer re.release()
 	return re.MatchString(s), nil
 }
 
@@ -48,6 +49,7 @@ func Match(pattern string, b []byte) (matched bool, err error) {
 	if err != nil {
 		return false, err
 	}
+	defer re.release()
 	return re.Match(b), nil
 }
 
