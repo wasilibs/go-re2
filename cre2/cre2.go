@@ -96,7 +96,7 @@ func OptSetPosixSyntax(opt unsafe.Pointer, flag bool) {
 }
 
 func OptSetCaseSensitive(opt unsafe.Pointer, flag bool) {
-	C.cre2_opt_set_posix_syntax(opt, cFlag(flag))
+	C.cre2_opt_set_case_sensitive(opt, cFlag(flag))
 }
 
 func Malloc(size int) unsafe.Pointer {
