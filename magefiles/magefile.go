@@ -46,23 +46,19 @@ func Check() {
 	mg.SerialDeps(Lint, Test)
 }
 
-var benchArgs = []string{"test", "-bench=.", "-run=^$", "-v", "./..."}
-var benchCGOArgs = []string{"test", "-tags=re2_cgo", "-bench=.", "-run=^$", "-v", "./..."}
-var benchSTDLibArgs = []string{"test", "-tags=re2_bench_stdlib", "-bench=.", "-run=^$", "-v", "./..."}
-
 // Bench runs benchmarks in the default configuration for a Go app, using wazero.
 func Bench() error {
-	return sh.RunV("go", benchArgs...)
+	return sh.RunV("go", benchArgs("./...", 1, benchModeWazero)...)
 }
 
 // BenchCGO runs benchmarks with re2 accessed using cgo. A C++ toolchain and libre2 must be installed to run.
 func BenchCGO() error {
-	return sh.RunV("go", benchCGOArgs...)
+	return sh.RunV("go", benchArgs("./...", 1, benchModeCGO)...)
 }
 
 // BenchSTDLib runs benchmarks using the regexp library in the standard library for comparison.
 func BenchSTDLib() error {
-	return sh.RunV("go", benchSTDLibArgs...)
+	return sh.RunV("go", benchArgs("./...", 1, benchModeSTDLib)...)
 }
 
 // BenchAll runs all benchmark types and outputs with benchstat. A C++ toolchain and libre2 must be installed to run.
@@ -71,7 +67,7 @@ func BenchAll() error {
 		return err
 	}
 
-	wazero, err := sh.Output("go", benchArgs...)
+	wazero, err := sh.Output("go", benchArgs("./...", 5, benchModeWazero)...)
 	if err != nil {
 		return err
 	}
@@ -79,7 +75,7 @@ func BenchAll() error {
 		return err
 	}
 
-	cgo, err := sh.Output("go", benchCGOArgs...)
+	cgo, err := sh.Output("go", benchArgs("./...", 5, benchModeCGO)...)
 	if err != nil {
 		return err
 	}
@@ -87,7 +83,7 @@ func BenchAll() error {
 		return err
 	}
 
-	stdlib, err := sh.Output("go", benchSTDLibArgs...)
+	stdlib, err := sh.Output("go", benchArgs("./...", 5, benchModeSTDLib)...)
 	if err != nil {
 		return err
 	}
@@ -99,23 +95,19 @@ func BenchAll() error {
 		"build/bench_stdlib.txt", "build/bench.txt", "build/bench_cgo.txt")
 }
 
-var wafBenchArgs = []string{"test", "-bench=.", "-run=^$", "-v", "./wafbench"}
-var wafBenchCGOArgs = []string{"test", "-tags=re2_cgo", "-bench=.", "-run=^$", "-v", "./wafbench"}
-var wafBenchSTDLibArgs = []string{"test", "-tags=re2_bench_stdlib", "-bench=.", "-run=^$", "-v", "./wafbench"}
-
 // WAFBench runs benchmarks in the default configuration for a Go app, using wazero.
 func WAFBench() error {
-	return sh.RunV("go", wafBenchArgs...)
+	return sh.RunV("go", benchArgs("./wafbench", 1, benchModeWazero)...)
 }
 
 // WAFBenchCGO runs benchmarks with re2 accessed using cgo. A C++ toolchain and libre2 must be installed to run.
 func WAFBenchCGO() error {
-	return sh.RunV("go", wafBenchCGOArgs...)
+	return sh.RunV("go", benchArgs("./wafbench", 1, benchModeCGO)...)
 }
 
 // WAFBenchSTDLib runs benchmarks using the regexp library in the standard library for comparison.
 func WAFBenchSTDLib() error {
-	return sh.RunV("go", wafBenchSTDLibArgs...)
+	return sh.RunV("go", benchArgs("./wafbench", 1, benchModeSTDLib)...)
 }
 
 // WAFBenchAll runs all benchmark types and outputs with benchstat. A C++ toolchain and libre2 must be installed to run.
@@ -124,7 +116,7 @@ func WAFBenchAll() error {
 		return err
 	}
 
-	wazero, err := sh.Output("go", wafBenchArgs...)
+	wazero, err := sh.Output("go", benchArgs("./wafbench", 5, benchModeWazero)...)
 	if err != nil {
 		return err
 	}
@@ -132,7 +124,7 @@ func WAFBenchAll() error {
 		return err
 	}
 
-	cgo, err := sh.Output("go", wafBenchCGOArgs...)
+	cgo, err := sh.Output("go", benchArgs("./wafbench", 5, benchModeCGO)...)
 	if err != nil {
 		return err
 	}
@@ -140,7 +132,7 @@ func WAFBenchAll() error {
 		return err
 	}
 
-	stdlib, err := sh.Output("go", wafBenchSTDLibArgs...)
+	stdlib, err := sh.Output("go", benchArgs("./wafbench", 5, benchModeSTDLib)...)
 	if err != nil {
 		return err
 	}
@@ -153,3 +145,27 @@ func WAFBenchAll() error {
 }
 
 var Default = Test
+
+type benchMode int
+
+const (
+	benchModeWazero benchMode = iota
+	benchModeCGO
+	benchModeSTDLib
+)
+
+func benchArgs(pkg string, count int, mode benchMode) []string {
+	args := []string{"test", "-bench=.", "-run=^$", "-v"}
+	if count > 0 {
+		args = append(args, fmt.Sprintf("-count=%d", count))
+	}
+	switch mode {
+	case benchModeCGO:
+		args = append(args, "-tags=re2_cgo")
+	case benchModeSTDLib:
+		args = append(args, "-tags=re2_bench_stdlib")
+	}
+	args = append(args, pkg)
+
+	return args
+}
