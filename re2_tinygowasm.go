@@ -30,8 +30,16 @@ func newRE(abi *libre2ABI, pattern cString, longest bool) uintptr {
 	return uintptr(cre2.New(unsafe.Pointer(uintptr(pattern.ptr)), int(pattern.length), opt))
 }
 
-func reError(abi *libre2ABI, rePtr uintptr) int {
-	return cre2.ErrorCode(unsafe.Pointer(rePtr))
+func reError(abi *libre2ABI, rePtr uintptr) (int, string) {
+	code := cre2.ErrorCode(unsafe.Pointer(rePtr))
+	if code == 0 {
+		return 0, ""
+	}
+
+	arg := cString{}
+	cre2.ErrorArg(unsafe.Pointer(rePtr), unsafe.Pointer(&arg))
+
+	return int(code), string(cre2.ReadCBytes(unsafe.Pointer(arg.ptr), arg.length))
 }
 
 func numCapturingGroups(abi *libre2ABI, rePtr uintptr) int {

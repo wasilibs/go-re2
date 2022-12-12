@@ -151,7 +151,7 @@ func reError(abi *libre2ABI, rePtr uintptr) (int, string) {
 	}
 	code := int(res[0])
 	if code == 0 {
-		return code, ""
+		return 0, ""
 	}
 
 	argPtr := newCStringArray(abi, 1)
