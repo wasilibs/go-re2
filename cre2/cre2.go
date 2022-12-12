@@ -92,12 +92,16 @@ func Free(ptr unsafe.Pointer) {
 	C.free(ptr)
 }
 
-func ReadCBytes(sPtr unsafe.Pointer, sLen int) []byte {
+func CopyCBytes(sPtr unsafe.Pointer, sLen int) []byte {
 	return C.GoBytes(sPtr, C.int(sLen))
 }
 
 func CopyCString(sPtr unsafe.Pointer) string {
 	return C.GoString((*C.char)(sPtr))
+}
+
+func CopyCStringN(sPtr unsafe.Pointer, n int) string {
+	return C.GoStringN((*C.char)(sPtr), C.int(n))
 }
 
 func cFlag(flag bool) C.int {
