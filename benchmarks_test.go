@@ -339,6 +339,28 @@ func BenchmarkMatch(b *testing.B) {
 	}
 }
 
+func BenchmarkMatchParallel(b *testing.B) {
+	for _, data := range benchData {
+		r := MustCompileBenchmark(data.re)
+		for _, size := range benchSizes {
+			if testing.Short() && size.n > 1<<10 {
+				continue
+			}
+			t := makeText(size.n)
+			b.Run(data.name+"/"+size.name, func(b *testing.B) {
+				b.SetBytes(int64(size.n))
+				b.RunParallel(func(pb *testing.PB) {
+					for pb.Next() {
+						if r.Match(t) {
+							b.Fatal("match!")
+						}
+					}
+				})
+			})
+		}
+	}
+}
+
 func BenchmarkMatch_onepass_regex(b *testing.B) {
 	r := MustCompileBenchmark(`(?s)\A.*\z`)
 	for _, size := range benchSizes {
