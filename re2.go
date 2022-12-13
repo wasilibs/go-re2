@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"unicode"
 	"unicode/utf8"
 )
@@ -26,7 +27,7 @@ type Regexp struct {
 
 	abi *libre2ABI
 
-	released bool
+	released uint32
 }
 
 // MatchString reports whether the string s
@@ -815,12 +816,9 @@ func (re *Regexp) MatchString(s string) bool {
 }
 
 func (re *Regexp) release() {
-	re.abi.startOperation(0)
-	defer re.abi.endOperation()
-	if re.released {
+	if !atomic.CompareAndSwapUint32(&re.released, 0, 1) {
 		return
 	}
-	re.released = true
 	release(re)
 }
 

@@ -22,7 +22,7 @@ best to confirm them before proceeding.
 with the unicode replacement character. This library will stop consuming strings when encountering
 invalid utf-8.
 
-- `FindAll` with `\b` by itself can only find word boundary starts but not ends.
+- `FindAll` with `\b` by itself can only find word boundary starts but not ends for single-letter words.
 
 - `FindAll` with `^` by itself will match each character of the input instead of just the whole input.
 Other expressions that match an empty string at the start of the input will behave similarly.
