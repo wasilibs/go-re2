@@ -79,6 +79,7 @@ func BenchAll() error {
 		return err
 	}
 
+	fmt.Println("Executing wazero benchmarks")
 	wazero, err := sh.Output("go", benchArgs("./...", 5, benchModeWazero)...)
 	if err != nil {
 		fmt.Printf("Error running wazero benchmarks:\n%s", wazero)
@@ -88,6 +89,7 @@ func BenchAll() error {
 		return err
 	}
 
+	fmt.Println("Executing cgo benchmarks")
 	cgo, err := sh.Output("go", benchArgs("./...", 5, benchModeCGO)...)
 	if err != nil {
 		fmt.Printf("Error running cgo benchmarks:\n%s", cgo)
@@ -97,6 +99,7 @@ func BenchAll() error {
 		return err
 	}
 
+	fmt.Println("Executing stdlib benchmarks")
 	stdlib, err := sh.Output("go", benchArgs("./...", 5, benchModeSTDLib)...)
 	if err != nil {
 		fmt.Printf("Error running stdlib benchmarks:\n%s", stdlib)
@@ -131,6 +134,7 @@ func WAFBenchAll() error {
 		return err
 	}
 
+	fmt.Println("Executing wazero benchmarks")
 	wazero, err := sh.Output("go", benchArgs("./wafbench", 5, benchModeWazero)...)
 	if err != nil {
 		return err
@@ -139,6 +143,7 @@ func WAFBenchAll() error {
 		return err
 	}
 
+	fmt.Println("Executing cgo benchmarks")
 	cgo, err := sh.Output("go", benchArgs("./wafbench", 5, benchModeCGO)...)
 	if err != nil {
 		return err
@@ -147,6 +152,7 @@ func WAFBenchAll() error {
 		return err
 	}
 
+	fmt.Println("Executing stdlib benchmarks")
 	stdlib, err := sh.Output("go", benchArgs("./wafbench", 5, benchModeSTDLib)...)
 	if err != nil {
 		return err
