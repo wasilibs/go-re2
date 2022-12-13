@@ -170,7 +170,7 @@ const (
 )
 
 func benchArgs(pkg string, count int, mode benchMode) []string {
-	args := []string{"test", "-bench=.", "-run=^$", "-v"}
+	args := []string{"test", "-bench=.", "-run=^$", "-v", "-timeout=60m"}
 	if count > 0 {
 		args = append(args, fmt.Sprintf("-count=%d", count))
 	}
