@@ -9,7 +9,7 @@ RUN mkdir -p /mimalloc && curl -L https://github.com/microsoft/mimalloc/archive/
 WORKDIR /mimalloc
 ADD buildtools/re2/mimalloc.patch mimalloc.patch
 RUN patch -p1 < mimalloc.patch
-RUN mkdir -p out/release && cd out/release && cmake ../.. -DMI_BUILD_SHARED=off -DMI_BUILD_TESTS=off && make && ${RANLIB} libmimalloc.a
+RUN mkdir -p out/release && cd out/release && cmake ../.. -DCMAKE_BUILD_TYPE=Debug -DMI_BUILD_SHARED=off -DMI_BUILD_TESTS=off && make && mv libmimalloc-debug.a libmimalloc.a && ${RANLIB} libmimalloc.a
 
 # Use post-release commit for now as it includes support for no-threads
 RUN mkdir -p /re2 && curl -L https://github.com/google/re2/archive/954656f47fe8fb505d4818da1e128417a79ea500.tar.gz | tar -xz --strip-components 1 -C /re2
