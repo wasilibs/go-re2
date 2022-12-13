@@ -119,42 +119,78 @@ Find-2                                      211ns ± 6%        965ns ± 4%      
 Compile/Onepass-2                          5.21µs ± 0%     445.49µs ± 2%          21.30µs ± 4%
 Compile/Medium-2                           11.6µs ± 0%      511.8µs ± 1%           33.1µs ± 3%
 Compile/Hard-2                             95.1µs ± 0%     1425.0µs ± 1%          252.4µs ± 5%
-Match/Easy0/16-2                           4.33ns ± 0%     440.46ns ± 0%         221.72ns ± 1%
-Match/Easy0/32-2                           52.4ns ± 0%      441.3ns ± 1%          221.7ns ± 1%
-Match/Easy0/1K-2                            319ns ± 1%        453ns ± 0%            221ns ± 0%
-Match/Easy0/32K-2                          5.56µs ± 0%       1.35µs ± 0%           0.24µs ±12%
-Match/Easy0/1M-2                            296µs ± 1%         57µs ± 3%              0µs ± 0%
-Match/Easy0/32M-2                          9.54ms ± 1%       3.27ms ± 9%           0.00ms ± 1%
-Match/Easy0i/16-2                          4.34ns ± 1%     430.82ns ± 0%         225.70ns ± 2%
-Match/Easy0i/32-2                           842ns ± 0%        431ns ± 0%            228ns ± 5%
-Match/Easy0i/1K-2                          24.9µs ± 0%        0.4µs ± 0%            0.2µs ± 2%
-Match/Easy0i/32K-2                         1.13ms ± 0%       0.00ms ± 0%           0.00ms ± 2%
-Match/Easy0i/1M-2                          36.3ms ± 0%        0.1ms ± 4%            0.0ms ± 1%
-Match/Easy0i/32M-2                          1.16s ± 0%        0.00s ±18%            0.00s ± 2%
-Match/Easy1/16-2                           4.36ns ± 1%     429.28ns ± 0%         224.08ns ± 2%
-Match/Easy1/32-2                           48.8ns ± 1%      428.5ns ± 0%          223.4ns ± 2%
-Match/Easy1/1K-2                            663ns ± 2%        442ns ± 0%            224ns ± 2%
-Match/Easy1/32K-2                          33.5µs ± 1%        1.4µs ± 1%            0.2µs ± 1%
-Match/Easy1/1M-2                           1.20ms ± 1%       0.06ms ± 2%           0.00ms ± 1%
-Match/Easy1/32M-2                          38.7ms ± 1%        3.1ms ± 4%            0.0ms ± 0%
-Match/Medium/16-2                          4.34ns ± 0%     429.26ns ± 0%         221.08ns ± 1%
-Match/Medium/32-2                           687ns ± 0%        430ns ± 0%            222ns ± 1%
-Match/Medium/1K-2                          26.6µs ± 0%        0.4µs ± 0%            0.2µs ± 1%
-Match/Medium/32K-2                         1.26ms ± 0%       0.00ms ± 2%           0.00ms ± 1%
-Match/Medium/1M-2                          40.2ms ± 1%        0.1ms ± 3%            0.0ms ± 2%
-Match/Medium/32M-2                          1.29s ± 0%        0.00s ± 6%            0.00s ± 0%
-Match/Hard/16-2                            4.37ns ± 1%     430.50ns ± 0%         222.24ns ± 1%
-Match/Hard/32-2                            1.21µs ± 2%       0.43µs ± 0%           0.22µs ± 2%
-Match/Hard/1K-2                            39.9µs ±15%        0.4µs ± 0%            0.2µs ± 1%
-Match/Hard/32K-2                           1.70ms ± 1%       0.00ms ± 0%           0.00ms ± 2%
-Match/Hard/1M-2                            54.4ms ± 1%        0.1ms ± 2%            0.0ms ± 0%
-Match/Hard/32M-2                            1.74s ± 1%        0.00s ± 7%            0.00s ±11%
-Match/Hard1/16-2                           3.14µs ± 0%       0.54µs ± 0%           0.24µs ± 1%
-Match/Hard1/32-2                           6.00µs ± 0%       0.67µs ± 0%           0.28µs ± 2%
-Match/Hard1/1K-2                            186µs ± 0%          8µs ± 0%              3µs ± 0%
-Match/Hard1/32K-2                          8.30ms ± 3%       0.23ms ± 0%           0.08ms ± 0%
-Match/Hard1/1M-2                            266ms ± 3%          7ms ± 0%              3ms ± 0%
-Match/Hard1/32M-2                           8.50s ± 2%        0.23s ± 0%            0.09s ± 0%
+Match/Easy0/16-2                           4.37ns ± 0%     457.30ns ± 1%         221.10ns ± 3%
+Match/Easy0/32-2                           51.8ns ± 0%      451.8ns ± 2%          219.4ns ± 0%
+Match/Easy0/1K-2                            275ns ± 0%        471ns ± 1%            218ns ± 0%
+Match/Easy0/32K-2                          4.70µs ± 1%       1.29µs ± 2%           0.22µs ± 3%
+Match/Easy0/1M-2                            270µs ± 0%        212µs ± 2%              0µs ± 3%
+Match/Easy0/32M-2                          9.10ms ± 1%      10.03ms ± 1%           0.00ms ± 2%
+Match/Easy0i/16-2                          4.37ns ± 0%     427.44ns ± 1%         226.04ns ± 5%
+Match/Easy0i/32-2                           815ns ± 0%        429ns ± 2%            226ns ± 3%
+Match/Easy0i/1K-2                          23.7µs ± 0%        0.4µs ± 1%            0.2µs ± 4%
+Match/Easy0i/32K-2                         1.08ms ± 0%       0.00ms ± 1%           0.00ms ± 1%
+Match/Easy0i/1M-2                          35.0ms ± 1%        0.2ms ± 4%            0.0ms ± 1%
+Match/Easy0i/32M-2                          1.12s ± 1%        0.01s ± 9%            0.00s ± 1%
+Match/Easy1/16-2                           4.36ns ± 0%     428.92ns ± 2%         222.84ns ± 3%
+Match/Easy1/32-2                           48.3ns ± 0%      422.7ns ± 1%          219.8ns ± 4%
+Match/Easy1/1K-2                            671ns ± 1%        438ns ± 1%            223ns ± 3%
+Match/Easy1/32K-2                          32.2µs ± 1%        1.3µs ± 1%            0.2µs ± 0%
+Match/Easy1/1M-2                           1.13ms ± 1%       0.20ms ± 1%           0.00ms ± 3%
+Match/Easy1/32M-2                          36.0ms ± 1%        9.6ms ± 1%            0.0ms ± 1%
+Match/Medium/16-2                          4.37ns ± 1%     427.46ns ± 1%         217.50ns ± 0%
+Match/Medium/32-2                           894ns ± 0%        425ns ± 2%            217ns ± 0%
+Match/Medium/1K-2                          25.4µs ± 0%        0.4µs ± 1%            0.2µs ± 3%
+Match/Medium/32K-2                         1.12ms ± 2%       0.00ms ± 1%           0.00ms ± 0%
+Match/Medium/1M-2                          35.7ms ± 1%        0.2ms ± 1%            0.0ms ± 3%
+Match/Medium/32M-2                          1.15s ± 0%        0.01s ± 4%            0.00s ± 3%
+Match/Hard/16-2                            4.37ns ± 0%     427.10ns ± 1%         224.10ns ± 3%
+Match/Hard/32-2                            1.19µs ± 0%       0.42µs ± 1%           0.22µs ± 3%
+Match/Hard/1K-2                            36.1µs ± 0%        0.4µs ± 1%            0.2µs ± 3%
+Match/Hard/32K-2                           1.71ms ± 6%       0.00ms ± 1%           0.00ms ± 3%
+Match/Hard/1M-2                            54.7ms ± 6%        0.2ms ± 3%            0.0ms ± 2%
+Match/Hard/32M-2                            1.76s ± 6%        0.01s ± 3%            0.00s ± 4%
+Match/Hard1/16-2                           3.61µs ± 2%       0.51µs ± 1%           0.24µs ± 1%
+Match/Hard1/32-2                           7.04µs ± 1%       0.61µs ± 0%           0.27µs ± 0%
+Match/Hard1/1K-2                            214µs ± 1%          7µs ± 0%              2µs ± 0%
+Match/Hard1/32K-2                          8.30ms ± 4%       0.20ms ± 0%           0.07ms ± 0%
+Match/Hard1/1M-2                            268ms ± 6%          7ms ± 1%              2ms ± 0%
+Match/Hard1/32M-2                           8.37s ± 4%        0.21s ± 1%            0.07s ± 0%
+MatchParallel/Easy0/16-2                   2.37ns ± 0%     472.38ns ± 1%         160.54ns ± 1%
+MatchParallel/Easy0/32-2                   27.3ns ± 0%      475.6ns ± 2%          161.9ns ± 2%
+MatchParallel/Easy0/1K-2                    139ns ± 1%        492ns ± 0%            162ns ± 3%
+MatchParallel/Easy0/32K-2                  2.41µs ± 1%       1.45µs ± 1%           0.16µs ± 2%
+MatchParallel/Easy0/1M-2                    139µs ± 1%        224µs ± 1%              0µs ± 4%
+MatchParallel/Easy0/32M-2                  4.67ms ± 2%      10.12ms ± 5%           0.00ms ± 3%
+MatchParallel/Easy0i/16-2                  2.37ns ± 0%     473.04ns ± 1%         183.26ns ± 2%
+MatchParallel/Easy0i/32-2                   417ns ± 1%        471ns ± 1%            185ns ± 1%
+MatchParallel/Easy0i/1K-2                  12.1µs ± 1%        0.5µs ± 2%            0.2µs ± 2%
+MatchParallel/Easy0i/32K-2                  553µs ± 1%          1µs ± 1%              0µs ± 1%
+MatchParallel/Easy0i/1M-2                  17.7ms ± 0%        0.2ms ± 3%            0.0ms ± 3%
+MatchParallel/Easy0i/32M-2                  1.12s ± 0%        0.01s ± 5%            0.00s ± 2%
+MatchParallel/Easy1/16-2                   2.37ns ± 0%     466.56ns ± 4%         150.72ns ± 4%
+MatchParallel/Easy1/32-2                   23.4ns ± 0%      468.1ns ± 1%          148.6ns ± 2%
+MatchParallel/Easy1/1K-2                    338ns ± 0%        488ns ± 1%            149ns ± 3%
+MatchParallel/Easy1/32K-2                  16.5µs ± 1%        1.4µs ± 1%            0.1µs ± 3%
+MatchParallel/Easy1/1M-2                    573µs ± 1%        226µs ± 5%              0µs ± 1%
+MatchParallel/Easy1/32M-2                  18.2ms ± 2%       10.0ms ± 3%            0.0ms ± 1%
+MatchParallel/Medium/16-2                  2.38ns ± 1%     469.96ns ± 3%         158.48ns ± 3%
+MatchParallel/Medium/32-2                   460ns ± 2%        474ns ± 2%            156ns ± 2%
+MatchParallel/Medium/1K-2                  13.0µs ± 1%        0.5µs ± 1%            0.2µs ± 3%
+MatchParallel/Medium/32K-2                  564µs ± 0%          1µs ± 2%              0µs ± 4%
+MatchParallel/Medium/1M-2                  18.5ms ± 2%        0.2ms ± 3%            0.0ms ± 4%
+MatchParallel/Medium/32M-2                  1.15s ± 1%        0.01s ± 6%            0.00s ± 4%
+MatchParallel/Hard/16-2                    2.37ns ± 0%     468.86ns ± 1%         147.88ns ± 3%
+MatchParallel/Hard/32-2                     607ns ± 1%        465ns ± 1%            149ns ± 4%
+MatchParallel/Hard/1K-2                    18.5µs ± 1%        0.5µs ± 1%            0.1µs ± 3%
+MatchParallel/Hard/32K-2                    849µs ± 5%          1µs ± 1%              0µs ± 3%
+MatchParallel/Hard/1M-2                    26.8ms ± 1%        0.2ms ± 1%            0.0ms ± 2%
+MatchParallel/Hard/32M-2                    1.68s ± 2%        0.01s ± 2%            0.00s ± 2%
+MatchParallel/Hard1/16-2                   1.83µs ± 1%       0.57µs ± 1%           0.17µs ± 3%
+MatchParallel/Hard1/32-2                   3.62µs ± 1%       0.66µs ± 2%           0.19µs ± 0%
+MatchParallel/Hard1/1K-2                    109µs ± 0%          7µs ± 0%              1µs ± 1%
+MatchParallel/Hard1/32K-2                  4.18ms ± 5%       0.21ms ± 1%           0.04ms ± 3%
+MatchParallel/Hard1/1M-2                    134ms ± 1%          7ms ± 1%              1ms ± 0%
+MatchParallel/Hard1/32M-2                   8.48s ± 0%        0.21s ± 0%            0.03s ± 1%
 
 name \ alloc/op                 build/bench_stdlib.txt  build/bench.txt   build/bench_cgo.txt
 Find-2                                      0.00B            72.00B ± 0%           16.00B ± 0%
@@ -183,6 +219,13 @@ size this library outperforms. The expression is `ABCD|CDEF|EFGH|GHIJ|IJKL|KLMN|
 a simple OR of literals - re2 has the concept of regex sets and likely is able to optimize this in a
 special way. The CoreRuleSet contains many expressions of a form like this - this possibly indicates good
 performance in real world use cases.
+
+Note that because WebAssembly currently only supports single-threaded operation, any compiled expression
+can not be executed concurrently and uses locks for safety. When executing many expressions in sequence, it can
+be common to not have much contention, but it may be necessary to use a `sync.Pool` of compiled expressions
+for concurrency in certain cases, at the expense of more memory usage. When looking at `MatchParallel`, we see
+almost perfect scaling in the stdlib case indicating fully parallel execution, no scaling with wazero, and some
+scaling with cgo - thread safety is managed by re2 itself in cgo mode which also uses mutexes internally.
 
 [1]: https://pkg.go.dev/regexp
 [2]: https://github.com/google/re2
