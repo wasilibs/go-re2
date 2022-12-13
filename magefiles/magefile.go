@@ -81,6 +81,7 @@ func BenchAll() error {
 
 	wazero, err := sh.Output("go", benchArgs("./...", 5, benchModeWazero)...)
 	if err != nil {
+		fmt.Printf("Error running wazero benchmarks:\n%s", wazero)
 		return err
 	}
 	if err := os.WriteFile(filepath.Join("build", "bench.txt"), []byte(wazero), 0644); err != nil {
@@ -89,6 +90,7 @@ func BenchAll() error {
 
 	cgo, err := sh.Output("go", benchArgs("./...", 5, benchModeCGO)...)
 	if err != nil {
+		fmt.Printf("Error running cgo benchmarks:\n%s", cgo)
 		return err
 	}
 	if err := os.WriteFile(filepath.Join("build", "bench_cgo.txt"), []byte(cgo), 0644); err != nil {
@@ -97,6 +99,7 @@ func BenchAll() error {
 
 	stdlib, err := sh.Output("go", benchArgs("./...", 5, benchModeSTDLib)...)
 	if err != nil {
+		fmt.Printf("Error running stdlib benchmarks:\n%s", stdlib)
 		return err
 	}
 	if err := os.WriteFile(filepath.Join("build", "bench_stdlib.txt"), []byte(stdlib), 0644); err != nil {

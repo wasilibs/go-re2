@@ -40,7 +40,7 @@ All APIs found in `regexp` are available except
 - `*Func`: re2 does not support replacement with callback functions
 
 Note that unlike many packages that wrap C++ libraries, there is no added `Close` type of method.
-See the [rationale](./RATIONALE.md) for more d[README.md](README.md)etails.
+See the [rationale](./RATIONALE.md) for more details.
 
 ## Usage
 
@@ -171,8 +171,10 @@ The compilation benchmarks show that re2 is much slower to compile expressions t
 library - this is more than just the overhead of foreign function invocation. This likely results
 in the improved performance at runtime in other cases. They also show 500KB+ memory usage per
 compilation - the resting memory usage per expression seems to be around ~300KB, much higher than
-the standard library. There is a significantly more memory usage when using WebAssembly - if this
-is not acceptable, setting up the build toolchain for cgo may be worth it.
+the standard library. There is significantly more memory usage when using WebAssembly - if this
+is not acceptable, setting up the build toolchain for cgo may be worth it. Note the allocation
+numbers for cgo are inaccurate as cgo will allocate memory outside of Go - however it should be
+inline with the standard library (this needs to be explored in the future).
 
 The match benchmarks show the performance tradeoffs for complexity vs input size. We see the standard
 library perform the best with low complexity and size, but for high complexity or high input size,
