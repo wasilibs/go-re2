@@ -3,7 +3,13 @@
 
 FROM ghcr.io/corazawaf/coraza-proxy-wasm/buildtools-wasi-sdk:main
 
-RUN apt-get update && apt-get install binaryen
+RUN apt-get update && apt-get install -y binaryen cmake patch
+
+RUN mkdir -p /mimalloc && curl -L https://github.com/microsoft/mimalloc/archive/refs/tags/v2.0.6.tar.gz | tar -xz --strip-components 1 -C /mimalloc
+WORKDIR /mimalloc
+ADD buildtools/re2/mimalloc.patch mimalloc.patch
+RUN patch -p1 < mimalloc.patch
+RUN mkdir -p out/release && cd out/release && cmake ../.. -DMI_BUILD_SHARED=off -DMI_BUILD_TESTS=off && make && ${RANLIB} libmimalloc.a
 
 # Use post-release commit for now as it includes support for no-threads
 RUN mkdir -p /re2 && curl -L https://github.com/google/re2/archive/954656f47fe8fb505d4818da1e128417a79ea500.tar.gz | tar -xz --strip-components 1 -C /re2
@@ -22,9 +28,14 @@ RUN $CXX -c cre2.cpp -o cre2.o -I. -I/re2 $CXXFLAGS && \
 # Separate step so exports can be updated without recompiling.
 # Number of layers isn't really a concern for this image.
 # global-base=1024 same as emcc and allows further wasm-opt optimizations
-RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 -Wl,--no-entry --rtlib=compiler-rt --target=wasm32-wasi -shared \
-    -nostdlib /usr/lib/llvm-15/lib/clang/15.*/lib/wasi/libclang_rt.builtins-wasm32.a /re2/obj/libre2.a /cre2/libcre2.a \
-    -L/wasi-sysroot/lib/wasm32-wasi -lc++ -lc++abi -lc -O3 --sysroot=/wasi-sysroot -Wl,--demangle -Wl,--allow-undefined \
+RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 -mexec-model=reactor --rtlib=compiler-rt --target=wasm32-wasi -shared \
+    -nostdlib /wasi-sysroot/lib/wasm32-wasi/crt1-reactor.o \
+    /mimalloc/out/release/libmimalloc.a \
+    /usr/lib/llvm-15/lib/clang/15.*/lib/wasi/libclang_rt.builtins-wasm32.a \
+    /re2/obj/libre2.a \
+    /cre2/libcre2.a \
+    -L/wasi-sysroot/lib/wasm32-wasi -lc++ -lc++abi -lc \
+    --sysroot=/wasi-sysroot -Wl,--demangle -Wl,--allow-undefined \
     -Wl,--export=malloc \
     -Wl,--export=free \
     -Wl,--export=cre2_new \

@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/tetratelabs/wazero/experimental"
 	"strconv"
 	"strings"
 	"sync"
@@ -59,7 +60,7 @@ type libre2ABI struct {
 }
 
 func init() {
-	ctx := context.Background()
+	ctx := experimental.WithDWARFBasedStackTrace(context.Background())
 	rt := wazero.NewRuntime(ctx)
 
 	wasi_snapshot_preview1.MustInstantiate(ctx, rt)
@@ -76,7 +77,7 @@ func init() {
 var moduleIdx = uint64(0)
 
 func newABI() *libre2ABI {
-	ctx := context.Background()
+	ctx := experimental.WithDWARFBasedStackTrace(context.Background())
 	modIdx := atomic.AddUint64(&moduleIdx, 1)
 	mod, err := wasmRT.InstantiateModule(ctx, wasmCompiled, wazero.NewModuleConfig().WithName(strconv.FormatUint(modIdx, 10)))
 	if err != nil {
@@ -123,7 +124,7 @@ func (abi *libre2ABI) endOperation() {
 }
 
 func newRE(abi *libre2ABI, pattern cString, longest bool, posix bool, caseInsensitive bool) uintptr {
-	ctx := context.Background()
+	ctx := experimental.WithDWARFBasedStackTrace(context.Background())
 	res, err := abi.cre2OptNew.Call(ctx)
 	if err != nil {
 		panic(err)
