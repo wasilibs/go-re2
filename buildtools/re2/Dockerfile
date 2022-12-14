@@ -28,7 +28,7 @@ RUN $CXX -c cre2.cpp -o cre2.o -I. -I/re2 $CXXFLAGS && \
 # Separate step so exports can be updated without recompiling.
 # Number of layers isn't really a concern for this image.
 # global-base=1024 same as emcc and allows further wasm-opt optimizations
-RUN $CXX -o libcre2.so -Wl,--global-base=1024 -mexec-model=reactor --rtlib=compiler-rt --target=wasm32-wasi -shared \
+RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 -mexec-model=reactor --rtlib=compiler-rt --target=wasm32-wasi -shared \
     -nostdlib /wasi-sysroot/lib/wasm32-wasi/crt1-reactor.o \
     /mimalloc/out/release/libmimalloc.a \
     /usr/lib/llvm-15/lib/clang/15.*/lib/wasi/libclang_rt.builtins-wasm32.a \
@@ -59,6 +59,6 @@ RUN $CXX -o libcre2.so -Wl,--global-base=1024 -mexec-model=reactor --rtlib=compi
     -Wl,--export=cre2_replace_re \
     -Wl,--export=cre2_global_replace_re
 
-# RUN wasm-opt -o libcre2.so --low-memory-unused --flatten --rereloop --converge -O3 libcre2-noopt.so
+RUN wasm-opt -o libcre2.so --low-memory-unused --flatten --rereloop --converge -O3 libcre2-noopt.so
 
 CMD ["bash", "-c", "cp /re2/obj/libre2.a /cre2/libcre2.so /cre2/libcre2.a /out/"]
