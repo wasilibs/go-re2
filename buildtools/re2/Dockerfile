@@ -9,28 +9,33 @@ RUN mkdir -p /mimalloc && curl -L https://github.com/microsoft/mimalloc/archive/
 WORKDIR /mimalloc
 ADD buildtools/re2/mimalloc.patch mimalloc.patch
 RUN patch -p1 < mimalloc.patch
-RUN mkdir -p out/release && cd out/release && cmake ../.. -DCMAKE_BUILD_TYPE=Debug -DMI_BUILD_SHARED=off -DMI_BUILD_TESTS=off && make && mv libmimalloc-debug.a libmimalloc.a && ${RANLIB} libmimalloc.a
+RUN mkdir -p out/release && cd out/release && cmake ../.. -DMI_BUILD_SHARED=off -DMI_BUILD_TESTS=off && make && ${RANLIB} libmimalloc.a
 
 # Use post-release commit for now as it includes support for no-threads
 RUN mkdir -p /re2 && curl -L https://github.com/google/re2/archive/954656f47fe8fb505d4818da1e128417a79ea500.tar.gz | tar -xz --strip-components 1 -C /re2
 WORKDIR /re2
-ENV RE2_CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -I. -DRE2_NO_THREADS -g
+ENV RE2_CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -I. -DRE2_NO_THREADS
 RUN make obj/libre2.a
 
 WORKDIR /cre2
 ADD cre2/cre2.cpp /cre2
 ADD cre2/cre2.h /cre2
 # Just one source file so not worth running make
-RUN $CXX -c cre2.cpp -o cre2.o -g -I. -I/re2 $CXXFLAGS && \
+RUN $CXX -c cre2.cpp -o cre2.o -I. -I/re2 $CXXFLAGS && \
     llvm-ar-15 cru libcre2.a  cre2.o && \
     llvm-ranlib-15 libcre2.a
 
 # Separate step so exports can be updated without recompiling.
 # Number of layers isn't really a concern for this image.
 # global-base=1024 same as emcc and allows further wasm-opt optimizations
-RUN $CXX -o libcre2.so -Wl,--global-base=1024 -Wl,--no-entry --rtlib=compiler-rt --target=wasm32-wasi -shared \
-    -nostdlib -g /mimalloc/out/release/libmimalloc.a /usr/lib/llvm-15/lib/clang/15.*/lib/wasi/libclang_rt.builtins-wasm32.a /re2/obj/libre2.a /cre2/libcre2.a \
-    -L/wasi-sysroot/lib/wasm32-wasi -lc++ -lc++abi -lc -O3 --sysroot=/wasi-sysroot -Wl,--demangle -Wl,--allow-undefined \
+RUN $CXX -o libcre2.so -Wl,--global-base=1024 -mexec-model=reactor --rtlib=compiler-rt --target=wasm32-wasi -shared \
+    -nostdlib /wasi-sysroot/lib/wasm32-wasi/crt1-reactor.o \
+    /mimalloc/out/release/libmimalloc.a \
+    /usr/lib/llvm-15/lib/clang/15.*/lib/wasi/libclang_rt.builtins-wasm32.a \
+    /re2/obj/libre2.a \
+    /cre2/libcre2.a \
+    -L/wasi-sysroot/lib/wasm32-wasi -lc++ -lc++abi -lc \
+    --sysroot=/wasi-sysroot -Wl,--demangle -Wl,--allow-undefined \
     -Wl,--export=malloc \
     -Wl,--export=free \
     -Wl,--export=cre2_new \
