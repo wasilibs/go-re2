@@ -204,7 +204,6 @@ func deleteRE(abi *libre2ABI, rePtr uintptr) {
 func release(re *Regexp) {
 	ctx := context.Background()
 	deleteRE(re.abi, re.ptr)
-	deleteRE(re.abi, re.parensPtr)
 	if err := re.abi.mod.Close(ctx); err != nil {
 		fmt.Printf("error closing wazero module: %v", err)
 	}
@@ -220,40 +219,14 @@ func match(re *Regexp, s cString, matchesPtr uintptr, nMatches uint32) bool {
 	return res[0] == 1
 }
 
-func findAndConsume(re *Regexp, csPtr pointer, matchPtr uintptr, nMatch uint32) bool {
+func matchFrom(re *Regexp, s cString, startPos int, matchesPtr uintptr, nMatches uint32) bool {
 	ctx := context.Background()
-
-	sPtrOrig, ok := re.abi.wasmMemory.ReadUint32Le(ctx, uint32(csPtr.ptr))
-	if !ok {
-		panic(errFailedRead)
-	}
-
-	sLenOrig, ok := re.abi.wasmMemory.ReadUint32Le(ctx, uint32(csPtr.ptr+4))
-	if !ok {
-		panic(errFailedRead)
-	}
-
-	res, err := re.abi.cre2FindAndConsume.Call(ctx, uint64(re.parensPtr), uint64(csPtr.ptr), uint64(matchPtr), uint64(nMatch))
+	res, err := re.abi.cre2Match.Call(ctx, uint64(re.ptr), uint64(s.ptr), uint64(s.length), uint64(startPos), uint64(s.length), 0, uint64(matchesPtr), uint64(nMatches))
 	if err != nil {
 		panic(err)
 	}
 
-	sPtrNew, ok := re.abi.wasmMemory.ReadUint32Le(ctx, uint32(csPtr.ptr))
-	if !ok {
-		panic(errFailedRead)
-	}
-
-	// If the regex matched an empty string, consumption will not advance the input, so we must do it ourselves.
-	if sPtrNew == sPtrOrig && sLenOrig > 0 {
-		if !re.abi.wasmMemory.WriteUint32Le(ctx, uint32(csPtr.ptr), sPtrOrig+1) {
-			panic(errFailedWrite)
-		}
-		if !re.abi.wasmMemory.WriteUint32Le(ctx, uint32(csPtr.ptr+4), sLenOrig-1) {
-			panic(errFailedWrite)
-		}
-	}
-
-	return res[0] != 0
+	return res[0] == 1
 }
 
 func readMatch(abi *libre2ABI, cs cString, matchPtr uintptr, dstCap []int) []int {

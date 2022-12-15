@@ -59,7 +59,6 @@ func deleteRE(_ *libre2ABI, rePtr uintptr) {
 
 func release(re *Regexp) {
 	deleteRE(re.abi, re.ptr)
-	deleteRE(re.abi, re.parensPtr)
 }
 
 func match(re *Regexp, s cString, matchesPtr uintptr, nMatches uint32) bool {
@@ -67,20 +66,9 @@ func match(re *Regexp, s cString, matchesPtr uintptr, nMatches uint32) bool {
 		int(s.length), 0, int(s.length), 0, unsafe.Pointer(matchesPtr), int(nMatches))
 }
 
-func findAndConsume(re *Regexp, csPtr pointer, matchPtr uintptr, nMatch uint32) bool {
-	cs := (*cString)(unsafe.Pointer(csPtr.ptr))
-
-	sPtrOrig := cs.ptr
-
-	res := cre2.FindAndConsume(unsafe.Pointer(re.parensPtr), unsafe.Pointer(csPtr.ptr), unsafe.Pointer(matchPtr), int(nMatch))
-
-	// If the regex matched an empty string, consumption will not advance the input, so we must do it ourselves.
-	if cs.ptr == sPtrOrig && cs.length > 0 {
-		cs.ptr += 1
-		cs.length -= 1
-	}
-
-	return res
+func matchFrom(re *Regexp, s cString, startPos int, matchesPtr uintptr, nMatches uint32) bool {
+	return cre2.Match(unsafe.Pointer(re.ptr), unsafe.Pointer(s.ptr),
+		int(s.length), startPos, int(s.length), 0, unsafe.Pointer(matchesPtr), int(nMatches))
 }
 
 type cString struct {

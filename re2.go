@@ -13,15 +13,11 @@ import (
 
 type Regexp struct {
 	ptr uintptr
-	// Find methods seem to require the pattern to be enclosed in parentheses, so we keep a second
-	// regex for them.
-	parensPtr uintptr
 
 	posix   bool
 	longest bool
 
-	expr       string
-	exprParens string
+	expr string
 
 	subexpNames []string
 
@@ -111,12 +107,7 @@ func compile(expr string, posix bool, longest bool, caseInsensitive bool) (*Rege
 	abi.startOperation(len(expr) + 2 + 8)
 	defer abi.endOperation()
 
-	// Find requires the expression to be wrapped in parentheses to match Go's semantics.
-	// We end up compiling two regexes, one with parens and one without. We can pass a single
-	// input string if we use the parens version and take a slice of that for the non-parens.
-	exprParens := fmt.Sprintf("(%s)", expr)
-	csParens := newCString(abi, exprParens)
-	cs := cString{ptr: csParens.ptr + 1, length: csParens.length - 2}
+	cs := newCString(abi, expr)
 
 	rePtr := newRE(abi, cs, longest, posix, caseInsensitive)
 	errCode, errArg := reError(abi, rePtr)
@@ -157,17 +148,13 @@ func compile(expr string, posix bool, longest bool, caseInsensitive bool) (*Rege
 		return nil, fmt.Errorf("error parsing regexp: expression too large")
 	}
 
-	reParensPtr := newRE(abi, csParens, longest, posix, caseInsensitive)
-
 	subexp := subexpNames(abi, rePtr)
 
 	re := &Regexp{
 		ptr:         rePtr,
-		parensPtr:   reParensPtr,
 		posix:       posix,
 		longest:     longest,
 		expr:        expr,
-		exprParens:  exprParens,
 		subexpNames: subexp,
 		abi:         abi,
 	}
@@ -427,20 +414,17 @@ func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 		n = cs.length + 1
 	}
 
-	csOrig := cs
-
-	csPtr := newCStringPtr(re.abi, cs)
-
 	matchArr := newCStringArray(re.abi, 1)
 
 	count := 0
 	prevMatchEnd := -1
-	for i := 0; i < cs.length+1; i++ {
-		if !findAndConsume(re, csPtr, matchArr.ptr, 1) {
+	pos := 0
+	for pos < cs.length+1 {
+		if !matchFrom(re, cs, pos, matchArr.ptr, 1) {
 			break
 		}
 
-		matches := readMatch(re.abi, csOrig, matchArr.ptr, dstCap[:0])
+		matches := readMatch(re.abi, cs, matchArr.ptr, dstCap[:0])
 		accept := true
 		if matches[0] == matches[1] {
 			// We've found an empty match.
@@ -449,6 +433,9 @@ func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 				// after a previous match, so ignore it.
 				accept = false
 			}
+			pos++
+		} else {
+			pos = matches[1]
 		}
 		if accept {
 			deliver(matches)
@@ -560,28 +547,30 @@ func (re *Regexp) findAllSubmatch(cs cString, n int, deliver func(match [][]int)
 		n = cs.length + 1
 	}
 
-	csOrig := cs
-
-	csPtr := newCStringPtr(re.abi, cs)
-
 	numGroups := len(re.subexpNames)
 	matchArr := newCStringArray(re.abi, numGroups)
 
 	count := 0
 	prevMatchEnd := -1
-	for i := 0; i < cs.length+1; i++ {
-		if !findAndConsume(re, csPtr, matchArr.ptr, uint32(numGroups)) {
+	pos := 0
+	for pos < cs.length+1 {
+		if !matchFrom(re, cs, pos, matchArr.ptr, uint32(numGroups)) {
 			break
 		}
 
 		var matches [][]int
 		accept := true
-		readMatches(re.abi, csOrig, matchArr.ptr, numGroups, func(match []int) {
+		readMatches(re.abi, cs, matchArr.ptr, numGroups, func(match []int) {
 			if len(matches) == 0 {
 				// First match, check if it's an empty match following a match, which we ignore.
 				// TODO: Don't iterate further when ignoring.
-				if match[0] == match[1] && match[0] == prevMatchEnd {
-					accept = false
+				if match[0] == match[1] {
+					if match[0] == prevMatchEnd {
+						accept = false
+					}
+					pos++
+				} else {
+					pos = match[1]
 				}
 				prevMatchEnd = match[1]
 			}
@@ -700,12 +689,9 @@ func (re *Regexp) Longest() {
 
 	// longest is not a mutable option in re2 so we must release and recompile.
 	deleteRE(re.abi, re.ptr)
-	deleteRE(re.abi, re.parensPtr)
 
-	csParens := newCString(re.abi, re.exprParens)
-	cs := cString{ptr: csParens.ptr + 1, length: csParens.length - 2}
+	cs := newCString(re.abi, re.expr)
 	re.ptr = newRE(re.abi, cs, true, re.posix, false)
-	re.parensPtr = newRE(re.abi, csParens, true, re.posix, false)
 }
 
 // NumSubexp returns the number of parenthesized subexpressions in this Regexp.

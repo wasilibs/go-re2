@@ -30,11 +30,7 @@ var findTests = []FindTest{
 	{`b`, "abc", build(1, 1, 2)},
 	{`.`, "a", build(1, 0, 1)},
 	{`.*`, "abcdef", build(1, 0, 6)},
-	// TODO: Recognizing this type of pattern and handling as a single match works for one-line
-	// strings but not for multi-line.
-	// GAP: find all requires consuming the input for each match, but this expression
-	// would continue to match each time.
-	// {`^`, "abcde", build(1, 0, 0)},
+	{`^`, "abcde", build(1, 0, 0)},
 	{`$`, "abcde", build(1, 5, 5)},
 	{`^abcd$`, "abcd", build(1, 0, 4)},
 	{`^bcd'`, "abcdef", nil},
@@ -88,13 +84,10 @@ var findTests = []FindTest{
 	{`(?-s)(?:(?:^).)`, "\n", nil},
 	{`(?s)(?:(?:^).)`, "\n", build(1, 0, 1)},
 	{`(?:(?:^).)`, "\n", nil},
-	// GAP: re2 requires consuming the input to find multiple matches. This seems to make it impossible
-	// to find both the start and end of a word boundary with the \b expression as it will match the
-	// start every time, and then not match when the input is consumed.
-	// {`\b`, "x", build(2, 0, 0, 1, 1)},
-	// {`\b`, "xx", build(2, 0, 0, 2, 2)},
-	// {`\b`, "x y", build(4, 0, 0, 1, 1, 2, 2, 3, 3)},
-	// {`\b`, "xx yy", build(4, 0, 0, 2, 2, 3, 3, 5, 5)},
+	{`\b`, "x", build(2, 0, 0, 1, 1)},
+	{`\b`, "xx", build(2, 0, 0, 2, 2)},
+	{`\b`, "x y", build(4, 0, 0, 1, 1, 2, 2, 3, 3)},
+	{`\b`, "xx yy", build(4, 0, 0, 2, 2, 3, 3, 5, 5)},
 	{`\B`, "x", nil},
 	{`\B`, "xx", build(1, 1, 1)},
 	{`\B`, "x y", nil},
