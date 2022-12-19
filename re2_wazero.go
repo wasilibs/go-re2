@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/tetratelabs/wazero/experimental"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,17 +15,22 @@ import (
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
+	"github.com/tetratelabs/wazero/experimental"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
 
-var errFailedWrite = errors.New("failed to read from wasm memory")
-var errFailedRead = errors.New("failed to read from wasm memory")
+var (
+	errFailedWrite = errors.New("failed to read from wasm memory")
+	errFailedRead  = errors.New("failed to read from wasm memory")
+)
 
 //go:embed wasm/libcre2.so
 var libre2 []byte
 
-var wasmRT wazero.Runtime
-var wasmCompiled wazero.CompiledModule
+var (
+	wasmRT       wazero.Runtime
+	wasmCompiled wazero.CompiledModule
+)
 
 type libre2ABI struct {
 	cre2New                   api.Function

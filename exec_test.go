@@ -625,7 +625,7 @@ func parseFowlerResult(s string) (ok, compiled, matched bool, pos []int) {
 			ok = false
 			return
 		}
-		var v = -1
+		v := -1
 		var err error
 		if s[:i] != "?" {
 			v, err = strconv.Atoi(s[:i])
