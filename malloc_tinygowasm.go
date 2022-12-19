@@ -5,7 +5,7 @@ package re2
 import (
 	"unsafe"
 
-	"github.com/wasilibs/go-re2/cre2"
+	"github.com/wasilibs/go-re2/internal/cre2"
 )
 
 // TinyGo currently only includes a subset of malloc functions by default, so we

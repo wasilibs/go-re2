@@ -35,7 +35,7 @@ require (
 	github.com/tidwall/gjson v1.14.3 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
-	github.com/wasilibs/go-re2/cre2 v0.0.0-00010101000000-000000000000 // indirect
+	github.com/wasilibs/go-re2/internal/cre2 v0.0.0-00010101000000-000000000000 // indirect
 	github.com/yargevad/filepathx v1.0.0 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/net v0.1.0 // indirect
@@ -46,4 +46,4 @@ require (
 
 replace github.com/wasilibs/go-re2 => ../
 
-replace github.com/wasilibs/go-re2/cre2 => ../cre2
+replace github.com/wasilibs/go-re2/internal/cre2 => ../internal/cre2

@@ -2,7 +2,7 @@ go 1.18
 
 use (
 	.
-	./cre2
+	./internal/cre2
 	./magefiles
 	./wafbench
 )
