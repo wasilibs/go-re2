@@ -68,3 +68,20 @@ jobs:
           RE2_TEST_EXHAUSTIVE: ${{ github.event_name != 'pull_request' && '1' || '0'}}
           # Windows runner seems to not have enough CPU performance to keep up without a memory limit
           GOMEMLIMIT: ${{ (github.event_name != 'pull_request' && matrix.os == 'windows-2022') && '1GiB' || '' }}
+
+  # Runs tests using wazero inside a minimal golang docker image. This makes sure the code builds
+  # even when there is no C toolchain available. It is possible for code to work fine with CGO_ENABLED=0
+  # but not build without a C toolchain available, e.g. if C source files are checked into the repo
+  # without a build tag to exclude them from pure-Go builds.
+  docker-build:
+    runs-on: ubuntu-22.04
+    container:
+      image: golang:alpine
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 321; fi
+
+      - run: go run mage.go test
