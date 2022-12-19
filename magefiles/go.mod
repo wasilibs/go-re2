@@ -1,4 +1,4 @@
-module github.com/anuraaga/re2-go/magefiles
+module github.com/wasilibs/go-re2/magefiles
 
 go 1.18
 

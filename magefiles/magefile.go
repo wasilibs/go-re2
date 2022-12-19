@@ -33,7 +33,7 @@ func Test() error {
 
 func Format() error {
 	return sh.RunV("go", "run", fmt.Sprintf("github.com/rinchsan/gosimports/cmd/gosimports@%s", gosImportsVer), "-w",
-		"-local", "github.com/anuraaga/re2-go",
+		"-local", "github.com/wasilibs/go-re2",
 		".")
 }
 
@@ -48,14 +48,14 @@ func Check() {
 
 // UpdateLibs updates the precompiled wasm libraries.
 func UpdateLibs() error {
-	if err := sh.RunV("docker", "build", "-t", "ghcr.io/anuraaga/re2-go/buildtools-re2", "-f", filepath.Join("buildtools", "re2", "Dockerfile"), "."); err != nil {
+	if err := sh.RunV("docker", "build", "-t", "ghcr.io/wasilibs/go-re2/buildtools-re2", "-f", filepath.Join("buildtools", "re2", "Dockerfile"), "."); err != nil {
 		return err
 	}
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	return sh.RunV("docker", "run", "-it", "--rm", "-v", fmt.Sprintf("%s:/out", filepath.Join(wd, "wasm")), "ghcr.io/anuraaga/re2-go/buildtools-re2")
+	return sh.RunV("docker", "run", "-it", "--rm", "-v", fmt.Sprintf("%s:/out", filepath.Join(wd, "wasm")), "ghcr.io/wasilibs/go-re2/buildtools-re2")
 }
 
 // Bench runs benchmarks in the default configuration for a Go app, using wazero.
