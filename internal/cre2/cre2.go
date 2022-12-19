@@ -1,3 +1,5 @@
+//go:build tinygo.wasm || re2_cgo
+
 package cre2
 
 /*
