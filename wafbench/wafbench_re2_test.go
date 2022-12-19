@@ -6,7 +6,7 @@ import (
 	"github.com/corazawaf/coraza/v3/operators"
 	"github.com/corazawaf/coraza/v3/rules"
 
-	"github.com/anuraaga/re2-go"
+	"github.com/wasilibs/go-re2"
 )
 
 type rx struct {

@@ -45,7 +45,7 @@ re2-go is a standard Go library package and can be added to a go.mod file. It wi
 Go or TinyGo projects.
 
 ```
-go get github.com/anuraaga/re2-go
+go get github.com/wasilibs/go-re2
 ```
 
 Because the library is a drop-in replacement for the standard library, an import alias can make
@@ -58,7 +58,7 @@ import "regexp"
 can be changed to
 
 ```go
-import regexp "github.com/anuraaga/re2-go"
+import regexp "github.com/wasilibs/go-re2"
 ```
 
 ### cgo
@@ -227,6 +227,6 @@ scaling with cgo - thread safety is managed by re2 itself in cgo mode which also
 [1]: https://pkg.go.dev/regexp
 [2]: https://github.com/google/re2
 [3]: https://wazero.io
-[4]: https://github.com/anuraaga/re2-go/actions/workflows/bench.yaml
+[4]: https://github.com/wasilibs/go-re2/actions/workflows/bench.yaml
 [5]: https://github.com/coreruleset/coreruleset
 [6]: https://github.com/corazawaf/coraza
