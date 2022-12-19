@@ -377,6 +377,10 @@ func (re *Regexp) FindAllIndex(b []byte, n int) [][]int {
 	return matches
 }
 
+// FindAllString is the 'All' version of FindString; it returns a slice of all
+// successive matches of the expression, as defined by the 'All' description
+// in the package comment.
+// A return value of nil indicates no match.
 func (re *Regexp) FindAllString(s string, n int) []string {
 	re.abi.startOperation(len(s) + 16)
 	defer re.abi.endOperation()
@@ -392,6 +396,10 @@ func (re *Regexp) FindAllString(s string, n int) []string {
 	return matches
 }
 
+// FindAllStringIndex is the 'All' version of FindStringIndex; it returns a
+// slice of all successive matches of the expression, as defined by the 'All'
+// description in the package comment.
+// A return value of nil indicates no match.
 func (re *Regexp) FindAllStringIndex(s string, n int) [][]int {
 	re.abi.startOperation(len(s) + 16)
 	defer re.abi.endOperation()
@@ -781,16 +789,20 @@ func (re *Regexp) SubexpIndex(name string) int {
 	return -1
 }
 
-func (re *Regexp) Match(s []byte) bool {
-	re.abi.startOperation(len(s))
+// Match reports whether the byte slice b
+// contains any match of the regular expression re.
+func (re *Regexp) Match(b []byte) bool {
+	re.abi.startOperation(len(b))
 	defer re.abi.endOperation()
 
-	cs := newCStringFromBytes(re.abi, s)
+	cs := newCStringFromBytes(re.abi, b)
 	res := match(re, cs, 0, 0)
-	runtime.KeepAlive(s)
+	runtime.KeepAlive(b)
 	return res
 }
 
+// MatchString reports whether the string s
+// contains any match of the regular expression re.
 func (re *Regexp) MatchString(s string) bool {
 	re.abi.startOperation(len(s))
 	defer re.abi.endOperation()
