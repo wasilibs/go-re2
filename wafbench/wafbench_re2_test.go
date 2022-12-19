@@ -5,6 +5,8 @@ package wafbench
 import (
 	"github.com/corazawaf/coraza/v3/operators"
 	"github.com/corazawaf/coraza/v3/rules"
+
+	"github.com/wasilibs/go-re2"
 )
 
 type rx struct {
