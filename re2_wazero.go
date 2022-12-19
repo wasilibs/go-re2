@@ -15,7 +15,6 @@ import (
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
-	"github.com/tetratelabs/wazero/experimental"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
 
@@ -64,7 +63,7 @@ type libre2ABI struct {
 }
 
 func init() {
-	ctx := experimental.WithDWARFBasedStackTrace(context.Background())
+	ctx := context.Background()
 	rt := wazero.NewRuntime(ctx)
 
 	wasi_snapshot_preview1.MustInstantiate(ctx, rt)
@@ -81,7 +80,7 @@ func init() {
 var moduleIdx = uint64(0)
 
 func newABI() *libre2ABI {
-	ctx := experimental.WithDWARFBasedStackTrace(context.Background())
+	ctx := context.Background()
 	modIdx := atomic.AddUint64(&moduleIdx, 1)
 	mod, err := wasmRT.InstantiateModule(ctx, wasmCompiled, wazero.NewModuleConfig().WithName(strconv.FormatUint(modIdx, 10)))
 	if err != nil {
@@ -128,7 +127,7 @@ func (abi *libre2ABI) endOperation() {
 }
 
 func newRE(abi *libre2ABI, pattern cString, longest bool, posix bool, caseInsensitive bool) uintptr {
-	ctx := experimental.WithDWARFBasedStackTrace(context.Background())
+	ctx := context.Background()
 	res, err := abi.cre2OptNew.Call(ctx)
 	if err != nil {
 		panic(err)
@@ -287,7 +286,7 @@ func namedGroupsIterNext(abi *libre2ABI, iterPtr uintptr) (string, int, bool) {
 		return "", 0, false
 	}
 
-	namePtr, ok := abi.wasmMemory.ReadUint32Le(ctx, uint32(namePtrPtr))
+	namePtr, ok := abi.wasmMemory.ReadUint32Le(uint32(namePtrPtr))
 	if !ok {
 		panic(errFailedRead)
 	}
@@ -295,7 +294,7 @@ func namedGroupsIterNext(abi *libre2ABI, iterPtr uintptr) (string, int, bool) {
 	// C-string, read content until NULL.
 	name := strings.Builder{}
 	for {
-		b, ok := abi.wasmMemory.ReadByte(ctx, namePtr)
+		b, ok := abi.wasmMemory.ReadByte(namePtr)
 		if !ok {
 			panic(errFailedRead)
 		}
@@ -306,7 +305,7 @@ func namedGroupsIterNext(abi *libre2ABI, iterPtr uintptr) (string, int, bool) {
 		namePtr++
 	}
 
-	index, ok := abi.wasmMemory.ReadUint32Le(ctx, uint32(indexPtr))
+	index, ok := abi.wasmMemory.ReadUint32Le(uint32(indexPtr))
 	if !ok {
 		panic(errFailedRead)
 	}
@@ -340,19 +339,19 @@ func globalReplace(re *Regexp, textAndTargetPtr uintptr, rewritePtr uintptr) ([]
 		return nil, false
 	}
 
-	strPtr, ok := re.abi.wasmMemory.ReadUint32Le(ctx, uint32(textAndTargetPtr))
+	strPtr, ok := re.abi.wasmMemory.ReadUint32Le(uint32(textAndTargetPtr))
 	if !ok {
 		panic(errFailedRead)
 	}
 	// This was malloc'd by cre2, so free it
 	defer free(re.abi, uintptr(strPtr))
 
-	strLen, ok := re.abi.wasmMemory.ReadUint32Le(ctx, uint32(textAndTargetPtr+4))
+	strLen, ok := re.abi.wasmMemory.ReadUint32Le(uint32(textAndTargetPtr + 4))
 	if !ok {
 		panic(errFailedRead)
 	}
 
-	str, ok := re.abi.wasmMemory.Read(ctx, strPtr, strLen)
+	str, ok := re.abi.wasmMemory.Read(strPtr, strLen)
 	if !ok {
 		panic(errFailedRead)
 	}
@@ -383,12 +382,11 @@ func newCStringFromBytes(abi *libre2ABI, s []byte) cString {
 }
 
 func newCStringPtr(abi *libre2ABI, cs cString) pointer {
-	ctx := context.Background()
 	ptr := abi.memory.allocate(8)
-	if !abi.wasmMemory.WriteUint32Le(ctx, uint32(ptr), uint32(cs.ptr)) {
+	if !abi.wasmMemory.WriteUint32Le(uint32(ptr), uint32(cs.ptr)) {
 		panic(errFailedWrite)
 	}
-	if !abi.wasmMemory.WriteUint32Le(ctx, uint32(ptr+4), uint32(cs.length)) {
+	if !abi.wasmMemory.WriteUint32Le(uint32(ptr+4), uint32(cs.length)) {
 		panic(errFailedWrite)
 	}
 	return pointer{ptr: ptr, abi: abi}
@@ -463,7 +461,7 @@ func (m *sharedMemory) allocate(size uint32) uintptr {
 }
 
 func (m *sharedMemory) read(abi *libre2ABI, ptr uintptr, size int) []byte {
-	buf, ok := abi.wasmMemory.Read(context.Background(), uint32(ptr), uint32(size))
+	buf, ok := abi.wasmMemory.Read(uint32(ptr), uint32(size))
 	if !ok {
 		panic(errFailedRead)
 	}
@@ -472,12 +470,12 @@ func (m *sharedMemory) read(abi *libre2ABI, ptr uintptr, size int) []byte {
 
 func (m *sharedMemory) write(abi *libre2ABI, b []byte) uintptr {
 	ptr := m.allocate(uint32(len(b)))
-	abi.wasmMemory.Write(context.Background(), uint32(ptr), b)
+	abi.wasmMemory.Write(uint32(ptr), b)
 	return ptr
 }
 
 func (m *sharedMemory) writeString(abi *libre2ABI, s string) uintptr {
 	ptr := m.allocate(uint32(len(s)))
-	abi.wasmMemory.WriteString(context.Background(), uint32(ptr), s)
+	abi.wasmMemory.WriteString(uint32(ptr), s)
 	return ptr
 }
