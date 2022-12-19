@@ -10,13 +10,11 @@ import (
 	"github.com/magefile/mage/sh"
 )
 
-// Test runs unit tests - by default, it uses wazero; set RE2_TEST_MODE=cgo or RE2_TEST_MODE=tinygo to use either, or
-// RE2_TEST_EXHAUSTIVE=1 to enable exhaustive tests that may take a long time.
-func Test() error {
+func buildTags() string {
 	mode := strings.ToLower(os.Getenv("RE2_TEST_MODE"))
 	exhaustive := os.Getenv("RE2_TEST_EXHAUSTIVE") == "1"
 
-	tags := []string{}
+	var tags []string
 	if mode == "cgo" {
 		tags = append(tags, "re2_cgo")
 	}
@@ -24,11 +22,19 @@ func Test() error {
 		tags = append(tags, "re2_test_exhaustive")
 	}
 
+	return strings.Join(tags, ",")
+}
+
+// Test runs unit tests - by default, it uses wazero; set RE2_TEST_MODE=cgo or RE2_TEST_MODE=tinygo to use either, or
+// RE2_TEST_EXHAUSTIVE=1 to enable exhaustive tests that may take a long time.
+func Test() error {
+	mode := strings.ToLower(os.Getenv("RE2_TEST_MODE"))
+
 	if mode != "tinygo" {
-		return sh.RunV("go", "test", "-v", "-timeout=20m", "-tags", strings.Join(tags, ","), "./...")
+		return sh.RunV("go", "test", "-v", "-timeout=20m", "-tags", buildTags(), "./...")
 	}
 
-	return sh.RunV("tinygo", "test", "-target=wasi", "-v", "-tags", strings.Join(tags, ","), "./...")
+	return sh.RunV("tinygo", "test", "-target=wasi", "-v", "-tags", buildTags(), "./...")
 }
 
 func Format() error {
@@ -44,7 +50,7 @@ func Format() error {
 }
 
 func Lint() error {
-	return sh.RunV("go", "run", fmt.Sprintf("github.com/golangci/golangci-lint/cmd/golangci-lint@%s", golangCILintVer), "run")
+	return sh.RunV("go", "run", fmt.Sprintf("github.com/golangci/golangci-lint/cmd/golangci-lint@%s", golangCILintVer), "run", "--build-tags", buildTags())
 }
 
 // Check runs lint and tests.
