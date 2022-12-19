@@ -44,12 +44,9 @@ RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 -mexec-model=reactor --rtlib
     -Wl,--export=cre2_error_arg \
     -Wl,--export=cre2_num_capturing_groups \
     -Wl,--export=cre2_match \
-    -Wl,--export=cre2_partial_match_re \
-    -Wl,--export=cre2_find_and_consume_re \
     -Wl,--export=cre2_named_groups_iter_new \
     -Wl,--export=cre2_named_groups_iter_next \
     -Wl,--export=cre2_named_groups_iter_delete \
-    -Wl,--export=cre2_replace_re \
     -Wl,--export=cre2_global_replace_re
 
 RUN wasm-opt -o libcre2.so --low-memory-unused --flatten --rereloop --converge -O3 libcre2-noopt.so
