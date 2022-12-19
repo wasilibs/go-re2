@@ -1,0 +1,9 @@
+linters:
+  enable:
+    - gofumpt
+    - goimports
+issues:
+  exclude-rules:
+    - path: magefiles
+      linters:
+        - deadcode

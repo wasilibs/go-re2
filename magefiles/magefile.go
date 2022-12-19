@@ -32,9 +32,15 @@ func Test() error {
 }
 
 func Format() error {
-	return sh.RunV("go", "run", fmt.Sprintf("github.com/rinchsan/gosimports/cmd/gosimports@%s", gosImportsVer), "-w",
+	if err := sh.RunV("go", "run", fmt.Sprintf("mvdan.cc/gofumpt@%s", gofumptVersion), "-l", "-w", "."); err != nil {
+		return err
+	}
+	if err := sh.RunV("go", "run", fmt.Sprintf("github.com/rinchsan/gosimports/cmd/gosimports@%s", gosImportsVer), "-w",
 		"-local", "github.com/wasilibs/go-re2",
-		".")
+		"."); err != nil {
+		return nil
+	}
+	return nil
 }
 
 func Lint() error {
@@ -75,7 +81,7 @@ func BenchSTDLib() error {
 
 // BenchAll runs all benchmark types and outputs with benchstat. A C++ toolchain and libre2 must be installed to run.
 func BenchAll() error {
-	if err := os.MkdirAll("build", 0755); err != nil {
+	if err := os.MkdirAll("build", 0o755); err != nil {
 		return err
 	}
 
@@ -85,7 +91,7 @@ func BenchAll() error {
 		fmt.Printf("Error running wazero benchmarks:\n%s", wazero)
 		return err
 	}
-	if err := os.WriteFile(filepath.Join("build", "bench.txt"), []byte(wazero), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join("build", "bench.txt"), []byte(wazero), 0o644); err != nil {
 		return err
 	}
 
@@ -95,7 +101,7 @@ func BenchAll() error {
 		fmt.Printf("Error running cgo benchmarks:\n%s", cgo)
 		return err
 	}
-	if err := os.WriteFile(filepath.Join("build", "bench_cgo.txt"), []byte(cgo), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join("build", "bench_cgo.txt"), []byte(cgo), 0o644); err != nil {
 		return err
 	}
 
@@ -105,7 +111,7 @@ func BenchAll() error {
 		fmt.Printf("Error running stdlib benchmarks:\n%s", stdlib)
 		return err
 	}
-	if err := os.WriteFile(filepath.Join("build", "bench_stdlib.txt"), []byte(stdlib), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join("build", "bench_stdlib.txt"), []byte(stdlib), 0o644); err != nil {
 		return err
 	}
 
@@ -130,7 +136,7 @@ func WAFBenchSTDLib() error {
 
 // WAFBenchAll runs all benchmark types and outputs with benchstat. A C++ toolchain and libre2 must be installed to run.
 func WAFBenchAll() error {
-	if err := os.MkdirAll("build", 0755); err != nil {
+	if err := os.MkdirAll("build", 0o755); err != nil {
 		return err
 	}
 
@@ -139,7 +145,7 @@ func WAFBenchAll() error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join("build", "wafbench.txt"), []byte(wazero), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join("build", "wafbench.txt"), []byte(wazero), 0o644); err != nil {
 		return err
 	}
 
@@ -148,7 +154,7 @@ func WAFBenchAll() error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join("build", "wafbench_cgo.txt"), []byte(cgo), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join("build", "wafbench_cgo.txt"), []byte(cgo), 0o644); err != nil {
 		return err
 	}
 
@@ -157,7 +163,7 @@ func WAFBenchAll() error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join("build", "wafbench_stdlib.txt"), []byte(stdlib), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join("build", "wafbench_stdlib.txt"), []byte(stdlib), 0o644); err != nil {
 		return err
 	}
 
