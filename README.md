@@ -1,6 +1,6 @@
-# re2-go
+# go-re2
 
-re2-go is a drop-in replacement for the standard library [regexp][1] package which uses the C++
+go-re2 is a drop-in replacement for the standard library [regexp][1] package which uses the C++
 [re2][2] library for improved performance with large inputs or complex expressions. By default,
 re2 is packaged as a WebAssembly module and accessed with the pure Go runtime, [wazero][3].
 This means that it is compatible with any Go application, regardless of availability of cgo.
@@ -41,7 +41,7 @@ See the [rationale](./RATIONALE.md) for more details.
 
 ## Usage
 
-re2-go is a standard Go library package and can be added to a go.mod file. It will work fine in
+go-re2 is a standard Go library package and can be added to a go.mod file. It will work fine in
 Go or TinyGo projects.
 
 ```
@@ -98,7 +98,7 @@ in this baseline test case.
 The FTW test suite will issue many requests with various payloads, generally somewhat small.
 The `POST` tests show the same ruleset applied to requests with payload sizes as shown, in bytes.
 We see that only with the absolute smallest payload of 1 byte does the standard library perform
-a bit better than this library. For any larger size, even a fairly typical 1KB, re2-go
+a bit better than this library. For any larger size, even a fairly typical 1KB, go-re2
 greatly outperforms.
 
 cgo seems to offer about a 30% improvement on WebAssembly in this library. Many apps may accept
@@ -211,7 +211,7 @@ inline with the standard library (this needs to be explored in the future).
 
 The match benchmarks show the performance tradeoffs for complexity vs input size. We see the standard
 library perform the best with low complexity and size, but for high complexity or high input size,
-re2-go with WebAssembly outperforms, often significantly. Notable is `Hard1`, where even on the smallest
+go-re2 with WebAssembly outperforms, often significantly. Notable is `Hard1`, where even on the smallest
 size this library outperforms. The expression is `ABCD|CDEF|EFGH|GHIJ|IJKL|KLMN|MNOP|OPQR|QRST|STUV|UVWX|WXYZ`,
 a simple OR of literals - re2 has the concept of regex sets and likely is able to optimize this in a
 special way. The CoreRuleSet contains many expressions of a form like this - this possibly indicates good

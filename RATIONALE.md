@@ -1,4 +1,4 @@
-# Notable rationale of re2-go
+# Notable rationale of go-re2
 
 ## No Close method
 
