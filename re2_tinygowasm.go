@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/wasilibs/go-re2/cre2"
+	"github.com/wasilibs/go-re2/internal/cre2"
 )
 
 type libre2ABI struct{}
