@@ -1,4 +1,4 @@
-//go:build tinygo.wasm && !gc.custom
+//go:build tinygo.wasm && !gc.custom && !custommalloc
 
 package re2
 
