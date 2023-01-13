@@ -5,7 +5,9 @@ go-re2 is a drop-in replacement for the standard library [regexp][1] package whi
 re2 is packaged as a WebAssembly module and accessed with the pure Go runtime, [wazero][3].
 This means that it is compatible with any Go application, regardless of availability of cgo.
 
-The library can also be used in a TinyGo application being compiled to WebAssembly.
+The library can also be used in a TinyGo application being compiled to WebAssembly. Currently,
+`regexp` when compiled with TinyGo always has very slow performance and sometimes fails to
+compile expressions completely.
 
 Note that if your regular expressions or input are small, this library is slower than the
 standard library. You will generally "know" if your application requires high performance for
