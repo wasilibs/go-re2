@@ -48,7 +48,7 @@ jobs:
           tinygo-version: 0.26.0
       - name: setup wasmtime for tinygo
         if: ${{ matrix.mode == 'tinygo' }}
-        run: go install github.com/wasilibs/tools/cmd/wasmtime@6d8d20e03f5b75bea4a7fecb81eda1878c19f1a4
+        run: go install github.com/wasilibs/tools/cmd/wasmtime@c93d2e477ab3c1eb7f5303c66a35c84a21d06dbd
 
       - run: go run mage.go check
         env:
