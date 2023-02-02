@@ -46,19 +46,9 @@ jobs:
         uses: acifani/setup-tinygo@v1
         with:
           tinygo-version: 0.26.0
-      - name: setup wasmtime for tinygo (linux or mac)
-        if: ${{ (startsWith(matrix.os, 'ubuntu-') || startsWith(matrix.os, 'macos-')) && matrix.mode == 'tinygo' }}
-        run: |
-          curl https://wasmtime.dev/install.sh -sSf | bash -s -- --version v3.0.1
-          echo "$HOME/.wasmtime/bin" >> $GITHUB_PATH
-      - name: setup wasmtime for tinygo (windows)
-        if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'tinygo' }}
-        run: |
-          gh release download v3.0.1 -p '*-windows.zip' -D $HOME -R github.com/bytecodealliance/wasmtime
-          Expand-Archive -Path $HOME\wasmtime-v3.0.1-x86_64-windows.zip -DestinationPath $HOME
-          Add-Content $env:GITHUB_PATH "$HOME\wasmtime-v3.0.1-x86_64-windows"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: setup wasmtime for tinygo
+        if: ${{ matrix.mode == 'tinygo' }}
+        run: go install github.com/wasilibs/tools/cmd/wasmtime@c93d2e477ab3c1eb7f5303c66a35c84a21d06dbd
 
       - run: go run mage.go check
         env:
