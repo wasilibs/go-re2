@@ -50,7 +50,7 @@ func Format() error {
 }
 
 func Lint() error {
-	return sh.RunV("go", "run", fmt.Sprintf("github.com/golangci/golangci-lint/cmd/golangci-lint@%s", verGolangCILint), "run", "--build-tags", buildTags())
+	return sh.RunV("go", "run", fmt.Sprintf("github.com/golangci/golangci-lint/cmd/golangci-lint@%s", verGolangCILint), "run", "--build-tags", buildTags(), "--timeout", "5m")
 }
 
 // Check runs lint and tests.
