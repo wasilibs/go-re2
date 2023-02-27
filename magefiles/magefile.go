@@ -38,10 +38,10 @@ func Test() error {
 }
 
 func Format() error {
-	if err := sh.RunV("go", "run", fmt.Sprintf("mvdan.cc/gofumpt@%s", gofumptVersion), "-l", "-w", "."); err != nil {
+	if err := sh.RunV("go", "run", fmt.Sprintf("mvdan.cc/gofumpt@%s", verGoFumpt), "-l", "-w", "."); err != nil {
 		return err
 	}
-	if err := sh.RunV("go", "run", fmt.Sprintf("github.com/rinchsan/gosimports/cmd/gosimports@%s", gosImportsVer), "-w",
+	if err := sh.RunV("go", "run", fmt.Sprintf("github.com/rinchsan/gosimports/cmd/gosimports@%s", verGosImports), "-w",
 		"-local", "github.com/wasilibs/go-re2",
 		"."); err != nil {
 		return nil
@@ -50,7 +50,7 @@ func Format() error {
 }
 
 func Lint() error {
-	return sh.RunV("go", "run", fmt.Sprintf("github.com/golangci/golangci-lint/cmd/golangci-lint@%s", golangCILintVer), "run", "--build-tags", buildTags())
+	return sh.RunV("go", "run", fmt.Sprintf("github.com/golangci/golangci-lint/cmd/golangci-lint@%s", verGolangCILint), "run", "--build-tags", buildTags())
 }
 
 // Check runs lint and tests.
@@ -121,7 +121,7 @@ func BenchAll() error {
 		return err
 	}
 
-	return sh.RunV("go", "run", fmt.Sprintf("golang.org/x/perf/cmd/benchstat@%s", benchstatVer),
+	return sh.RunV("go", "run", fmt.Sprintf("golang.org/x/perf/cmd/benchstat@%s", verBenchstat),
 		"build/bench_stdlib.txt", "build/bench.txt", "build/bench_cgo.txt")
 }
 
@@ -173,7 +173,7 @@ func WAFBenchAll() error {
 		return err
 	}
 
-	return sh.RunV("go", "run", fmt.Sprintf("golang.org/x/perf/cmd/benchstat@%s", benchstatVer),
+	return sh.RunV("go", "run", fmt.Sprintf("golang.org/x/perf/cmd/benchstat@%s", verBenchstat),
 		"build/wafbench_stdlib.txt", "build/wafbench.txt", "build/wafbench_cgo.txt")
 }
 
