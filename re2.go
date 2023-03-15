@@ -19,7 +19,8 @@ type Regexp struct {
 
 	expr string
 
-	subexpNames []string
+	numMatches int
+	groupNames []string
 
 	abi *libre2ABI
 
@@ -148,15 +149,16 @@ func compile(expr string, posix bool, longest bool, caseInsensitive bool) (*Rege
 		return nil, fmt.Errorf("error parsing regexp: expression too large")
 	}
 
-	subexp := subexpNames(abi, rePtr)
+	// Does not include whole expression match, e.g. $0
+	numGroups := numCapturingGroups(abi, rePtr)
 
 	re := &Regexp{
-		ptr:         rePtr,
-		posix:       posix,
-		longest:     longest,
-		expr:        expr,
-		subexpNames: subexp,
-		abi:         abi,
+		ptr:        rePtr,
+		posix:      posix,
+		longest:    longest,
+		expr:       expr,
+		numMatches: numGroups + 1,
+		abi:        abi,
 	}
 
 	runtime.SetFinalizer(re, (*Regexp).release)
@@ -258,7 +260,7 @@ func (re *Regexp) expand(dst []byte, template string, bsrc []byte, src string, m
 				}
 			}
 		} else {
-			for i, namei := range re.subexpNames {
+			for i, namei := range re.SubexpNames() {
 				if name == namei && 2*i+1 < len(match) && match[2*i] >= 0 {
 					if bsrc != nil {
 						dst = append(dst, bsrc[match[2*i]:match[2*i+1]]...)
@@ -462,7 +464,7 @@ func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 // description in the package comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindAllSubmatch(b []byte, n int) [][][]byte {
-	re.abi.startOperation(len(b) + 8*len(re.subexpNames) + 8)
+	re.abi.startOperation(len(b) + 8*re.numMatches + 8)
 	defer re.abi.endOperation()
 
 	cs := newCStringFromBytes(re.abi, b)
@@ -485,7 +487,7 @@ func (re *Regexp) FindAllSubmatch(b []byte, n int) [][][]byte {
 // 'All' description in the package comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindAllSubmatchIndex(b []byte, n int) [][]int {
-	re.abi.startOperation(len(b) + 8*len(re.subexpNames) + 8)
+	re.abi.startOperation(len(b) + 8*re.numMatches + 8)
 	defer re.abi.endOperation()
 
 	cs := newCStringFromBytes(re.abi, b)
@@ -508,7 +510,7 @@ func (re *Regexp) FindAllSubmatchIndex(b []byte, n int) [][]int {
 // the 'All' description in the package comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindAllStringSubmatch(s string, n int) [][]string {
-	re.abi.startOperation(len(s) + 8*len(re.subexpNames) + 8)
+	re.abi.startOperation(len(s) + 8*re.numMatches + 8)
 	defer re.abi.endOperation()
 
 	cs := newCString(re.abi, s)
@@ -532,7 +534,7 @@ func (re *Regexp) FindAllStringSubmatch(s string, n int) [][]string {
 // comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindAllStringSubmatchIndex(s string, n int) [][]int {
-	re.abi.startOperation(len(s) + 8*len(re.subexpNames) + 8)
+	re.abi.startOperation(len(s) + 8*re.numMatches + 8)
 	defer re.abi.endOperation()
 
 	cs := newCString(re.abi, s)
@@ -555,7 +557,7 @@ func (re *Regexp) findAllSubmatch(cs cString, n int, deliver func(match [][]int)
 		n = cs.length + 1
 	}
 
-	numGroups := len(re.subexpNames)
+	numGroups := re.numMatches
 	matchArr := newCStringArray(re.abi, numGroups)
 
 	count := 0
@@ -601,7 +603,7 @@ func (re *Regexp) findAllSubmatch(cs cString, n int, deliver func(match [][]int)
 // comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindSubmatch(b []byte) [][]byte {
-	re.abi.startOperation(len(b) + 8*len(re.subexpNames))
+	re.abi.startOperation(len(b) + 8*re.numMatches)
 	defer re.abi.endOperation()
 
 	cs := newCStringFromBytes(re.abi, b)
@@ -621,7 +623,7 @@ func (re *Regexp) FindSubmatch(b []byte) [][]byte {
 // in the package comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindSubmatchIndex(b []byte) []int {
-	re.abi.startOperation(len(b) + 8*len(re.subexpNames))
+	re.abi.startOperation(len(b) + 8*re.numMatches)
 	defer re.abi.endOperation()
 
 	cs := newCStringFromBytes(re.abi, b)
@@ -636,7 +638,7 @@ func (re *Regexp) FindSubmatchIndex(b []byte) []int {
 }
 
 func (re *Regexp) FindStringSubmatch(s string) []string {
-	re.abi.startOperation(len(s) + 8*len(re.subexpNames))
+	re.abi.startOperation(len(s) + 8*re.numMatches)
 	defer re.abi.endOperation()
 
 	cs := newCString(re.abi, s)
@@ -656,7 +658,7 @@ func (re *Regexp) FindStringSubmatch(s string) []string {
 // 'Index' descriptions in the package comment.
 // A return value of nil indicates no match.
 func (re *Regexp) FindStringSubmatchIndex(s string) []int {
-	re.abi.startOperation(len(s) + 8*len(re.subexpNames))
+	re.abi.startOperation(len(s) + 8*re.numMatches)
 	defer re.abi.endOperation()
 
 	cs := newCString(re.abi, s)
@@ -671,7 +673,7 @@ func (re *Regexp) FindStringSubmatchIndex(s string) []int {
 }
 
 func (re *Regexp) findSubmatch(cs cString, deliver func(match []int)) {
-	numGroups := len(re.subexpNames)
+	numGroups := re.numMatches
 	matchArr := newCStringArray(re.abi, numGroups)
 
 	if !match(re, cs, matchArr.ptr, uint32(numGroups)) {
@@ -704,7 +706,7 @@ func (re *Regexp) Longest() {
 
 // NumSubexp returns the number of parenthesized subexpressions in this Regexp.
 func (re *Regexp) NumSubexp() int {
-	return len(re.subexpNames) - 1
+	return re.numMatches - 1
 }
 
 // Split slices s into substrings separated by the expression and returns a slice of
@@ -768,7 +770,10 @@ func (re *Regexp) Split(s string, n int) []string {
 // Since the Regexp as a whole cannot be named, names[0] is always
 // the empty string. The slice should not be modified.
 func (re *Regexp) SubexpNames() []string {
-	return re.subexpNames
+	if re.groupNames == nil {
+		re.groupNames = subexpNames(re.abi, re.ptr, re.numMatches)
+	}
+	return re.groupNames
 }
 
 // SubexpIndex returns the index of the first subexpression with the given name,
@@ -780,7 +785,7 @@ func (re *Regexp) SubexpNames() []string {
 // in the regular expression.
 func (re *Regexp) SubexpIndex(name string) int {
 	if name != "" {
-		for i, s := range re.subexpNames {
+		for i, s := range re.SubexpNames() {
 			if name == s {
 				return i
 			}
@@ -826,7 +831,7 @@ func (re *Regexp) release() {
 func (re *Regexp) ReplaceAll(src, repl []byte) []byte {
 	// TODO: See if it's worth not converting repl to string here, the stdlib does it
 	// so follow suit for now.
-	replRE2 := convertReplacement(string(repl), re.subexpNames)
+	replRE2 := convertReplacement(string(repl), re.SubexpNames())
 
 	re.abi.startOperation(len(src) + len(replRE2) + 16)
 	defer re.abi.endOperation()
@@ -882,7 +887,7 @@ func (re *Regexp) ReplaceAllLiteralString(src, repl string) string {
 // with the replacement string repl. Inside repl, $ signs are interpreted as
 // in Expand, so for instance $1 represents the text of the first submatch.
 func (re *Regexp) ReplaceAllString(src, repl string) string {
-	replRE2 := convertReplacement(repl, re.subexpNames)
+	replRE2 := convertReplacement(repl, re.SubexpNames())
 
 	re.abi.startOperation(len(src) + len(replRE2) + 16)
 	defer re.abi.endOperation()
@@ -915,11 +920,8 @@ func (re *Regexp) String() string {
 	return re.expr
 }
 
-func subexpNames(abi *libre2ABI, rePtr uintptr) []string {
-	// Does not include whole expression match, e.g. $0
-	numGroups := numCapturingGroups(abi, rePtr)
-
-	res := make([]string, numGroups+1)
+func subexpNames(abi *libre2ABI, rePtr uintptr, numMatches int) []string {
+	res := make([]string, numMatches)
 
 	iter := namedGroupsIter(abi, rePtr)
 	defer namedGroupsIterDelete(abi, iter)
