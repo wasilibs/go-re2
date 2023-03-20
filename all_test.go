@@ -44,7 +44,7 @@ var badRe = []stringError{
 	{`a**`, "invalid nested repetition operator: `**`"},
 	{`a*+`, "invalid nested repetition operator: `*+`"},
 	{`\x`, "invalid escape sequence: `\\x`"},
-	// TODO(anuraaga): This test passes with Go but does not complete in a practical time with wasm.
+	// TODO(anuraaga): This test passes with wazero but does not complete in a practical time with tinygo.
 	// {strings.Repeat(`\pL`, 27000), "expression too large"},
 }
 
