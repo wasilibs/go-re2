@@ -60,7 +60,7 @@ jobs:
           # on these slow tests.
           RE2_TEST_EXHAUSTIVE: ${{ github.event_name != 'pull_request' && '1' || '0'}}
           # Windows runner seems to not have enough CPU performance to keep up without a memory limit
-          GOMEMLIMIT: ${{ (github.event_name != 'pull_request' && matrix.os == 'windows-2022') && '1GiB' || '' }}
+          GOMEMLIMIT: ${{ github.event_name != 'pull_request' && '1GiB' || '' }}
 
   # Runs tests using wazero inside a minimal golang docker image. This makes sure the code builds
   # even when there is no C toolchain available. It is possible for code to work fine with CGO_ENABLED=0
