@@ -25,6 +25,9 @@ func buildTags() string {
 		tags = append(tags, "re2_test_exhaustive")
 	}
 
+	if mode == "tinygo" {
+		return fmt.Sprintf("'%s'", strings.Join(tags, " "))
+	}
 	return strings.Join(tags, ",")
 }
 
