@@ -40,18 +40,18 @@ func (re *Regexp) Copy() *Regexp {
 	// make sure regex is only deleted when the last reference is gone.
 
 	// Recompiling regex, no chance of err so don't bother checking it.
-	c, _ := Compile(re.expr, false, false, false)
+	c, _ := Compile(re.expr, false, false, false, false)
 	return c
 }
 
-func Compile(expr string, posix bool, longest bool, caseInsensitive bool) (*Regexp, error) {
+func Compile(expr string, posix bool, longest bool, caseInsensitive bool, latin1 bool) (*Regexp, error) {
 	abi := newABI()
 	abi.startOperation(len(expr) + 2 + 8)
 	defer abi.endOperation()
 
 	cs := newCString(abi, expr)
 
-	rePtr := newRE(abi, cs, longest, posix, caseInsensitive)
+	rePtr := newRE(abi, cs, longest, posix, caseInsensitive, latin1)
 	errCode, errArg := reError(abi, rePtr)
 	switch errCode {
 	case 0:
@@ -606,7 +606,7 @@ func (re *Regexp) Longest() {
 	deleteRE(re.abi, re.ptr)
 
 	cs := newCString(re.abi, re.expr)
-	re.ptr = newRE(re.abi, cs, true, re.posix, false)
+	re.ptr = newRE(re.abi, cs, true, re.posix, false, false)
 }
 
 // NumSubexp returns the number of parenthesized subexpressions in this Regexp.
@@ -969,4 +969,11 @@ func matchedString(s string, match []int) string {
 		return ""
 	}
 	return s[match[0]:match[1]]
+}
+
+func QuoteForError(s string) string {
+	if strconv.CanBackquote(s) {
+		return "`" + s + "`"
+	}
+	return strconv.Quote(s)
 }

@@ -41,6 +41,12 @@ All APIs found in `regexp` are available except
 Note that unlike many packages that wrap C++ libraries, there is no added `Close` type of method.
 See the [rationale](./RATIONALE.md) for more details.
 
+### Experimental APIs
+
+The [experimental](./experimental) package contains APIs not part of standard `regexp` that are
+incubating. They may in the future be moved to stable packages. The experimental package does not
+provide any guarantee of API stability even across minor version updates.
+
 ## Usage
 
 go-re2 is a standard Go library package and can be added to a go.mod file. It will work fine in

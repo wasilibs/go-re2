@@ -5,6 +5,12 @@ package cre2
 /*
 #include <stdbool.h>
 
+typedef enum cre2_encoding_t {
+  CRE2_UNKNOWN	= 0,
+  CRE2_UTF8	= 1,
+  CRE2_Latin1	= 2
+} cre2_encoding_t;
+
 void* cre2_new(void* pattern, int pattern_len, void* opts);
 void cre2_delete(void* re);
 int cre2_error_code(void* re);
@@ -23,6 +29,7 @@ void cre2_opt_set_log_errors(void* opt, int flag);
 void cre2_opt_set_longest_match(void* opt, int flag);
 void cre2_opt_set_posix_syntax(void* opt, int flag);
 void cre2_opt_set_case_sensitive(void* opt, int flag);
+void cre2_opt_set_encoding(void* opt, cre2_encoding_t enc);
 
 void* malloc(unsigned long size);
 void free(void* ptr);
@@ -99,6 +106,10 @@ func OptSetPosixSyntax(opt unsafe.Pointer, flag bool) {
 
 func OptSetCaseSensitive(opt unsafe.Pointer, flag bool) {
 	C.cre2_opt_set_case_sensitive(opt, cFlag(flag))
+}
+
+func OptSetLatin1Encoding(opt unsafe.Pointer) {
+	C.cre2_opt_set_encoding(opt, C.cre2_encoding_t(C.CRE2_Latin1))
 }
 
 func Malloc(size int) unsafe.Pointer {

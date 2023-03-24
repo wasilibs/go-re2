@@ -50,6 +50,7 @@ type libre2ABI struct {
 	cre2OptSetLongestMatch    api.Function
 	cre2OptSetPosixSyntax     api.Function
 	cre2OptSetCaseSensitive   api.Function
+	cre2OptSetEncoding        api.Function
 
 	malloc api.Function
 	free   api.Function
@@ -106,6 +107,7 @@ func newABI() *libre2ABI {
 		cre2OptSetLongestMatch:    mod.ExportedFunction("cre2_opt_set_longest_match"),
 		cre2OptSetPosixSyntax:     mod.ExportedFunction("cre2_opt_set_posix_syntax"),
 		cre2OptSetCaseSensitive:   mod.ExportedFunction("cre2_opt_set_case_sensitive"),
+		cre2OptSetEncoding:        mod.ExportedFunction("cre2_opt_set_encoding"),
 
 		malloc: mod.ExportedFunction("malloc"),
 		free:   mod.ExportedFunction("free"),
@@ -126,7 +128,7 @@ func (abi *libre2ABI) endOperation() {
 	abi.mu.Unlock()
 }
 
-func newRE(abi *libre2ABI, pattern cString, longest bool, posix bool, caseInsensitive bool) uintptr {
+func newRE(abi *libre2ABI, pattern cString, longest bool, posix bool, caseInsensitive bool, latin1 bool) uintptr {
 	ctx := context.Background()
 	res, err := abi.cre2OptNew.Call(ctx)
 	if err != nil {
@@ -155,6 +157,12 @@ func newRE(abi *libre2ABI, pattern cString, longest bool, posix bool, caseInsens
 	}
 	if caseInsensitive {
 		_, err = abi.cre2OptSetCaseSensitive.Call(ctx, uint64(optPtr), 0)
+		if err != nil {
+			panic(err)
+		}
+	}
+	if latin1 {
+		_, err = abi.cre2OptSetEncoding.Call(ctx, uint64(optPtr), 2 /* Latin1 */)
 		if err != nil {
 			panic(err)
 		}

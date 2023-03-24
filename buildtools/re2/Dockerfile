@@ -12,8 +12,8 @@ ENV RE2_CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initiali
 RUN make obj/libre2.a
 
 WORKDIR /cre2
-ADD cre2/cre2.cpp /cre2
-ADD cre2/cre2.h /cre2
+ADD internal/cre2/cre2.cpp /cre2
+ADD internal/cre2/cre2.h /cre2
 # Just one source file so not worth running make
 RUN $CXX -c cre2.cpp -o cre2.o -I. -I/re2 $CXXFLAGS && \
     llvm-ar-15 cru libcre2.a  cre2.o && \
@@ -40,6 +40,7 @@ RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 -mexec-model=reactor --rtlib
     -Wl,--export=cre2_opt_set_longest_match \
     -Wl,--export=cre2_opt_set_posix_syntax \
     -Wl,--export=cre2_opt_set_case_sensitive \
+    -Wl,--export=cre2_opt_set_encoding \
     -Wl,--export=cre2_error_code \
     -Wl,--export=cre2_error_arg \
     -Wl,--export=cre2_num_capturing_groups \
