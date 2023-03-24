@@ -44,8 +44,7 @@ var badRe = []stringError{
 	{`a**`, "invalid nested repetition operator: `**`"},
 	{`a*+`, "invalid nested repetition operator: `*+`"},
 	{`\x`, "invalid escape sequence: `\\x`"},
-	// TODO(anuraaga): This test passes with wazero but does not complete in a practical time with tinygo.
-	// {strings.Repeat(`\pL`, 27000), "expression too large"},
+	{strings.Repeat(`\pL`, 27000), "expression too large"},
 }
 
 func compileTest(t *testing.T, expr string, error string) *Regexp {
