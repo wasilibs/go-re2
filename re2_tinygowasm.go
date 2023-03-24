@@ -21,7 +21,7 @@ func (abi *libre2ABI) startOperation(memorySize int) {
 func (abi *libre2ABI) endOperation() {
 }
 
-func newRE(abi *libre2ABI, pattern cString, longest bool, posix bool, caseInsensitive bool) uintptr {
+func newRE(abi *libre2ABI, pattern cString, longest bool, posix bool, caseInsensitive bool, latin1 bool) uintptr {
 	opt := cre2.NewOpt()
 	defer cre2.DeleteOpt(opt)
 	cre2.OptSetLogErrors(opt, false)
@@ -33,6 +33,9 @@ func newRE(abi *libre2ABI, pattern cString, longest bool, posix bool, caseInsens
 	}
 	if caseInsensitive {
 		cre2.OptSetCaseSensitive(opt, false)
+	}
+	if latin1 {
+		cre2.OptSetLatin1Encoding(opt)
 	}
 	return uintptr(cre2.New(unsafe.Pointer(uintptr(pattern.ptr)), int(pattern.length), opt))
 }

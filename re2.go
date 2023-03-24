@@ -77,7 +77,7 @@ func (re *Regexp) Copy() *Regexp {
 // package implements it without the expense of backtracking.
 // For POSIX leftmost-longest matching, see CompilePOSIX.
 func Compile(expr string) (*Regexp, error) {
-	return compile(expr, false, false, false)
+	return compile(expr, false, false, false, false)
 }
 
 // CompilePOSIX is like Compile but restricts the regular expression
@@ -100,17 +100,17 @@ func Compile(expr string) (*Regexp, error) {
 // The POSIX rule is computationally prohibitive and not even well-defined.
 // See https://swtch.com/~rsc/regexp/regexp2.html#posix for details.
 func CompilePOSIX(expr string) (*Regexp, error) {
-	return compile(expr, true, true, false)
+	return compile(expr, true, true, false, false)
 }
 
-func compile(expr string, posix bool, longest bool, caseInsensitive bool) (*Regexp, error) {
+func compile(expr string, posix bool, longest bool, caseInsensitive bool, latin1 bool) (*Regexp, error) {
 	abi := newABI()
 	abi.startOperation(len(expr) + 2 + 8)
 	defer abi.endOperation()
 
 	cs := newCString(abi, expr)
 
-	rePtr := newRE(abi, cs, longest, posix, caseInsensitive)
+	rePtr := newRE(abi, cs, longest, posix, caseInsensitive, latin1)
 	errCode, errArg := reError(abi, rePtr)
 	switch errCode {
 	case 0:
@@ -701,7 +701,7 @@ func (re *Regexp) Longest() {
 	deleteRE(re.abi, re.ptr)
 
 	cs := newCString(re.abi, re.expr)
-	re.ptr = newRE(re.abi, cs, true, re.posix, false)
+	re.ptr = newRE(re.abi, cs, true, re.posix, false, false)
 }
 
 // NumSubexp returns the number of parenthesized subexpressions in this Regexp.
