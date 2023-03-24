@@ -7,3 +7,7 @@ issues:
     - path: magefiles
       linters:
         - deadcode
+    - path: _test.go
+      linters:
+        # We have tests for deprecated methods
+        - staticcheck
