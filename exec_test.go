@@ -16,6 +16,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/wasilibs/go-re2/internal"
 )
 
 // TestRE2 tests this package's regexp API against test cases
@@ -539,7 +541,7 @@ Reading:
 				}
 			}
 
-			re, err := compile(pattern, true, true, caseInsensitive)
+			re, err := internal.Compile(pattern, true, true, caseInsensitive)
 			if err != nil {
 				if shouldCompile {
 					t.Errorf("%s:%d: %#q did not compile", file, lineno, pattern)
