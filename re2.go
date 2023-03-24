@@ -2,7 +2,6 @@ package re2
 
 import (
 	"regexp"
-	"strconv"
 
 	"github.com/wasilibs/go-re2/internal"
 )
@@ -44,7 +43,7 @@ func Match(pattern string, b []byte) (matched bool, err error) {
 // package implements it without the expense of backtracking.
 // For POSIX leftmost-longest matching, see CompilePOSIX.
 func Compile(expr string) (*Regexp, error) {
-	return internal.Compile(expr, false, false, false)
+	return internal.Compile(expr, false, false, false, false)
 }
 
 // CompilePOSIX is like Compile but restricts the regular expression
@@ -67,7 +66,7 @@ func Compile(expr string) (*Regexp, error) {
 // The POSIX rule is computationally prohibitive and not even well-defined.
 // See https://swtch.com/~rsc/regexp/regexp2.html#posix for details.
 func CompilePOSIX(expr string) (*Regexp, error) {
-	return internal.Compile(expr, true, true, false)
+	return internal.Compile(expr, true, true, false, false)
 }
 
 // MustCompile is like Compile but panics if the expression cannot be parsed.
@@ -76,7 +75,7 @@ func CompilePOSIX(expr string) (*Regexp, error) {
 func MustCompile(str string) *Regexp {
 	re, err := Compile(str)
 	if err != nil {
-		panic(`regexp: Compile(` + quote(str) + `): ` + err.Error())
+		panic(`regexp: Compile(` + internal.QuoteForError(str) + `): ` + err.Error())
 	}
 	return re
 }
@@ -87,7 +86,7 @@ func MustCompile(str string) *Regexp {
 func MustCompilePOSIX(str string) *Regexp {
 	regexp, err := CompilePOSIX(str)
 	if err != nil {
-		panic(`regexp: CompilePOSIX(` + quote(str) + `): ` + err.Error())
+		panic(`regexp: CompilePOSIX(` + internal.QuoteForError(str) + `): ` + err.Error())
 	}
 	return regexp
 }
@@ -97,11 +96,4 @@ func MustCompilePOSIX(str string) *Regexp {
 // the literal text.
 func QuoteMeta(s string) string {
 	return regexp.QuoteMeta(s)
-}
-
-func quote(s string) string {
-	if strconv.CanBackquote(s) {
-		return "`" + s + "`"
-	}
-	return strconv.Quote(s)
 }
