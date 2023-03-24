@@ -15,8 +15,11 @@ func buildTags() string {
 	exhaustive := os.Getenv("RE2_TEST_EXHAUSTIVE") == "1"
 
 	var tags []string
-	if mode == "cgo" {
+	switch mode {
+	case "cgo":
 		tags = append(tags, "re2_cgo")
+	case "tinygo":
+		tags = append(tags, "custommalloc")
 	}
 	if exhaustive {
 		tags = append(tags, "re2_test_exhaustive")
@@ -34,7 +37,7 @@ func Test() error {
 		return sh.RunV("go", "test", "-v", "-timeout=20m", "-tags", buildTags(), "./...")
 	}
 
-	return sh.RunV("tinygo", "test", "-target=wasi", "-v", "-tags", buildTags(), "./...")
+	return sh.RunV("tinygo", "test", "-scheduler=none", "-gc=custom", "-target=wasi", "-v", "-tags", buildTags(), "./...")
 }
 
 func Format() error {
