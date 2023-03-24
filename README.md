@@ -12,7 +12,7 @@ compile expressions completely.
 Note that if your regular expressions or input are small, this library is slower than the
 standard library. You will generally "know" if your application requires high performance for
 complex regular expressions, for example in security filtering software. If you do not know
-your app has such needs, you should turn away now.
+your app has such needs and are not using TinyGo, you should turn away now.
 
 ## Behavior differences
 
@@ -20,9 +20,10 @@ The library is almost fully compatible with the standard library regexp package,
 behavior differences. These are likely corner cases that don't affect typical applications. It is
 best to confirm them before proceeding.
 
-- Invalid utf-8 strings are not supported. The standard library silently replaces invalid utf-8
+- Invalid utf-8 strings are treated differently. The standard library silently replaces invalid utf-8
 with the unicode replacement character. This library will stop consuming strings when encountering
 invalid utf-8.
+  - `experimental.CompileLatin1` can be used to match against non-utf8 strings
 
 - `reflect.DeepEqual` cannot compare `Regexp` objects.
 
