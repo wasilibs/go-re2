@@ -541,7 +541,7 @@ Reading:
 				}
 			}
 
-			re, err := internal.Compile(pattern, true, true, caseInsensitive, false)
+			re, err := internal.Compile(pattern, internal.CompileOptions{Longest: true, Posix: true, CaseInsensitive: caseInsensitive})
 			if err != nil {
 				if shouldCompile {
 					t.Errorf("%s:%d: %#q did not compile", file, lineno, pattern)
