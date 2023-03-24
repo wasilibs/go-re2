@@ -128,7 +128,7 @@ func (abi *libre2ABI) endOperation() {
 	abi.mu.Unlock()
 }
 
-func newRE(abi *libre2ABI, pattern cString, longest bool, posix bool, caseInsensitive bool, latin1 bool) uintptr {
+func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) uintptr {
 	ctx := context.Background()
 	res, err := abi.cre2OptNew.Call(ctx)
 	if err != nil {
@@ -143,25 +143,25 @@ func newRE(abi *libre2ABI, pattern cString, longest bool, posix bool, caseInsens
 	if _, err := abi.cre2OptSetLogErrors.Call(ctx, uint64(optPtr), 0); err != nil {
 		panic(err)
 	}
-	if longest {
+	if opts.Longest {
 		_, err = abi.cre2OptSetLongestMatch.Call(ctx, uint64(optPtr), 1)
 		if err != nil {
 			panic(err)
 		}
 	}
-	if posix {
+	if opts.Posix {
 		_, err = abi.cre2OptSetPosixSyntax.Call(ctx, uint64(optPtr), 1)
 		if err != nil {
 			panic(err)
 		}
 	}
-	if caseInsensitive {
+	if opts.CaseInsensitive {
 		_, err = abi.cre2OptSetCaseSensitive.Call(ctx, uint64(optPtr), 0)
 		if err != nil {
 			panic(err)
 		}
 	}
-	if latin1 {
+	if opts.Latin1 {
 		_, err = abi.cre2OptSetLatin1Encoding.Call(ctx, uint64(optPtr))
 		if err != nil {
 			panic(err)
