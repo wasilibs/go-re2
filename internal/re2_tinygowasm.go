@@ -1,6 +1,6 @@
 //go:build tinygo.wasm || re2_cgo
 
-package re2
+package internal
 
 import (
 	"reflect"
