@@ -21,6 +21,17 @@ func TestCompileLatin1(t *testing.T) {
 			input:   "\xac\xed\x00t\x00\x04test",
 			want:    false,
 		},
+		// Make sure flags are parsed
+		{
+			pattern: `(?sm)\xac\xed\x00\x05`,
+			input:   "\xac\xed\x00\x05t\x00\x04test",
+			want:    true,
+		},
+		{
+			pattern: `(?sm)\xac\xed\x00\x05`,
+			input:   "\xac\xed\x00t\x00\x04test",
+			want:    false,
+		},
 		// Unicode character classes don't work but matching bytes still does.
 		{
 			pattern: "ハロー",

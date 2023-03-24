@@ -11,7 +11,7 @@ import (
 //
 // Currently Longest and Copy are not supported with latin1.
 func CompileLatin1(expr string) (*re2.Regexp, error) {
-	return internal.Compile(expr, true, true, false, true)
+	return internal.Compile(expr, internal.CompileOptions{Latin1: true})
 }
 
 // MustCompileLatin1 is like CompileLatin1 but panics if the expression cannot be parsed.

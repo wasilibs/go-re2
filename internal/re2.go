@@ -13,8 +13,7 @@ import (
 type Regexp struct {
 	ptr uintptr
 
-	posix   bool
-	longest bool
+	opts CompileOptions
 
 	expr string
 
@@ -40,18 +39,25 @@ func (re *Regexp) Copy() *Regexp {
 	// make sure regex is only deleted when the last reference is gone.
 
 	// Recompiling regex, no chance of err so don't bother checking it.
-	c, _ := Compile(re.expr, false, false, false, false)
+	c, _ := Compile(re.expr, re.opts)
 	return c
 }
 
-func Compile(expr string, posix bool, longest bool, caseInsensitive bool, latin1 bool) (*Regexp, error) {
+type CompileOptions struct {
+	Posix           bool
+	Longest         bool
+	CaseInsensitive bool
+	Latin1          bool
+}
+
+func Compile(expr string, opts CompileOptions) (*Regexp, error) {
 	abi := newABI()
 	abi.startOperation(len(expr) + 2 + 8)
 	defer abi.endOperation()
 
 	cs := newCString(abi, expr)
 
-	rePtr := newRE(abi, cs, longest, posix, caseInsensitive, latin1)
+	rePtr := newRE(abi, cs, opts)
 	errCode, errArg := reError(abi, rePtr)
 	switch errCode {
 	case 0:
@@ -95,8 +101,7 @@ func Compile(expr string, posix bool, longest bool, caseInsensitive bool, latin1
 
 	re := &Regexp{
 		ptr:        rePtr,
-		posix:      posix,
-		longest:    longest,
+		opts:       opts,
 		expr:       expr,
 		numMatches: numGroups + 1,
 		abi:        abi,
@@ -598,7 +603,7 @@ func (re *Regexp) Longest() {
 	re.abi.startOperation(len(re.expr) + 2)
 	defer re.abi.endOperation()
 
-	if re.longest {
+	if re.opts.Longest {
 		return
 	}
 
@@ -606,7 +611,9 @@ func (re *Regexp) Longest() {
 	deleteRE(re.abi, re.ptr)
 
 	cs := newCString(re.abi, re.expr)
-	re.ptr = newRE(re.abi, cs, true, re.posix, false, false)
+	newOpts := re.opts
+	newOpts.Longest = true
+	re.ptr = newRE(re.abi, cs, newOpts)
 }
 
 // NumSubexp returns the number of parenthesized subexpressions in this Regexp.
