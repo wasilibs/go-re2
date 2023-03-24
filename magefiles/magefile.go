@@ -67,7 +67,7 @@ func UpdateLibs() error {
 	if err != nil {
 		return err
 	}
-	return sh.RunV("docker", "run", "-it", "--rm", "-v", fmt.Sprintf("%s:/out", filepath.Join(wd, "wasm")), "ghcr.io/wasilibs/go-re2/buildtools-re2")
+	return sh.RunV("docker", "run", "-it", "--rm", "-v", fmt.Sprintf("%s:/out", filepath.Join(wd, "internal", "wasm")), "ghcr.io/wasilibs/go-re2/buildtools-re2")
 }
 
 // Bench runs benchmarks in the default configuration for a Go app, using wazero.

@@ -60,6 +60,7 @@ cre2_decl void cre2_opt_set_word_boundary	(cre2_options_t *opt, int flag);
 cre2_decl void cre2_opt_set_one_line		(cre2_options_t *opt, int flag);
 cre2_decl void cre2_opt_set_max_mem		(cre2_options_t *opt, int64_t m);
 cre2_decl void cre2_opt_set_encoding		(cre2_options_t *opt, cre2_encoding_t enc);
+cre2_decl void cre2_opt_set_latin1_encoding		(cre2_options_t *opt);
 
 cre2_decl int cre2_opt_posix_syntax		(cre2_options_t *opt);
 cre2_decl int cre2_opt_longest_match		(cre2_options_t *opt);
