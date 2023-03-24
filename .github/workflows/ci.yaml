@@ -25,6 +25,9 @@ jobs:
         exclude:
           - os: windows-2022
             mode: cgo
+          # https://github.com/tinygo-org/tinygo/issues/3594
+          - os: windows-2022
+            mode: tinygo
     steps:
       - uses: actions/checkout@v3
         with:
