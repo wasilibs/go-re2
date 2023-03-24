@@ -40,7 +40,7 @@ RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 -mexec-model=reactor --rtlib
     -Wl,--export=cre2_opt_set_longest_match \
     -Wl,--export=cre2_opt_set_posix_syntax \
     -Wl,--export=cre2_opt_set_case_sensitive \
-    -Wl,--export=cre2_opt_set_encoding \
+    -Wl,--export=cre2_opt_set_latin1_encoding \
     -Wl,--export=cre2_error_code \
     -Wl,--export=cre2_error_arg \
     -Wl,--export=cre2_num_capturing_groups \

@@ -109,6 +109,11 @@ cre2_opt_max_mem (cre2_options_t *opt)
 {
   return TO_OPT(opt)->max_mem();
 }
+void
+cre2_opt_set_latin1_encoding(cre2_options_t *opt)
+{
+  TO_OPT(opt)->set_encoding(RE2::Options::EncodingLatin1);
+}
 
 
 /** --------------------------------------------------------------------
