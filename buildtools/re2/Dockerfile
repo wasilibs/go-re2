@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y binaryen curl
 # Use post-release commit for now as it includes support for no-threads
 RUN mkdir -p /re2 && curl -L https://github.com/google/re2/archive/954656f47fe8fb505d4818da1e128417a79ea500.tar.gz | tar -xz --strip-components 1 -C /re2
 WORKDIR /re2
-ENV CXXFLAGS -fno-exceptions ${CXXFLAGS}
+ENV CXXFLAGS -fno-exceptions -O3 ${CXXFLAGS}
 ENV RE2_CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -I. -DRE2_NO_THREADS
 RUN make obj/libre2.a
 
