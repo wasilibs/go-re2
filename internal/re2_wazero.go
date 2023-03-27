@@ -8,10 +8,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -78,12 +76,9 @@ func init() {
 	wasmRT = rt
 }
 
-var moduleIdx = uint64(0)
-
 func newABI() *libre2ABI {
 	ctx := context.Background()
-	modIdx := atomic.AddUint64(&moduleIdx, 1)
-	mod, err := wasmRT.InstantiateModule(ctx, wasmCompiled, wazero.NewModuleConfig().WithName(strconv.FormatUint(modIdx, 10)))
+	mod, err := wasmRT.InstantiateModule(ctx, wasmCompiled, wazero.NewModuleConfig().WithName(""))
 	if err != nil {
 		panic(err)
 	}
