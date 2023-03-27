@@ -248,7 +248,10 @@ func (re *Regexp) find(cs cString, dstCap []int) []int {
 		return nil
 	}
 
-	return readMatch(re.abi, cs, matchArr.ptr, dstCap)
+	m := readMatch(re.abi, cs, matchArr.ptr, dstCap)
+	runtime.KeepAlive(matchArr)
+
+	return m
 }
 
 // FindAll is the 'All' version of Find; it returns a slice of all successive
@@ -367,6 +370,8 @@ func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 			break
 		}
 	}
+
+	runtime.KeepAlive(matchArr)
 }
 
 // FindAllSubmatch is the 'All' version of FindSubmatch; it returns a slice
@@ -505,6 +510,8 @@ func (re *Regexp) findAllSubmatch(cs cString, n int, deliver func(match [][]int)
 			break
 		}
 	}
+
+	runtime.KeepAlive(matchArr)
 }
 
 // FindSubmatch returns a slice of slices holding the text of the leftmost
@@ -591,6 +598,8 @@ func (re *Regexp) findSubmatch(cs cString, deliver func(match []int)) {
 	}
 
 	readMatches(re.abi, cs, matchArr.ptr, numGroups, deliver)
+
+	runtime.KeepAlive(matchArr)
 }
 
 // Longest makes future searches prefer the leftmost-longest match.
