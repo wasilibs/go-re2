@@ -479,20 +479,17 @@ func (m *sharedMemory) writeString(abi *libre2ABI, s string) uintptr {
 
 type lazyFunction struct {
 	f    api.Function
-	ctor func() api.Function
+	mod  api.Module
+	name string
 }
 
 func newLazyFunction(mod api.Module, name string) lazyFunction {
-	return lazyFunction{
-		ctor: func() api.Function {
-			return mod.ExportedFunction(name)
-		},
-	}
+	return lazyFunction{mod: mod, name: name}
 }
 
 func (f *lazyFunction) Call(ctx context.Context, args ...uint64) ([]uint64, error) {
 	if f.f == nil {
-		f.f = f.ctor()
+		f.f = f.mod.ExportedFunction(f.name)
 	}
 	return f.f.Call(ctx, args...)
 }
