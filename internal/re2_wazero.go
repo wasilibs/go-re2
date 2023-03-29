@@ -31,24 +31,21 @@ var (
 
 type libre2ABI struct {
 	cre2New                   api.Function
-	cre2Delete                api.Function
-	cre2Match                 api.Function
-	cre2PartialMatch          api.Function
-	cre2FindAndConsume        api.Function
-	cre2NumCapturingGroups    api.Function
-	cre2ErrorCode             api.Function
-	cre2ErrorArg              api.Function
-	cre2NamedGroupsIterNew    api.Function
-	cre2NamedGroupsIterNext   api.Function
-	cre2NamedGroupsIterDelete api.Function
-	cre2GlobalReplace         api.Function
-	cre2OptNew                api.Function
-	cre2OptDelete             api.Function
-	cre2OptSetLogErrors       api.Function
-	cre2OptSetLongestMatch    api.Function
-	cre2OptSetPosixSyntax     api.Function
-	cre2OptSetCaseSensitive   api.Function
-	cre2OptSetLatin1Encoding  api.Function
+	cre2Delete                lazyFunction
+	cre2Match                 lazyFunction
+	cre2NumCapturingGroups    lazyFunction
+	cre2ErrorCode             lazyFunction
+	cre2ErrorArg              lazyFunction
+	cre2NamedGroupsIterNew    lazyFunction
+	cre2NamedGroupsIterNext   lazyFunction
+	cre2NamedGroupsIterDelete lazyFunction
+	cre2GlobalReplace         lazyFunction
+	cre2OptNew                lazyFunction
+	cre2OptDelete             lazyFunction
+	cre2OptSetLongestMatch    lazyFunction
+	cre2OptSetPosixSyntax     lazyFunction
+	cre2OptSetCaseSensitive   lazyFunction
+	cre2OptSetLatin1Encoding  lazyFunction
 
 	malloc api.Function
 	free   api.Function
@@ -85,24 +82,21 @@ func newABI() *libre2ABI {
 
 	abi := &libre2ABI{
 		cre2New:                   mod.ExportedFunction("cre2_new"),
-		cre2Delete:                mod.ExportedFunction("cre2_delete"),
-		cre2Match:                 mod.ExportedFunction("cre2_match"),
-		cre2PartialMatch:          mod.ExportedFunction("cre2_partial_match_re"),
-		cre2FindAndConsume:        mod.ExportedFunction("cre2_find_and_consume_re"),
-		cre2NumCapturingGroups:    mod.ExportedFunction("cre2_num_capturing_groups"),
-		cre2ErrorCode:             mod.ExportedFunction("cre2_error_code"),
-		cre2ErrorArg:              mod.ExportedFunction("cre2_error_arg"),
-		cre2NamedGroupsIterNew:    mod.ExportedFunction("cre2_named_groups_iter_new"),
-		cre2NamedGroupsIterNext:   mod.ExportedFunction("cre2_named_groups_iter_next"),
-		cre2NamedGroupsIterDelete: mod.ExportedFunction("cre2_named_groups_iter_delete"),
-		cre2GlobalReplace:         mod.ExportedFunction("cre2_global_replace_re"),
-		cre2OptNew:                mod.ExportedFunction("cre2_opt_new"),
-		cre2OptDelete:             mod.ExportedFunction("cre2_opt_delete"),
-		cre2OptSetLogErrors:       mod.ExportedFunction("cre2_opt_set_log_errors"),
-		cre2OptSetLongestMatch:    mod.ExportedFunction("cre2_opt_set_longest_match"),
-		cre2OptSetPosixSyntax:     mod.ExportedFunction("cre2_opt_set_posix_syntax"),
-		cre2OptSetCaseSensitive:   mod.ExportedFunction("cre2_opt_set_case_sensitive"),
-		cre2OptSetLatin1Encoding:  mod.ExportedFunction("cre2_opt_set_latin1_encoding"),
+		cre2Delete:                newLazyFunction(mod, "cre2_delete"),
+		cre2Match:                 newLazyFunction(mod, "cre2_match"),
+		cre2NumCapturingGroups:    newLazyFunction(mod, "cre2_num_capturing_groups"),
+		cre2ErrorCode:             newLazyFunction(mod, "cre2_error_code"),
+		cre2ErrorArg:              newLazyFunction(mod, "cre2_error_arg"),
+		cre2NamedGroupsIterNew:    newLazyFunction(mod, "cre2_named_groups_iter_new"),
+		cre2NamedGroupsIterNext:   newLazyFunction(mod, "cre2_named_groups_iter_next"),
+		cre2NamedGroupsIterDelete: newLazyFunction(mod, "cre2_named_groups_iter_delete"),
+		cre2GlobalReplace:         newLazyFunction(mod, "cre2_global_replace_re"),
+		cre2OptNew:                newLazyFunction(mod, "cre2_opt_new"),
+		cre2OptDelete:             newLazyFunction(mod, "cre2_opt_delete"),
+		cre2OptSetLongestMatch:    newLazyFunction(mod, "cre2_opt_set_longest_match"),
+		cre2OptSetPosixSyntax:     newLazyFunction(mod, "cre2_opt_set_posix_syntax"),
+		cre2OptSetCaseSensitive:   newLazyFunction(mod, "cre2_opt_set_case_sensitive"),
+		cre2OptSetLatin1Encoding:  newLazyFunction(mod, "cre2_opt_set_latin1_encoding"),
 
 		malloc: mod.ExportedFunction("malloc"),
 		free:   mod.ExportedFunction("free"),
@@ -125,44 +119,44 @@ func (abi *libre2ABI) endOperation() {
 
 func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) uintptr {
 	ctx := context.Background()
-	res, err := abi.cre2OptNew.Call(ctx)
-	if err != nil {
-		panic(err)
-	}
-	optPtr := uintptr(res[0])
-	defer func() {
-		if _, err := abi.cre2OptDelete.Call(ctx, uint64(optPtr)); err != nil {
-			panic(err)
-		}
-	}()
-	if _, err := abi.cre2OptSetLogErrors.Call(ctx, uint64(optPtr), 0); err != nil {
-		panic(err)
-	}
-	if opts.Longest {
-		_, err = abi.cre2OptSetLongestMatch.Call(ctx, uint64(optPtr), 1)
+	optPtr := uintptr(0)
+	if opts != (CompileOptions{}) {
+		res, err := abi.cre2OptNew.Call(ctx)
 		if err != nil {
 			panic(err)
 		}
-	}
-	if opts.Posix {
-		_, err = abi.cre2OptSetPosixSyntax.Call(ctx, uint64(optPtr), 1)
-		if err != nil {
-			panic(err)
+		optPtr = uintptr(res[0])
+		defer func() {
+			if _, err := abi.cre2OptDelete.Call(ctx, uint64(optPtr)); err != nil {
+				panic(err)
+			}
+		}()
+		if opts.Longest {
+			_, err = abi.cre2OptSetLongestMatch.Call(ctx, uint64(optPtr), 1)
+			if err != nil {
+				panic(err)
+			}
+		}
+		if opts.Posix {
+			_, err = abi.cre2OptSetPosixSyntax.Call(ctx, uint64(optPtr), 1)
+			if err != nil {
+				panic(err)
+			}
+		}
+		if opts.CaseInsensitive {
+			_, err = abi.cre2OptSetCaseSensitive.Call(ctx, uint64(optPtr), 0)
+			if err != nil {
+				panic(err)
+			}
+		}
+		if opts.Latin1 {
+			_, err = abi.cre2OptSetLatin1Encoding.Call(ctx, uint64(optPtr))
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
-	if opts.CaseInsensitive {
-		_, err = abi.cre2OptSetCaseSensitive.Call(ctx, uint64(optPtr), 0)
-		if err != nil {
-			panic(err)
-		}
-	}
-	if opts.Latin1 {
-		_, err = abi.cre2OptSetLatin1Encoding.Call(ctx, uint64(optPtr))
-		if err != nil {
-			panic(err)
-		}
-	}
-	res, err = abi.cre2New.Call(ctx, uint64(pattern.ptr), uint64(pattern.length), uint64(optPtr))
+	res, err := abi.cre2New.Call(ctx, uint64(pattern.ptr), uint64(pattern.length), uint64(optPtr))
 	if err != nil {
 		panic(err)
 	}
@@ -481,4 +475,24 @@ func (m *sharedMemory) writeString(abi *libre2ABI, s string) uintptr {
 	ptr := m.allocate(uint32(len(s)))
 	abi.wasmMemory.WriteString(uint32(ptr), s)
 	return ptr
+}
+
+type lazyFunction struct {
+	f    api.Function
+	ctor func() api.Function
+}
+
+func newLazyFunction(mod api.Module, name string) lazyFunction {
+	return lazyFunction{
+		ctor: func() api.Function {
+			return mod.ExportedFunction(name)
+		},
+	}
+}
+
+func (f *lazyFunction) Call(ctx context.Context, args ...uint64) ([]uint64, error) {
+	if f.f == nil {
+		f.f = f.ctor()
+	}
+	return f.f.Call(ctx, args...)
 }
