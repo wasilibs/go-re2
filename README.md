@@ -93,11 +93,11 @@ One run looks like this
 
 ```
 name \ time/op     build/wafbench_stdlib.txt  build/wafbench.txt  build/wafbench_cgo.txt
-WAF/FTW-2                         40.5s ± 1%          38.4s ± 2%              36.8s ± 1%
-WAF/POST/1-2                     4.57ms ± 7%         5.21ms ± 5%             4.78ms ± 5%
-WAF/POST/1000-2                  26.6ms ± 5%          8.1ms ± 2%              7.0ms ± 1%
-WAF/POST/10000-2                  239ms ± 2%           31ms ± 4%               23ms ± 5%
-WAF/POST/100000-2                 2.38s ± 2%          0.24s ± 4%              0.17s ± 2%
+WAF/FTW-2                         29.82 ± ∞ ¹    26.38 ± ∞ ¹  -11.55% (p=0.008 n=5)    26.95 ± ∞ ¹   -9.61% (p=0.008 n=5)
+WAF/POST/1-2                     3.359m ± ∞ ¹   3.550m ± ∞ ¹   +5.70% (p=0.008 n=5)   3.563m ± ∞ ¹   +6.09% (p=0.008 n=5)
+WAF/POST/1000-2                 20.532m ± ∞ ¹   6.194m ± ∞ ¹  -69.83% (p=0.008 n=5)   5.211m ± ∞ ¹  -74.62% (p=0.008 n=5)
+WAF/POST/10000-2                187.29m ± ∞ ¹   25.94m ± ∞ ¹  -86.15% (p=0.008 n=5)   17.69m ± ∞ ¹  -90.56% (p=0.008 n=5)
+WAF/POST/100000-2               1852.4m ± ∞ ¹   220.2m ± ∞ ¹  -88.11% (p=0.008 n=5)   143.8m ± ∞ ¹  -92.23% (p=0.008 n=5)
 ```
 
 `FTW` is the time to run the standard CoreRuleSet test framework. The performance of this
@@ -122,87 +122,87 @@ viewed in the workflow, a sample of results for one run looks like this
 ```
 name \ time/op                  build/bench_stdlib.txt  build/bench.txt   build/bench_cgo.txt
 Find-2                                      211ns ± 6%        965ns ± 4%            424ns ± 1%
-Compile/Onepass-2                          5.21µs ± 0%     445.49µs ± 2%          21.30µs ± 4%
-Compile/Medium-2                           11.6µs ± 0%      511.8µs ± 1%           33.1µs ± 3%
-Compile/Hard-2                             95.1µs ± 0%     1425.0µs ± 1%          252.4µs ± 5%
-Match/Easy0/16-2                           4.37ns ± 0%     457.30ns ± 1%         221.10ns ± 3%
-Match/Easy0/32-2                           51.8ns ± 0%      451.8ns ± 2%          219.4ns ± 0%
-Match/Easy0/1K-2                            275ns ± 0%        471ns ± 1%            218ns ± 0%
-Match/Easy0/32K-2                          4.70µs ± 1%       1.29µs ± 2%           0.22µs ± 3%
-Match/Easy0/1M-2                            270µs ± 0%        212µs ± 2%              0µs ± 3%
-Match/Easy0/32M-2                          9.10ms ± 1%      10.03ms ± 1%           0.00ms ± 2%
-Match/Easy0i/16-2                          4.37ns ± 0%     427.44ns ± 1%         226.04ns ± 5%
-Match/Easy0i/32-2                           815ns ± 0%        429ns ± 2%            226ns ± 3%
-Match/Easy0i/1K-2                          23.7µs ± 0%        0.4µs ± 1%            0.2µs ± 4%
-Match/Easy0i/32K-2                         1.08ms ± 0%       0.00ms ± 1%           0.00ms ± 1%
-Match/Easy0i/1M-2                          35.0ms ± 1%        0.2ms ± 4%            0.0ms ± 1%
-Match/Easy0i/32M-2                          1.12s ± 1%        0.01s ± 9%            0.00s ± 1%
-Match/Easy1/16-2                           4.36ns ± 0%     428.92ns ± 2%         222.84ns ± 3%
-Match/Easy1/32-2                           48.3ns ± 0%      422.7ns ± 1%          219.8ns ± 4%
-Match/Easy1/1K-2                            671ns ± 1%        438ns ± 1%            223ns ± 3%
-Match/Easy1/32K-2                          32.2µs ± 1%        1.3µs ± 1%            0.2µs ± 0%
-Match/Easy1/1M-2                           1.13ms ± 1%       0.20ms ± 1%           0.00ms ± 3%
-Match/Easy1/32M-2                          36.0ms ± 1%        9.6ms ± 1%            0.0ms ± 1%
-Match/Medium/16-2                          4.37ns ± 1%     427.46ns ± 1%         217.50ns ± 0%
-Match/Medium/32-2                           894ns ± 0%        425ns ± 2%            217ns ± 0%
-Match/Medium/1K-2                          25.4µs ± 0%        0.4µs ± 1%            0.2µs ± 3%
-Match/Medium/32K-2                         1.12ms ± 2%       0.00ms ± 1%           0.00ms ± 0%
-Match/Medium/1M-2                          35.7ms ± 1%        0.2ms ± 1%            0.0ms ± 3%
-Match/Medium/32M-2                          1.15s ± 0%        0.01s ± 4%            0.00s ± 3%
-Match/Hard/16-2                            4.37ns ± 0%     427.10ns ± 1%         224.10ns ± 3%
-Match/Hard/32-2                            1.19µs ± 0%       0.42µs ± 1%           0.22µs ± 3%
-Match/Hard/1K-2                            36.1µs ± 0%        0.4µs ± 1%            0.2µs ± 3%
-Match/Hard/32K-2                           1.71ms ± 6%       0.00ms ± 1%           0.00ms ± 3%
-Match/Hard/1M-2                            54.7ms ± 6%        0.2ms ± 3%            0.0ms ± 2%
-Match/Hard/32M-2                            1.76s ± 6%        0.01s ± 3%            0.00s ± 4%
-Match/Hard1/16-2                           3.61µs ± 2%       0.51µs ± 1%           0.24µs ± 1%
-Match/Hard1/32-2                           7.04µs ± 1%       0.61µs ± 0%           0.27µs ± 0%
-Match/Hard1/1K-2                            214µs ± 1%          7µs ± 0%              2µs ± 0%
-Match/Hard1/32K-2                          8.30ms ± 4%       0.20ms ± 0%           0.07ms ± 0%
-Match/Hard1/1M-2                            268ms ± 6%          7ms ± 1%              2ms ± 0%
-Match/Hard1/32M-2                           8.37s ± 4%        0.21s ± 1%            0.07s ± 0%
-MatchParallel/Easy0/16-2                   2.37ns ± 0%     472.38ns ± 1%         160.54ns ± 1%
-MatchParallel/Easy0/32-2                   27.3ns ± 0%      475.6ns ± 2%          161.9ns ± 2%
-MatchParallel/Easy0/1K-2                    139ns ± 1%        492ns ± 0%            162ns ± 3%
-MatchParallel/Easy0/32K-2                  2.41µs ± 1%       1.45µs ± 1%           0.16µs ± 2%
-MatchParallel/Easy0/1M-2                    139µs ± 1%        224µs ± 1%              0µs ± 4%
-MatchParallel/Easy0/32M-2                  4.67ms ± 2%      10.12ms ± 5%           0.00ms ± 3%
-MatchParallel/Easy0i/16-2                  2.37ns ± 0%     473.04ns ± 1%         183.26ns ± 2%
-MatchParallel/Easy0i/32-2                   417ns ± 1%        471ns ± 1%            185ns ± 1%
-MatchParallel/Easy0i/1K-2                  12.1µs ± 1%        0.5µs ± 2%            0.2µs ± 2%
-MatchParallel/Easy0i/32K-2                  553µs ± 1%          1µs ± 1%              0µs ± 1%
-MatchParallel/Easy0i/1M-2                  17.7ms ± 0%        0.2ms ± 3%            0.0ms ± 3%
-MatchParallel/Easy0i/32M-2                  1.12s ± 0%        0.01s ± 5%            0.00s ± 2%
-MatchParallel/Easy1/16-2                   2.37ns ± 0%     466.56ns ± 4%         150.72ns ± 4%
-MatchParallel/Easy1/32-2                   23.4ns ± 0%      468.1ns ± 1%          148.6ns ± 2%
-MatchParallel/Easy1/1K-2                    338ns ± 0%        488ns ± 1%            149ns ± 3%
-MatchParallel/Easy1/32K-2                  16.5µs ± 1%        1.4µs ± 1%            0.1µs ± 3%
-MatchParallel/Easy1/1M-2                    573µs ± 1%        226µs ± 5%              0µs ± 1%
-MatchParallel/Easy1/32M-2                  18.2ms ± 2%       10.0ms ± 3%            0.0ms ± 1%
-MatchParallel/Medium/16-2                  2.38ns ± 1%     469.96ns ± 3%         158.48ns ± 3%
-MatchParallel/Medium/32-2                   460ns ± 2%        474ns ± 2%            156ns ± 2%
-MatchParallel/Medium/1K-2                  13.0µs ± 1%        0.5µs ± 1%            0.2µs ± 3%
-MatchParallel/Medium/32K-2                  564µs ± 0%          1µs ± 2%              0µs ± 4%
-MatchParallel/Medium/1M-2                  18.5ms ± 2%        0.2ms ± 3%            0.0ms ± 4%
-MatchParallel/Medium/32M-2                  1.15s ± 1%        0.01s ± 6%            0.00s ± 4%
-MatchParallel/Hard/16-2                    2.37ns ± 0%     468.86ns ± 1%         147.88ns ± 3%
-MatchParallel/Hard/32-2                     607ns ± 1%        465ns ± 1%            149ns ± 4%
-MatchParallel/Hard/1K-2                    18.5µs ± 1%        0.5µs ± 1%            0.1µs ± 3%
-MatchParallel/Hard/32K-2                    849µs ± 5%          1µs ± 1%              0µs ± 3%
-MatchParallel/Hard/1M-2                    26.8ms ± 1%        0.2ms ± 1%            0.0ms ± 2%
-MatchParallel/Hard/32M-2                    1.68s ± 2%        0.01s ± 2%            0.00s ± 2%
-MatchParallel/Hard1/16-2                   1.83µs ± 1%       0.57µs ± 1%           0.17µs ± 3%
-MatchParallel/Hard1/32-2                   3.62µs ± 1%       0.66µs ± 2%           0.19µs ± 0%
-MatchParallel/Hard1/1K-2                    109µs ± 0%          7µs ± 0%              1µs ± 1%
-MatchParallel/Hard1/32K-2                  4.18ms ± 5%       0.21ms ± 1%           0.04ms ± 3%
-MatchParallel/Hard1/1M-2                    134ms ± 1%          7ms ± 1%              1ms ± 0%
-MatchParallel/Hard1/32M-2                   8.48s ± 0%        0.21s ± 0%            0.03s ± 1%
+Compile/Onepass-2                          4.638µ ± ∞ ¹     166.048µ ± ∞ ¹   +3480.16% (p=0.008 n=5)     9.355µ ± ∞ ¹   +101.70% (p=0.008 n=5)
+Compile/Medium-2                           10.44µ ± ∞ ¹      202.93µ ± ∞ ¹   +1843.44% (p=0.008 n=5)     15.45µ ± ∞ ¹    +47.98% (p=0.008 n=5)
+Compile/Hard-2                             86.80µ ± ∞ ¹      613.84µ ± ∞ ¹    +607.19% (p=0.008 n=5)    149.32µ ± ∞ ¹    +72.03% (p=0.008 n=5)
+Match/Easy0/16-2                           4.355n ± ∞ ¹     348.200n ± ∞ ¹   +7895.41% (p=0.008 n=5)   224.400n ± ∞ ¹  +5052.70% (p=0.008 n=5)
+Match/Easy0/32-2                           51.06n ± ∞ ¹      348.00n ± ∞ ¹    +581.55% (p=0.008 n=5)    223.20n ± ∞ ¹   +337.13% (p=0.008 n=5)
+Match/Easy0/1K-2                           269.7n ± ∞ ¹       362.9n ± ∞ ¹     +34.56% (p=0.008 n=5)     224.8n ± ∞ ¹    -16.65% (p=0.008 n=5)
+Match/Easy0/32K-2                         4629.0n ± ∞ ¹      1248.0n ± ∞ ¹     -73.04% (p=0.008 n=5)     223.9n ± ∞ ¹    -95.16% (p=0.008 n=5)
+Match/Easy0/1M-2                        265456.0n ± ∞ ¹    189369.0n ± ∞ ¹     -28.66% (p=0.008 n=5)     226.0n ± ∞ ¹    -99.91% (p=0.008 n=5)
+Match/Easy0/32M-2                      8870984.0n ± ∞ ¹   9164874.0n ± ∞ ¹      +3.31% (p=0.008 n=5)     227.3n ± ∞ ¹   -100.00% (p=0.008 n=5)
+Match/Easy0i/16-2                          4.358n ± ∞ ¹     331.800n ± ∞ ¹   +7513.58% (p=0.008 n=5)   225.300n ± ∞ ¹  +5069.80% (p=0.008 n=5)
+Match/Easy0i/32-2                          896.4n ± ∞ ¹       331.4n ± ∞ ¹     -63.03% (p=0.008 n=5)     228.2n ± ∞ ¹    -74.54% (p=0.008 n=5)
+Match/Easy0i/1K-2                        25037.0n ± ∞ ¹       345.7n ± ∞ ¹     -98.62% (p=0.008 n=5)     225.3n ± ∞ ¹    -99.10% (p=0.008 n=5)
+Match/Easy0i/32K-2                     1084458.0n ± ∞ ¹      1263.0n ± ∞ ¹     -99.88% (p=0.008 n=5)     227.0n ± ∞ ¹    -99.98% (p=0.008 n=5)
+Match/Easy0i/1M-2                     35171104.0n ± ∞ ¹    194931.0n ± ∞ ¹     -99.45% (p=0.008 n=5)     227.0n ± ∞ ¹   -100.00% (p=0.008 n=5)
+Match/Easy0i/32M-2                  1114773475.0n ± ∞ ¹   9466155.0n ± ∞ ¹     -99.15% (p=0.008 n=5)     227.0n ± ∞ ¹   -100.00% (p=0.008 n=5)
+Match/Easy1/16-2                           4.352n ± ∞ ¹     332.800n ± ∞ ¹   +7547.06% (p=0.008 n=5)   227.100n ± ∞ ¹  +5118.29% (p=0.008 n=5)
+Match/Easy1/32-2                           46.76n ± ∞ ¹      331.70n ± ∞ ¹    +609.37% (p=0.008 n=5)    227.30n ± ∞ ¹   +386.10% (p=0.008 n=5)
+Match/Easy1/1K-2                           704.4n ± ∞ ¹       347.1n ± ∞ ¹     -50.72% (p=0.008 n=5)     225.3n ± ∞ ¹    -68.02% (p=0.008 n=5)
+Match/Easy1/32K-2                        31693.0n ± ∞ ¹      1155.0n ± ∞ ¹     -96.36% (p=0.008 n=5)     225.9n ± ∞ ¹    -99.29% (p=0.008 n=5)
+Match/Easy1/1M-2                       1109254.0n ± ∞ ¹    195551.0n ± ∞ ¹     -82.37% (p=0.008 n=5)     225.7n ± ∞ ¹    -99.98% (p=0.008 n=5)
+Match/Easy1/32M-2                     35197178.0n ± ∞ ¹   9157052.0n ± ∞ ¹     -73.98% (p=0.008 n=5)     226.0n ± ∞ ¹   -100.00% (p=0.008 n=5)
+Match/Medium/16-2                          4.352n ± ∞ ¹     332.000n ± ∞ ¹   +7528.68% (p=0.008 n=5)   228.200n ± ∞ ¹  +5143.57% (p=0.008 n=5)
+Match/Medium/32-2                          953.6n ± ∞ ¹       332.7n ± ∞ ¹     -65.11% (p=0.008 n=5)     227.9n ± ∞ ¹    -76.10% (p=0.008 n=5)
+Match/Medium/1K-2                        27244.0n ± ∞ ¹       346.0n ± ∞ ¹     -98.73% (p=0.008 n=5)     227.4n ± ∞ ¹    -99.17% (p=0.008 n=5)
+Match/Medium/32K-2                     1109573.0n ± ∞ ¹      1179.0n ± ∞ ¹     -99.89% (p=0.008 n=5)     227.2n ± ∞ ¹    -99.98% (p=0.008 n=5)
+Match/Medium/1M-2                     35902029.0n ± ∞ ¹    196174.0n ± ∞ ¹     -99.45% (p=0.008 n=5)     225.7n ± ∞ ¹   -100.00% (p=0.008 n=5)
+Match/Medium/32M-2                  1144243544.0n ± ∞ ¹   9527884.0n ± ∞ ¹     -99.17% (p=0.008 n=5)     227.3n ± ∞ ¹   -100.00% (p=0.008 n=5)
+Match/Hard/16-2                            4.352n ± ∞ ¹     331.400n ± ∞ ¹   +7514.89% (p=0.008 n=5)   226.400n ± ∞ ¹  +5102.21% (p=0.008 n=5)
+Match/Hard/32-2                           1193.0n ± ∞ ¹       332.2n ± ∞ ¹     -72.15% (p=0.008 n=5)     227.8n ± ∞ ¹    -80.91% (p=0.008 n=5)
+Match/Hard/1K-2                          36430.0n ± ∞ ¹       346.1n ± ∞ ¹     -99.05% (p=0.008 n=5)     225.2n ± ∞ ¹    -99.38% (p=0.008 n=5)
+Match/Hard/32K-2                       1617883.0n ± ∞ ¹      1151.0n ± ∞ ¹     -99.93% (p=0.008 n=5)     226.4n ± ∞ ¹    -99.99% (p=0.008 n=5)
+Match/Hard/1M-2                       51948253.0n ± ∞ ¹    188705.0n ± ∞ ¹     -99.64% (p=0.008 n=5)     225.2n ± ∞ ¹   -100.00% (p=0.008 n=5)
+Match/Hard/32M-2                    1663624407.0n ± ∞ ¹   8832033.0n ± ∞ ¹     -99.47% (p=0.008 n=5)     225.1n ± ∞ ¹   -100.00% (p=0.008 n=5)
+Match/Hard1/16-2                          3664.0n ± ∞ ¹       475.6n ± ∞ ¹     -87.02% (p=0.008 n=5)     244.9n ± ∞ ¹    -93.32% (p=0.008 n=5)
+Match/Hard1/32-2                          7182.0n ± ∞ ¹       607.6n ± ∞ ¹     -91.54% (p=0.008 n=5)     283.2n ± ∞ ¹    -96.06% (p=0.008 n=5)
+Match/Hard1/1K-2                         219.455µ ± ∞ ¹       8.805µ ± ∞ ¹     -95.99% (p=0.008 n=5)     2.376µ ± ∞ ¹    -98.92% (p=0.008 n=5)
+Match/Hard1/32K-2                        8018.96µ ± ∞ ¹      259.27µ ± ∞ ¹     -96.77% (p=0.008 n=5)     69.22µ ± ∞ ¹    -99.14% (p=0.008 n=5)
+Match/Hard1/1M-2                         276.443m ± ∞ ¹       8.192m ± ∞ ¹     -97.04% (p=0.008 n=5)     2.174m ± ∞ ¹    -99.21% (p=0.008 n=5)
+Match/Hard1/32M-2                        8220.78m ± ∞ ¹      263.59m ± ∞ ¹     -96.79% (p=0.008 n=5)     68.09m ± ∞ ¹    -99.17% (p=0.008 n=5)
+MatchParallel/Easy0/16-2                   2.354n ± ∞ ¹     362.800n ± ∞ ¹  +15312.06% (p=0.008 n=5)   175.800n ± ∞ ¹  +7368.14% (p=0.008 n=5)
+MatchParallel/Easy0/32-2                   25.98n ± ∞ ¹      361.40n ± ∞ ¹   +1291.07% (p=0.008 n=5)    178.00n ± ∞ ¹   +585.14% (p=0.008 n=5)
+MatchParallel/Easy0/1K-2                   135.9n ± ∞ ¹       377.6n ± ∞ ¹    +177.85% (p=0.008 n=5)     179.3n ± ∞ ¹    +31.94% (p=0.008 n=5)
+MatchParallel/Easy0/32K-2                 2332.0n ± ∞ ¹      1365.0n ± ∞ ¹     -41.47% (p=0.008 n=5)     179.5n ± ∞ ¹    -92.30% (p=0.008 n=5)
+MatchParallel/Easy0/1M-2                134198.0n ± ∞ ¹    206358.0n ± ∞ ¹     +53.77% (p=0.008 n=5)     177.3n ± ∞ ¹    -99.87% (p=0.008 n=5)
+MatchParallel/Easy0/32M-2              4454942.0n ± ∞ ¹   9385502.0n ± ∞ ¹    +110.68% (p=0.008 n=5)     174.4n ± ∞ ¹   -100.00% (p=0.008 n=5)
+MatchParallel/Easy0i/16-2                  2.356n ± ∞ ¹     360.500n ± ∞ ¹  +15201.36% (p=0.008 n=5)   174.800n ± ∞ ¹  +7319.35% (p=0.008 n=5)
+MatchParallel/Easy0i/32-2                  475.6n ± ∞ ¹       360.5n ± ∞ ¹     -24.20% (p=0.008 n=5)     171.4n ± ∞ ¹    -63.96% (p=0.008 n=5)
+MatchParallel/Easy0i/1K-2                12785.0n ± ∞ ¹       375.8n ± ∞ ¹     -97.06% (p=0.008 n=5)     172.0n ± ∞ ¹    -98.65% (p=0.008 n=5)
+MatchParallel/Easy0i/32K-2              545032.0n ± ∞ ¹      1384.0n ± ∞ ¹     -99.75% (p=0.008 n=5)     174.2n ± ∞ ¹    -99.97% (p=0.008 n=5)
+MatchParallel/Easy0i/1M-2             17558362.0n ± ∞ ¹    205672.0n ± ∞ ¹     -98.83% (p=0.008 n=5)     175.1n ± ∞ ¹   -100.00% (p=0.008 n=5)
+MatchParallel/Easy0i/32M-2          1116543044.0n ± ∞ ¹   9440540.0n ± ∞ ¹     -99.15% (p=0.008 n=5)     178.0n ± ∞ ¹   -100.00% (p=0.008 n=5)
+MatchParallel/Easy1/16-2                   2.357n ± ∞ ¹     359.600n ± ∞ ¹  +15156.68% (p=0.008 n=5)   180.600n ± ∞ ¹  +7562.28% (p=0.008 n=5)
+MatchParallel/Easy1/32-2                   24.05n ± ∞ ¹      362.50n ± ∞ ¹   +1407.28% (p=0.008 n=5)    177.60n ± ∞ ¹   +638.46% (p=0.008 n=5)
+MatchParallel/Easy1/1K-2                   356.5n ± ∞ ¹       376.1n ± ∞ ¹      +5.50% (p=0.008 n=5)     179.1n ± ∞ ¹    -49.76% (p=0.008 n=5)
+MatchParallel/Easy1/32K-2                16163.0n ± ∞ ¹      1263.0n ± ∞ ¹     -92.19% (p=0.008 n=5)     175.3n ± ∞ ¹    -98.92% (p=0.008 n=5)
+MatchParallel/Easy1/1M-2                554252.0n ± ∞ ¹    203559.0n ± ∞ ¹     -63.27% (p=0.008 n=5)     174.3n ± ∞ ¹    -99.97% (p=0.008 n=5)
+MatchParallel/Easy1/32M-2             17759537.0n ± ∞ ¹   9107746.0n ± ∞ ¹     -48.72% (p=0.008 n=5)     171.9n ± ∞ ¹   -100.00% (p=0.008 n=5)
+MatchParallel/Medium/16-2                  2.354n ± ∞ ¹     359.900n ± ∞ ¹  +15188.87% (p=0.008 n=5)   176.000n ± ∞ ¹  +7376.64% (p=0.008 n=5)
+MatchParallel/Medium/32-2                  480.6n ± ∞ ¹       360.8n ± ∞ ¹     -24.93% (p=0.008 n=5)     174.6n ± ∞ ¹    -63.67% (p=0.008 n=5)
+MatchParallel/Medium/1K-2                13832.0n ± ∞ ¹       375.3n ± ∞ ¹     -97.29% (p=0.008 n=5)     176.7n ± ∞ ¹    -98.72% (p=0.008 n=5)
+MatchParallel/Medium/32K-2              561633.0n ± ∞ ¹      1272.0n ± ∞ ¹     -99.77% (p=0.008 n=5)     177.2n ± ∞ ¹    -99.97% (p=0.008 n=5)
+MatchParallel/Medium/1M-2             18249558.0n ± ∞ ¹    202400.0n ± ∞ ¹     -98.89% (p=0.008 n=5)     178.4n ± ∞ ¹   -100.00% (p=0.008 n=5)
+MatchParallel/Medium/32M-2          1144693635.0n ± ∞ ¹   9558875.0n ± ∞ ¹     -99.16% (p=0.008 n=5)     177.6n ± ∞ ¹   -100.00% (p=0.008 n=5)
+MatchParallel/Hard/16-2                    2.355n ± ∞ ¹     361.000n ± ∞ ¹  +15229.09% (p=0.008 n=5)   177.000n ± ∞ ¹  +7415.92% (p=0.008 n=5)
+MatchParallel/Hard/32-2                    603.3n ± ∞ ¹       361.2n ± ∞ ¹     -40.13% (p=0.008 n=5)     179.4n ± ∞ ¹    -70.26% (p=0.008 n=5)
+MatchParallel/Hard/1K-2                  18314.0n ± ∞ ¹       378.0n ± ∞ ¹     -97.94% (p=0.008 n=5)     172.0n ± ∞ ¹    -99.06% (p=0.008 n=5)
+MatchParallel/Hard/32K-2                821073.0n ± ∞ ¹      1263.0n ± ∞ ¹     -99.85% (p=0.008 n=5)     175.4n ± ∞ ¹    -99.98% (p=0.008 n=5)
+MatchParallel/Hard/1M-2               26636550.0n ± ∞ ¹    197907.0n ± ∞ ¹     -99.26% (p=0.008 n=5)     176.7n ± ∞ ¹   -100.00% (p=0.008 n=5)
+MatchParallel/Hard/32M-2            1663251850.0n ± ∞ ¹   8878713.0n ± ∞ ¹     -99.47% (p=0.008 n=5)     178.3n ± ∞ ¹   -100.00% (p=0.008 n=5)
+MatchParallel/Hard1/16-2                  1849.0n ± ∞ ¹       512.7n ± ∞ ¹     -72.27% (p=0.008 n=5)     205.6n ± ∞ ¹    -88.88% (p=0.008 n=5)
+MatchParallel/Hard1/32-2                  3721.0n ± ∞ ¹       649.6n ± ∞ ¹     -82.54% (p=0.008 n=5)     229.1n ± ∞ ¹    -93.84% (p=0.008 n=5)
+MatchParallel/Hard1/1K-2                 110.300µ ± ∞ ¹       9.190µ ± ∞ ¹     -91.67% (p=0.008 n=5)     1.408µ ± ∞ ¹    -98.72% (p=0.008 n=5)
+MatchParallel/Hard1/32K-2                4202.71µ ± ∞ ¹      252.89µ ± ∞ ¹     -93.98% (p=0.008 n=5)     39.51µ ± ∞ ¹    -99.06% (p=0.008 n=5)
+MatchParallel/Hard1/1M-2                 129.208m ± ∞ ¹       8.189m ± ∞ ¹     -93.66% (p=0.008 n=5)     1.089m ± ∞ ¹    -99.16% (p=0.008 n=5)
+MatchParallel/Hard1/32M-2                8224.11m ± ∞ ¹      263.74m ± ∞ ¹     -96.79% (p=0.008 n=5)     34.27m ± ∞ ¹    -99.58% (p=0.008 n=5)
 
 name \ alloc/op                 build/bench_stdlib.txt  build/bench.txt   build/bench_cgo.txt
-Find-2                                      0.00B            72.00B ± 0%           16.00B ± 0%
-Compile/Onepass-2                          4.06kB ± 0%     598.70kB ± 0%           0.16kB ± 0%
-Compile/Medium-2                           9.42kB ± 0%     598.77kB ± 0%           0.24kB ± 0%
-Compile/Hard-2                             84.8kB ± 0%      912.3kB ± 0%            2.4kB ± 0%
+Find-2                                  0.00 ± ∞ ¹       72.00 ± ∞ ¹          ? (p=0.008 n=5)    16.00 ± ∞ ¹         ? (p=0.008 n=5)
+Compile/Onepass-2                    4056.00 ± ∞ ¹   285361.00 ± ∞ ¹  +6935.53% (p=0.008 n=5)    80.00 ± ∞ ¹   -98.03% (p=0.008 n=5)
+Compile/Medium-2                     9424.00 ± ∞ ¹   285345.00 ± ∞ ¹  +2927.85% (p=0.008 n=5)    80.00 ± ∞ ¹   -99.15% (p=0.008 n=5)
+Compile/Hard-2                      84760.00 ± ∞ ¹   285265.00 ± ∞ ¹   +236.56% (p=0.008 n=5)    80.00 ± ∞ ¹   -99.91% (p=0.008 n=5)
 ```
 
 Most benchmarks are similar to `Find`, testing simple expressions with small input. In all of these,
@@ -211,8 +211,8 @@ you only use simple expressions with small input, you should not use this librar
 
 The compilation benchmarks show that re2 is much slower to compile expressions than the standard
 library - this is more than just the overhead of foreign function invocation. This likely results
-in the improved performance at runtime in other cases. They also show 500KB+ memory usage per
-compilation - the resting memory usage per expression seems to be around ~300KB, much higher than
+in the improved performance at runtime in other cases. They also show 280KB+ memory usage per
+compilation - the resting memory usage per expression seems to be around ~250KB, much higher than
 the standard library. There is significantly more memory usage when using WebAssembly - if this
 is not acceptable, setting up the build toolchain for cgo may be worth it. Note the allocation
 numbers for cgo are inaccurate as cgo will allocate memory outside of Go - however it should be
