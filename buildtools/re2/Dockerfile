@@ -1,7 +1,7 @@
 # Copyright 2022 The OWASP Coraza contributors
 # SPDX-License-Identifier: Apache-2.0
 
-FROM ghcr.io/webassembly/wasi-sdk:wasi-sdk-19
+FROM ghcr.io/webassembly/wasi-sdk:wasi-sdk-20
 
 RUN apt-get update && apt-get install -y binaryen curl
 
@@ -17,15 +17,15 @@ ADD internal/cre2/cre2.cpp /cre2
 ADD internal/cre2/cre2.h /cre2
 # Just one source file so not worth running make
 RUN $CXX -c cre2.cpp -o cre2.o -I. -I/re2 $CXXFLAGS && \
-    llvm-ar-15 cru libcre2.a  cre2.o && \
-    llvm-ranlib-15 libcre2.a
+    $AR cru libcre2.a  cre2.o && \
+    $RANLIB libcre2.a
 
 # Separate step so exports can be updated without recompiling.
 # Number of layers isn't really a concern for this image.
 # global-base=1024 same as emcc and allows further wasm-opt optimizations
 RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 -mexec-model=reactor --rtlib=compiler-rt --target=wasm32-wasi -shared \
     -nostdlib /wasi-sysroot/lib/wasm32-wasi/crt1-reactor.o \
-    /usr/lib/llvm-15/lib/clang/15.*/lib/wasi/libclang_rt.builtins-wasm32.a \
+    /usr/lib/llvm-$LLVM_VERSION/lib/clang/$LLVM_VERSION/lib/wasi/libclang_rt.builtins-wasm32.a \
     /re2/obj/libre2.a \
     /cre2/libcre2.a \
     -L/wasi-sysroot/lib/wasm32-wasi -lc++ -lc++abi -lc \
