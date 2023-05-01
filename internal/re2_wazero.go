@@ -439,23 +439,12 @@ func (m *sharedMemory) reserve(abi *libre2ABI, size uint32) {
 		return
 	}
 
-	ctx := context.Background()
 	if m.bufPtr != 0 {
-		callStack := abi.callStack
-		callStack[0] = uint64(m.bufPtr)
-		if err := abi.free.CallWithStack(ctx, callStack); err != nil {
-			panic(err)
-		}
+		free(abi, uintptr(m.bufPtr))
 	}
 
-	callStack := abi.callStack
-	callStack[0] = uint64(size)
-	if err := abi.malloc.CallWithStack(ctx, callStack); err != nil {
-		panic(err)
-	}
-
+	m.bufPtr = uint32(malloc(abi, size))
 	m.size = size
-	m.bufPtr = uint32(callStack[0])
 }
 
 func (m *sharedMemory) allocate(size uint32) uintptr {
