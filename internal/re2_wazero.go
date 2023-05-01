@@ -52,7 +52,8 @@ type libre2ABI struct {
 
 	wasmMemory api.Memory
 
-	mod api.Module
+	mod       api.Module
+	callStack []uint64
 
 	memory sharedMemory
 	mu     sync.Mutex
@@ -80,29 +81,32 @@ func newABI() *libre2ABI {
 		panic(err)
 	}
 
+	callStack := make([]uint64, 8) // Needs to be sized to the method with most parameters, which is cre2_match
+
 	abi := &libre2ABI{
 		cre2New:                   mod.ExportedFunction("cre2_new"),
-		cre2Delete:                newLazyFunction(mod, "cre2_delete"),
-		cre2Match:                 newLazyFunction(mod, "cre2_match"),
-		cre2NumCapturingGroups:    newLazyFunction(mod, "cre2_num_capturing_groups"),
-		cre2ErrorCode:             newLazyFunction(mod, "cre2_error_code"),
-		cre2ErrorArg:              newLazyFunction(mod, "cre2_error_arg"),
-		cre2NamedGroupsIterNew:    newLazyFunction(mod, "cre2_named_groups_iter_new"),
-		cre2NamedGroupsIterNext:   newLazyFunction(mod, "cre2_named_groups_iter_next"),
-		cre2NamedGroupsIterDelete: newLazyFunction(mod, "cre2_named_groups_iter_delete"),
-		cre2GlobalReplace:         newLazyFunction(mod, "cre2_global_replace_re"),
-		cre2OptNew:                newLazyFunction(mod, "cre2_opt_new"),
-		cre2OptDelete:             newLazyFunction(mod, "cre2_opt_delete"),
-		cre2OptSetLongestMatch:    newLazyFunction(mod, "cre2_opt_set_longest_match"),
-		cre2OptSetPosixSyntax:     newLazyFunction(mod, "cre2_opt_set_posix_syntax"),
-		cre2OptSetCaseSensitive:   newLazyFunction(mod, "cre2_opt_set_case_sensitive"),
-		cre2OptSetLatin1Encoding:  newLazyFunction(mod, "cre2_opt_set_latin1_encoding"),
+		cre2Delete:                newLazyFunction(mod, "cre2_delete", callStack),
+		cre2Match:                 newLazyFunction(mod, "cre2_match", callStack),
+		cre2NumCapturingGroups:    newLazyFunction(mod, "cre2_num_capturing_groups", callStack),
+		cre2ErrorCode:             newLazyFunction(mod, "cre2_error_code", callStack),
+		cre2ErrorArg:              newLazyFunction(mod, "cre2_error_arg", callStack),
+		cre2NamedGroupsIterNew:    newLazyFunction(mod, "cre2_named_groups_iter_new", callStack),
+		cre2NamedGroupsIterNext:   newLazyFunction(mod, "cre2_named_groups_iter_next", callStack),
+		cre2NamedGroupsIterDelete: newLazyFunction(mod, "cre2_named_groups_iter_delete", callStack),
+		cre2GlobalReplace:         newLazyFunction(mod, "cre2_global_replace_re", callStack),
+		cre2OptNew:                newLazyFunction(mod, "cre2_opt_new", callStack),
+		cre2OptDelete:             newLazyFunction(mod, "cre2_opt_delete", callStack),
+		cre2OptSetLongestMatch:    newLazyFunction(mod, "cre2_opt_set_longest_match", callStack),
+		cre2OptSetPosixSyntax:     newLazyFunction(mod, "cre2_opt_set_posix_syntax", callStack),
+		cre2OptSetCaseSensitive:   newLazyFunction(mod, "cre2_opt_set_case_sensitive", callStack),
+		cre2OptSetLatin1Encoding:  newLazyFunction(mod, "cre2_opt_set_latin1_encoding", callStack),
 
 		malloc: mod.ExportedFunction("malloc"),
 		free:   mod.ExportedFunction("free"),
 
 		wasmMemory: mod.Memory(),
 		mod:        mod,
+		callStack:  callStack,
 	}
 
 	return abi
@@ -121,61 +125,64 @@ func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) uintptr {
 	ctx := context.Background()
 	optPtr := uintptr(0)
 	if opts != (CompileOptions{}) {
-		res, err := abi.cre2OptNew.Call(ctx)
+		res, err := abi.cre2OptNew.Call0(ctx)
 		if err != nil {
 			panic(err)
 		}
-		optPtr = uintptr(res[0])
+		optPtr = uintptr(res)
 		defer func() {
-			if _, err := abi.cre2OptDelete.Call(ctx, uint64(optPtr)); err != nil {
+			if _, err := abi.cre2OptDelete.Call1(ctx, uint64(optPtr)); err != nil {
 				panic(err)
 			}
 		}()
 		if opts.Longest {
-			_, err = abi.cre2OptSetLongestMatch.Call(ctx, uint64(optPtr), 1)
+			_, err = abi.cre2OptSetLongestMatch.Call2(ctx, uint64(optPtr), 1)
 			if err != nil {
 				panic(err)
 			}
 		}
 		if opts.Posix {
-			_, err = abi.cre2OptSetPosixSyntax.Call(ctx, uint64(optPtr), 1)
+			_, err = abi.cre2OptSetPosixSyntax.Call2(ctx, uint64(optPtr), 1)
 			if err != nil {
 				panic(err)
 			}
 		}
 		if opts.CaseInsensitive {
-			_, err = abi.cre2OptSetCaseSensitive.Call(ctx, uint64(optPtr), 0)
+			_, err = abi.cre2OptSetCaseSensitive.Call2(ctx, uint64(optPtr), 0)
 			if err != nil {
 				panic(err)
 			}
 		}
 		if opts.Latin1 {
-			_, err = abi.cre2OptSetLatin1Encoding.Call(ctx, uint64(optPtr))
+			_, err = abi.cre2OptSetLatin1Encoding.Call1(ctx, uint64(optPtr))
 			if err != nil {
 				panic(err)
 			}
 		}
 	}
-	res, err := abi.cre2New.Call(ctx, uint64(pattern.ptr), uint64(pattern.length), uint64(optPtr))
-	if err != nil {
+	callStack := abi.callStack
+	callStack[0] = uint64(pattern.ptr)
+	callStack[1] = uint64(pattern.length)
+	callStack[2] = uint64(optPtr)
+	if err := abi.cre2New.CallWithStack(ctx, callStack); err != nil {
 		panic(err)
 	}
-	return uintptr(res[0])
+	return uintptr(callStack[0])
 }
 
 func reError(abi *libre2ABI, rePtr uintptr) (int, string) {
 	ctx := context.Background()
-	res, err := abi.cre2ErrorCode.Call(ctx, uint64(rePtr))
+	res, err := abi.cre2ErrorCode.Call1(ctx, uint64(rePtr))
 	if err != nil {
 		panic(err)
 	}
-	code := int(res[0])
+	code := int(res)
 	if code == 0 {
 		return 0, ""
 	}
 
 	argPtr := newCStringArray(abi, 1)
-	_, err = abi.cre2ErrorArg.Call(ctx, uint64(rePtr), uint64(argPtr.ptr))
+	_, err = abi.cre2ErrorArg.Call2(ctx, uint64(rePtr), uint64(argPtr.ptr))
 	if err != nil {
 		panic(err)
 	}
@@ -187,16 +194,16 @@ func reError(abi *libre2ABI, rePtr uintptr) (int, string) {
 
 func numCapturingGroups(abi *libre2ABI, rePtr uintptr) int {
 	ctx := context.Background()
-	res, err := abi.cre2NumCapturingGroups.Call(ctx, uint64(rePtr))
+	res, err := abi.cre2NumCapturingGroups.Call1(ctx, uint64(rePtr))
 	if err != nil {
 		panic(err)
 	}
-	return int(res[0])
+	return int(res)
 }
 
 func deleteRE(abi *libre2ABI, rePtr uintptr) {
 	ctx := context.Background()
-	if _, err := abi.cre2Delete.Call(ctx, uint64(rePtr)); err != nil {
+	if _, err := abi.cre2Delete.Call1(ctx, uint64(rePtr)); err != nil {
 		panic(err)
 	}
 }
@@ -211,22 +218,22 @@ func release(re *Regexp) {
 
 func match(re *Regexp, s cString, matchesPtr uintptr, nMatches uint32) bool {
 	ctx := context.Background()
-	res, err := re.abi.cre2Match.Call(ctx, uint64(re.ptr), uint64(s.ptr), uint64(s.length), 0, uint64(s.length), 0, uint64(matchesPtr), uint64(nMatches))
+	res, err := re.abi.cre2Match.Call8(ctx, uint64(re.ptr), uint64(s.ptr), uint64(s.length), 0, uint64(s.length), 0, uint64(matchesPtr), uint64(nMatches))
 	if err != nil {
 		panic(err)
 	}
 
-	return res[0] == 1
+	return res == 1
 }
 
 func matchFrom(re *Regexp, s cString, startPos int, matchesPtr uintptr, nMatches uint32) bool {
 	ctx := context.Background()
-	res, err := re.abi.cre2Match.Call(ctx, uint64(re.ptr), uint64(s.ptr), uint64(s.length), uint64(startPos), uint64(s.length), 0, uint64(matchesPtr), uint64(nMatches))
+	res, err := re.abi.cre2Match.Call8(ctx, uint64(re.ptr), uint64(s.ptr), uint64(s.length), uint64(startPos), uint64(s.length), 0, uint64(matchesPtr), uint64(nMatches))
 	if err != nil {
 		panic(err)
 	}
 
-	return res[0] == 1
+	return res == 1
 }
 
 func readMatch(abi *libre2ABI, cs cString, matchPtr uintptr, dstCap []int) []int {
@@ -257,12 +264,12 @@ func readMatches(abi *libre2ABI, cs cString, matchesPtr uintptr, n int, deliver 
 func namedGroupsIter(abi *libre2ABI, rePtr uintptr) uintptr {
 	ctx := context.Background()
 
-	res, err := abi.cre2NamedGroupsIterNew.Call(ctx, uint64(rePtr))
+	res, err := abi.cre2NamedGroupsIterNew.Call1(ctx, uint64(rePtr))
 	if err != nil {
 		panic(err)
 	}
 
-	return uintptr(res[0])
+	return uintptr(res)
 }
 
 func namedGroupsIterNext(abi *libre2ABI, iterPtr uintptr) (string, int, bool) {
@@ -274,12 +281,12 @@ func namedGroupsIterNext(abi *libre2ABI, iterPtr uintptr) (string, int, bool) {
 	namePtrPtr := ptrs
 	indexPtr := namePtrPtr + 4
 
-	res, err := abi.cre2NamedGroupsIterNext.Call(ctx, uint64(iterPtr), uint64(namePtrPtr), uint64(indexPtr))
+	res, err := abi.cre2NamedGroupsIterNext.Call3(ctx, uint64(iterPtr), uint64(namePtrPtr), uint64(indexPtr))
 	if err != nil {
 		panic(err)
 	}
 
-	if res[0] == 0 {
+	if res == 0 {
 		return "", 0, false
 	}
 
@@ -313,7 +320,7 @@ func namedGroupsIterNext(abi *libre2ABI, iterPtr uintptr) (string, int, bool) {
 func namedGroupsIterDelete(abi *libre2ABI, iterPtr uintptr) {
 	ctx := context.Background()
 
-	_, err := abi.cre2NamedGroupsIterDelete.Call(ctx, uint64(iterPtr))
+	_, err := abi.cre2NamedGroupsIterDelete.Call1(ctx, uint64(iterPtr))
 	if err != nil {
 		panic(err)
 	}
@@ -322,16 +329,16 @@ func namedGroupsIterDelete(abi *libre2ABI, iterPtr uintptr) {
 func globalReplace(re *Regexp, textAndTargetPtr uintptr, rewritePtr uintptr) ([]byte, bool) {
 	ctx := context.Background()
 
-	res, err := re.abi.cre2GlobalReplace.Call(ctx, uint64(re.ptr), uint64(textAndTargetPtr), uint64(rewritePtr))
+	res, err := re.abi.cre2GlobalReplace.Call3(ctx, uint64(re.ptr), uint64(textAndTargetPtr), uint64(rewritePtr))
 	if err != nil {
 		panic(err)
 	}
 
-	if int64(res[0]) == -1 {
+	if int64(res) == -1 {
 		panic("out of memory")
 	}
 
-	if res[0] == 0 {
+	if res == 0 {
 		// No replacements
 		return nil, false
 	}
@@ -404,16 +411,18 @@ type pointer struct {
 }
 
 func malloc(abi *libre2ABI, size uint32) uintptr {
-	res, err := abi.malloc.Call(context.Background(), uint64(size))
-	if err != nil {
+	callStack := abi.callStack
+	callStack[0] = uint64(size)
+	if err := abi.malloc.CallWithStack(context.Background(), callStack); err != nil {
 		panic(err)
 	}
-	return uintptr(res[0])
+	return uintptr(callStack[0])
 }
 
 func free(abi *libre2ABI, ptr uintptr) {
-	_, err := abi.free.Call(context.Background(), uint64(ptr))
-	if err != nil {
+	callStack := abi.callStack
+	callStack[0] = uint64(ptr)
+	if err := abi.free.CallWithStack(context.Background(), callStack); err != nil {
 		panic(err)
 	}
 }
@@ -432,19 +441,21 @@ func (m *sharedMemory) reserve(abi *libre2ABI, size uint32) {
 
 	ctx := context.Background()
 	if m.bufPtr != 0 {
-		_, err := abi.free.Call(ctx, uint64(m.bufPtr))
-		if err != nil {
+		callStack := abi.callStack
+		callStack[0] = uint64(m.bufPtr)
+		if err := abi.free.CallWithStack(ctx, callStack); err != nil {
 			panic(err)
 		}
 	}
 
-	res, err := abi.malloc.Call(ctx, uint64(size))
-	if err != nil {
+	callStack := abi.callStack
+	callStack[0] = uint64(size)
+	if err := abi.malloc.CallWithStack(ctx, callStack); err != nil {
 		panic(err)
 	}
 
 	m.size = size
-	m.bufPtr = uint32(res[0])
+	m.bufPtr = uint32(callStack[0])
 }
 
 func (m *sharedMemory) allocate(size uint32) uintptr {
@@ -478,18 +489,56 @@ func (m *sharedMemory) writeString(abi *libre2ABI, s string) uintptr {
 }
 
 type lazyFunction struct {
-	f    api.Function
-	mod  api.Module
-	name string
+	f         api.Function
+	mod       api.Module
+	name      string
+	callStack []uint64
 }
 
-func newLazyFunction(mod api.Module, name string) lazyFunction {
-	return lazyFunction{mod: mod, name: name}
+func newLazyFunction(mod api.Module, name string, callStack []uint64) lazyFunction {
+	return lazyFunction{mod: mod, name: name, callStack: callStack}
 }
 
-func (f *lazyFunction) Call(ctx context.Context, args ...uint64) ([]uint64, error) {
+func (f *lazyFunction) Call0(ctx context.Context) (uint64, error) {
+	return f.callWithStack(ctx)
+}
+
+func (f *lazyFunction) Call1(ctx context.Context, arg1 uint64) (uint64, error) {
+	f.callStack[0] = arg1
+	return f.callWithStack(ctx)
+}
+
+func (f *lazyFunction) Call2(ctx context.Context, arg1 uint64, arg2 uint64) (uint64, error) {
+	f.callStack[0] = arg1
+	f.callStack[1] = arg2
+	return f.callWithStack(ctx)
+}
+
+func (f *lazyFunction) Call3(ctx context.Context, arg1 uint64, arg2 uint64, arg3 uint64) (uint64, error) {
+	f.callStack[0] = arg1
+	f.callStack[1] = arg2
+	f.callStack[2] = arg3
+	return f.callWithStack(ctx)
+}
+
+func (f *lazyFunction) Call8(ctx context.Context, arg1 uint64, arg2 uint64, arg3 uint64, arg4 uint64, arg5 uint64, arg6 uint64, arg7 uint64, arg8 uint64) (uint64, error) {
+	f.callStack[0] = arg1
+	f.callStack[1] = arg2
+	f.callStack[2] = arg3
+	f.callStack[3] = arg4
+	f.callStack[4] = arg5
+	f.callStack[5] = arg6
+	f.callStack[6] = arg7
+	f.callStack[7] = arg8
+	return f.callWithStack(ctx)
+}
+
+func (f *lazyFunction) callWithStack(ctx context.Context) (uint64, error) {
 	if f.f == nil {
 		f.f = f.mod.ExportedFunction(f.name)
 	}
-	return f.f.Call(ctx, args...)
+	if err := f.f.CallWithStack(ctx, f.callStack); err != nil {
+		return 0, err
+	}
+	return f.callStack[0], nil
 }
