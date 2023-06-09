@@ -30,7 +30,7 @@ var (
 )
 
 type libre2ABI struct {
-	cre2New                   api.Function
+	cre2New                   lazyFunction
 	cre2Delete                lazyFunction
 	cre2Match                 lazyFunction
 	cre2NumCapturingGroups    lazyFunction
@@ -84,7 +84,7 @@ func newABI() *libre2ABI {
 	callStack := make([]uint64, 8) // Needs to be sized to the method with most parameters, which is cre2_match
 
 	abi := &libre2ABI{
-		cre2New:                   mod.ExportedFunction("cre2_new"),
+		cre2New:                   newLazyFunction(mod, "cre2_new", callStack),
 		cre2Delete:                newLazyFunction(mod, "cre2_delete", callStack),
 		cre2Match:                 newLazyFunction(mod, "cre2_match", callStack),
 		cre2NumCapturingGroups:    newLazyFunction(mod, "cre2_num_capturing_groups", callStack),
@@ -160,14 +160,12 @@ func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) uintptr {
 			}
 		}
 	}
-	callStack := abi.callStack
-	callStack[0] = uint64(pattern.ptr)
-	callStack[1] = uint64(pattern.length)
-	callStack[2] = uint64(optPtr)
-	if err := abi.cre2New.CallWithStack(ctx, callStack); err != nil {
+
+	res, err := abi.cre2New.Call3(ctx, uint64(pattern.ptr), uint64(pattern.length), uint64(optPtr))
+	if err != nil {
 		panic(err)
 	}
-	return uintptr(callStack[0])
+	return uintptr(res)
 }
 
 func reError(abi *libre2ABI, rePtr uintptr) (int, string) {
