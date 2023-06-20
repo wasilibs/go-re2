@@ -107,7 +107,10 @@ func Compile(expr string, opts CompileOptions) (*Regexp, error) {
 		abi:        abi,
 	}
 
-	runtime.SetFinalizer(re, (*Regexp).release)
+	// Use func(interface{}) form for nottinygc compatibility.
+	runtime.SetFinalizer(re, func(obj interface{}) {
+		obj.(*Regexp).release()
+	})
 
 	return re, nil
 }
