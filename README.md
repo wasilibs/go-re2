@@ -76,6 +76,30 @@ This library also supports opting into using cgo to wrap re2 instead of using We
 requires having re2 installed and available via `pkg-config` on the system. The build tag `re2_cgo`
 can be used to enable cgo support.
 
+#### Linux
+
+On Ubuntu install the gcc tool chain and the re2 library as follows:
+
+```bash
+sudo apt install build-essential
+sudo apt-get install -y libre2-dev
+```
+
+#### Windows
+On Windows start by installing [MSYS2][8]. Then open the MINGW64 terminal and install the gcc toolchain and re2 via pacman:
+
+```bash
+pacman -S mingw-w64-x86_64-gcc
+pacman -S mingw-w64-x86_64-re2
+```
+If you want to run the resulting exe program outside the MINGW64 terminal you need to add a path to the MinGW-w64 libraries to the PATH environmental variable (adjust as needed for your system):
+
+```cmd
+SET PATH=C:\msys64\mingw64\bin;%PATH%
+```
+
+Note, that currently windows is not verified in CI.
+
 ## Performance
 
 Benchmarks are run against every commit in the [bench][4] workflow. GitHub action runners are highly
