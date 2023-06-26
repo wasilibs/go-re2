@@ -76,6 +76,37 @@ This library also supports opting into using cgo to wrap re2 instead of using We
 requires having re2 installed and available via `pkg-config` on the system. The build tag `re2_cgo`
 can be used to enable cgo support.
 
+#### Ubuntu
+
+On Ubuntu install the gcc tool chain and the re2 library as follows:
+
+```bash
+sudo apt install build-essential
+sudo apt-get install -y libre2-dev
+```
+
+#### Windows
+
+On Windows start by installing [MSYS2][8]. Then open the MINGW64 terminal and install the gcc toolchain and re2 via pacman:
+
+```bash
+pacman -S mingw-w64-x86_64-gcc
+pacman -S mingw-w64-x86_64-re2
+```
+If you want to run the resulting exe program outside the MINGW64 terminal you need to add a path to the MinGW-w64 libraries to the PATH environmental variable (adjust as needed for your system):
+
+```cmd
+SET PATH=C:\msys64\mingw64\bin;%PATH%
+```
+
+#### MacOS
+
+On Mac start by installing [homebrew][9] including installation of the command line tools. Then install re2 via brew:
+
+```bash
+brew install re2
+````
+
 ## Performance
 
 Benchmarks are run against every commit in the [bench][4] workflow. GitHub action runners are highly
@@ -239,3 +270,5 @@ scaling with cgo - thread safety is managed by re2 itself in cgo mode which also
 [4]: https://github.com/wasilibs/go-re2/actions/workflows/bench.yaml
 [5]: https://github.com/coreruleset/coreruleset
 [6]: https://github.com/corazawaf/coraza
+[8]: https://www.msys2.org/
+[9]: https://brew.sh/
