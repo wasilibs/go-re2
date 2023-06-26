@@ -23,8 +23,6 @@ jobs:
           - ubuntu-22.04
           - windows-2022
         exclude:
-          - os: windows-2022
-            mode: cgo
           # https://github.com/tinygo-org/tinygo/issues/3594
           - os: windows-2022
             mode: tinygo
@@ -43,6 +41,13 @@ jobs:
       - name: setup re2 for cgo (mac)
         if: ${{ startsWith(matrix.os, 'macos-') && matrix.mode == 'cgo' }}
         run: brew install re2
+      - name: setup msys2 for cgo (windows)
+        if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'cgo' }}
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          # This version of go is not sync with setup-go, but this is probably the best we can do
+          pacboy: gcc:p re2:p go:p pkg-config:p diffutils:p
 
       - name: setup tinygo
         if: ${{ matrix.mode == 'tinygo' }}
@@ -53,7 +58,22 @@ jobs:
         if: ${{ matrix.mode == 'tinygo' }}
         run: go install github.com/wasilibs/tools/cmd/wasmtime@c93d2e477ab3c1eb7f5303c66a35c84a21d06dbd
 
-      - run: go run mage.go check
+      - name: run checks
+        run: go run mage.go check
+        if: ${{ !startsWith(matrix.os, 'windows-') || matrix.mode != 'cgo' }}
+        env:
+          RE2_TEST_MODE: ${{ matrix.mode }}
+          # General coverage should be good enough to not need to slow down development
+          # on these slow tests.
+          RE2_TEST_EXHAUSTIVE: ${{ github.event_name != 'pull_request' && '1' || '0'}}
+          # Windows runner seems to not have enough CPU performance to keep up without a memory limit
+          GOMEMLIMIT: ${{ github.event_name != 'pull_request' && '1GiB' || '' }}
+
+      - name: run checks (windows cgo)
+        run: go run mage.go check
+        if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'cgo' }}
+        # Shell does not support conditional expressions using matrix, so for now we duplicate the steps
+        shell: 'msys2 {0}'
         env:
           RE2_TEST_MODE: ${{ matrix.mode }}
           # General coverage should be good enough to not need to slow down development
