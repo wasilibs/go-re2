@@ -108,7 +108,7 @@ func OptSetLatin1Encoding(opt unsafe.Pointer) {
 }
 
 func Malloc(size int) unsafe.Pointer {
-	return C.malloc(C.uint64_t(size))
+	return C.malloc(C.size_t(size))
 }
 
 func Free(ptr unsafe.Pointer) {
