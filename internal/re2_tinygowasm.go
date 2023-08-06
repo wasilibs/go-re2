@@ -142,14 +142,18 @@ func namedGroupsIterDelete(_ *libre2ABI, iterPtr uintptr) {
 }
 
 func globalReplace(re *Regexp, textAndTargetPtr uintptr, rewritePtr uintptr) ([]byte, bool) {
-	if !cre2.GlobalReplace(unsafe.Pointer(re.ptr), unsafe.Pointer(textAndTargetPtr), unsafe.Pointer(rewritePtr)) {
-		// No replacements
-		return nil, false
-	}
+	// cre2 will allocate even when no matches, make sure to free before
+	// checking result.
+	res := cre2.GlobalReplace(unsafe.Pointer(re.ptr), unsafe.Pointer(textAndTargetPtr), unsafe.Pointer(rewritePtr))
 
 	textAndTarget := (*cString)(unsafe.Pointer(textAndTargetPtr))
 	// This was malloc'd by cre2, so free it
 	defer cre2.Free(unsafe.Pointer(textAndTarget.ptr))
+
+	if !res {
+		// No replacements
+		return nil, false
+	}
 
 	// content of buf will be free'd, so copy it
 	return cre2.CopyCBytes(unsafe.Pointer(textAndTarget.ptr), textAndTarget.length), true

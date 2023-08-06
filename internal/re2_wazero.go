@@ -336,17 +336,19 @@ func globalReplace(re *Regexp, textAndTargetPtr uintptr, rewritePtr uintptr) ([]
 		panic("out of memory")
 	}
 
-	if res == 0 {
-		// No replacements
-		return nil, false
-	}
-
+	// cre2 will allocate even when no matches, make sure to free before
+	// checking result.
 	strPtr, ok := re.abi.wasmMemory.ReadUint32Le(uint32(textAndTargetPtr))
 	if !ok {
 		panic(errFailedRead)
 	}
 	// This was malloc'd by cre2, so free it
 	defer free(re.abi, uintptr(strPtr))
+
+	if res == 0 {
+		// No replacements
+		return nil, false
+	}
 
 	strLen, ok := re.abi.wasmMemory.ReadUint32Le(uint32(textAndTargetPtr + 4))
 	if !ok {
