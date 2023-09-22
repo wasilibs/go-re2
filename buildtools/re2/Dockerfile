@@ -5,8 +5,7 @@ FROM ghcr.io/webassembly/wasi-sdk:wasi-sdk-20
 
 RUN apt-get update && apt-get install -y binaryen curl
 
-ENV CXXFLAGS -fno-exceptions -O3 ${CXXFLAGS}
-ENV RE2_CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -I. -DRE2_NO_THREADS
+ENV CXXFLAGS -fno-exceptions -O3 ${CXXFLAGS} -DRE2_NO_THREADS
 ENV LDFLAGS $CFLAGS -mexec-model=reactor
 
 RUN mkdir -p /re2 && curl -L https://github.com/google/re2/archive/refs/tags/2023-03-01.tar.gz | tar -xz --strip-components 1 -C /re2
