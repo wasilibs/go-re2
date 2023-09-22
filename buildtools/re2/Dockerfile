@@ -5,11 +5,12 @@ FROM ghcr.io/webassembly/wasi-sdk:wasi-sdk-20
 
 RUN apt-get update && apt-get install -y binaryen curl
 
-# Use post-release commit for now as it includes support for no-threads
-RUN mkdir -p /re2 && curl -L https://github.com/google/re2/archive/954656f47fe8fb505d4818da1e128417a79ea500.tar.gz | tar -xz --strip-components 1 -C /re2
-WORKDIR /re2
 ENV CXXFLAGS -fno-exceptions -O3 ${CXXFLAGS}
 ENV RE2_CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -I. -DRE2_NO_THREADS
+ENV LDFLAGS $CFLAGS -mexec-model=reactor
+
+RUN mkdir -p /re2 && curl -L https://github.com/google/re2/archive/refs/tags/2023-03-01.tar.gz | tar -xz --strip-components 1 -C /re2
+WORKDIR /re2
 RUN make obj/libre2.a
 
 WORKDIR /cre2
@@ -23,13 +24,9 @@ RUN $CXX -c cre2.cpp -o cre2.o -I. -I/re2 $CXXFLAGS && \
 # Separate step so exports can be updated without recompiling.
 # Number of layers isn't really a concern for this image.
 # global-base=1024 same as emcc and allows further wasm-opt optimizations
-RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 -mexec-model=reactor --rtlib=compiler-rt --target=wasm32-wasi -shared \
-    -nostdlib /wasi-sysroot/lib/wasm32-wasi/crt1-reactor.o \
-    /usr/lib/llvm-$LLVM_VERSION/lib/clang/$LLVM_VERSION/lib/wasi/libclang_rt.builtins-wasm32.a \
+RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     /re2/obj/libre2.a \
     /cre2/libcre2.a \
-    -L/wasi-sysroot/lib/wasm32-wasi -lc++ -lc++abi -lc \
-    --sysroot=/wasi-sysroot -Wl,--demangle -Wl,--allow-undefined \
     -Wl,--export=malloc \
     -Wl,--export=free \
     -Wl,--export=cre2_new \
