@@ -98,3 +98,5 @@ jobs:
       - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 321; fi
 
       - run: go run mage.go test
+        env:
+          TEST_NORACE: "true"
