@@ -11,7 +11,7 @@ import (
 )
 
 type Regexp struct {
-	ptr uintptr
+	ptr wasmPtr
 
 	opts CompileOptions
 
@@ -245,6 +245,7 @@ func (re *Regexp) FindStringIndex(s string) (loc []int) {
 
 func (re *Regexp) find(cs cString, dstCap []int) []int {
 	matchArr := newCStringArray(re.abi, 1)
+	defer matchArr.free()
 
 	res := match(re, cs, matchArr.ptr, 1)
 	if !res {
@@ -341,6 +342,7 @@ func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 	}
 
 	matchArr := newCStringArray(re.abi, 1)
+	defer matchArr.free()
 
 	count := 0
 	prevMatchEnd := -1
@@ -477,6 +479,7 @@ func (re *Regexp) findAllSubmatch(cs cString, n int, deliver func(match [][]int)
 
 	numGroups := re.numMatches
 	matchArr := newCStringArray(re.abi, numGroups)
+	defer matchArr.free()
 
 	count := 0
 	prevMatchEnd := -1
@@ -595,6 +598,7 @@ func (re *Regexp) FindStringSubmatchIndex(s string) []int {
 func (re *Regexp) findSubmatch(cs cString, deliver func(match []int)) {
 	numGroups := re.numMatches
 	matchArr := newCStringArray(re.abi, numGroups)
+	defer matchArr.free()
 
 	if !match(re, cs, matchArr.ptr, uint32(numGroups)) {
 		return
@@ -725,7 +729,7 @@ func (re *Regexp) Match(b []byte) bool {
 	defer re.abi.endOperation()
 
 	cs := newCStringFromBytes(re.abi, b)
-	res := match(re, cs, 0, 0)
+	res := match(re, cs, nilWasmPtr, 0)
 	runtime.KeepAlive(b)
 	return res
 }
@@ -737,7 +741,7 @@ func (re *Regexp) MatchString(s string) bool {
 	defer re.abi.endOperation()
 
 	cs := newCString(re.abi, s)
-	res := match(re, cs, 0, 0)
+	res := match(re, cs, nilWasmPtr, 0)
 	runtime.KeepAlive(s)
 	return res
 }
@@ -764,9 +768,10 @@ func (re *Regexp) ReplaceAll(src, repl []byte) []byte {
 	re.abi.startOperation(len(src) + len(replRE2) + 16)
 	defer re.abi.endOperation()
 
-	srcCS := newCStringFromBytes(re.abi, src)
+	srcCSPtr := newCStringPtrFromBytes(re.abi, src)
+	defer srcCSPtr.free()
 
-	res, matched := re.replaceAll(srcCS, replRE2)
+	res, matched := re.replaceAll(srcCSPtr, replRE2)
 	if !matched {
 		return src
 	}
@@ -782,9 +787,10 @@ func (re *Regexp) ReplaceAllLiteral(src, repl []byte) []byte {
 	re.abi.startOperation(len(src) + len(replRE2) + 16)
 	defer re.abi.endOperation()
 
-	srcCS := newCStringFromBytes(re.abi, src)
+	srcCSPtr := newCStringPtrFromBytes(re.abi, src)
+	defer srcCSPtr.free()
 
-	res, matched := re.replaceAll(srcCS, replRE2)
+	res, matched := re.replaceAll(srcCSPtr, replRE2)
 	if !matched {
 		return src
 	}
@@ -801,9 +807,10 @@ func (re *Regexp) ReplaceAllLiteralString(src, repl string) string {
 	re.abi.startOperation(len(src) + len(replRE2) + 16)
 	defer re.abi.endOperation()
 
-	srcCS := newCString(re.abi, src)
+	srcCSPtr := newCStringPtr(re.abi, src)
+	defer srcCSPtr.free()
 
-	res, matched := re.replaceAll(srcCS, replRE2)
+	res, matched := re.replaceAll(srcCSPtr, replRE2)
 	if !matched {
 		return src
 	}
@@ -820,9 +827,10 @@ func (re *Regexp) ReplaceAllString(src, repl string) string {
 	re.abi.startOperation(len(src) + len(replRE2) + 16)
 	defer re.abi.endOperation()
 
-	srcCS := newCString(re.abi, src)
+	srcCSPtr := newCStringPtr(re.abi, src)
+	defer srcCSPtr.free()
 
-	res, matched := re.replaceAll(srcCS, replRE2)
+	res, matched := re.replaceAll(srcCSPtr, replRE2)
 	if !matched {
 		return src
 	}
@@ -830,11 +838,9 @@ func (re *Regexp) ReplaceAllString(src, repl string) string {
 	return string(res)
 }
 
-func (re *Regexp) replaceAll(srcCS cString, repl []byte) ([]byte, bool) {
-	replCS := newCStringFromBytes(re.abi, repl)
-
-	replCSPtr := newCStringPtr(re.abi, replCS)
-	srcCSPtr := newCStringPtr(re.abi, srcCS)
+func (re *Regexp) replaceAll(srcCSPtr pointer, repl []byte) ([]byte, bool) {
+	replCSPtr := newCStringPtrFromBytes(re.abi, repl)
+	defer replCSPtr.free()
 
 	res, matched := globalReplace(re, srcCSPtr.ptr, replCSPtr.ptr)
 	if !matched {
@@ -848,7 +854,7 @@ func (re *Regexp) String() string {
 	return re.expr
 }
 
-func subexpNames(abi *libre2ABI, rePtr uintptr, numMatches int) []string {
+func subexpNames(abi *libre2ABI, rePtr wasmPtr, numMatches int) []string {
 	res := make([]string, numMatches)
 
 	iter := namedGroupsIter(abi, rePtr)

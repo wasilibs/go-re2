@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v3
         with:
-          go-version: '^1.18.8'
+          go-version-file: go.work
           cache: true
 
       - name: setup re2 for cgo (linux)
@@ -68,6 +68,8 @@ jobs:
           RE2_TEST_EXHAUSTIVE: ${{ github.event_name != 'pull_request' && '1' || '0'}}
           # Windows runner seems to not have enough CPU performance to keep up without a memory limit
           GOMEMLIMIT: ${{ github.event_name != 'pull_request' && '1GiB' || '' }}
+          # Race detector currently fails with Windows
+          TEST_NORACE: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'wazero' && 'true' || '' }}
 
       - name: run checks (windows cgo)
         run: go run mage.go check
@@ -98,3 +100,5 @@ jobs:
       - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 321; fi
 
       - run: go run mage.go test
+        env:
+          TEST_NORACE: "true"
