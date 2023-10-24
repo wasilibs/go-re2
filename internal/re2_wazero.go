@@ -59,7 +59,7 @@ type libre2ABI struct {
 	mu     sync.Mutex
 }
 
-type wasmPtr uintptr
+type wasmPtr uint32
 
 var nilWasmPtr = wasmPtr(0)
 
@@ -127,13 +127,13 @@ func (abi *libre2ABI) endOperation() {
 
 func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) wasmPtr {
 	ctx := context.Background()
-	optPtr := uintptr(0)
+	optPtr := uint32(0)
 	if opts != (CompileOptions{}) {
 		res, err := abi.cre2OptNew.Call0(ctx)
 		if err != nil {
 			panic(err)
 		}
-		optPtr = uintptr(res)
+		optPtr = uint32(res)
 		defer func() {
 			if _, err := abi.cre2OptDelete.Call1(ctx, uint64(optPtr)); err != nil {
 				panic(err)
@@ -240,9 +240,9 @@ func matchFrom(re *Regexp, s cString, startPos int, matchesPtr wasmPtr, nMatches
 
 func readMatch(abi *libre2ABI, cs cString, matchPtr wasmPtr, dstCap []int) []int {
 	matchBuf := abi.memory.read(abi, matchPtr, 8)
-	subStrPtr := uintptr(binary.LittleEndian.Uint32(matchBuf))
-	sLen := uintptr(binary.LittleEndian.Uint32(matchBuf[4:]))
-	sIdx := subStrPtr - uintptr(cs.ptr)
+	subStrPtr := uint32(binary.LittleEndian.Uint32(matchBuf))
+	sLen := uint32(binary.LittleEndian.Uint32(matchBuf[4:]))
+	sIdx := subStrPtr - uint32(cs.ptr)
 
 	return append(dstCap, int(sIdx), int(sIdx+sLen))
 }
@@ -252,13 +252,13 @@ func readMatches(abi *libre2ABI, cs cString, matchesPtr wasmPtr, n int, deliver 
 
 	matchesBuf := abi.memory.read(abi, matchesPtr, 8*n)
 	for i := 0; i < n; i++ {
-		subStrPtr := uintptr(binary.LittleEndian.Uint32(matchesBuf[8*i:]))
+		subStrPtr := uint32(binary.LittleEndian.Uint32(matchesBuf[8*i:]))
 		if subStrPtr == 0 {
 			deliver(append(dstCap[:0], -1, -1))
 			continue
 		}
-		sLen := uintptr(binary.LittleEndian.Uint32(matchesBuf[8*i+4:]))
-		sIdx := subStrPtr - uintptr(cs.ptr)
+		sLen := uint32(binary.LittleEndian.Uint32(matchesBuf[8*i+4:]))
+		sIdx := subStrPtr - uint32(cs.ptr)
 		deliver(append(dstCap[:0], int(sIdx), int(sIdx+sLen)))
 	}
 }
@@ -347,7 +347,7 @@ func globalReplace(re *Regexp, textAndTargetPtr wasmPtr, rewritePtr wasmPtr) ([]
 		panic(errFailedRead)
 	}
 	// This was malloc'd by cre2, so free it
-	defer free(re.abi, uintptr(strPtr))
+	defer free(re.abi, uint32(strPtr))
 
 	if res == 0 {
 		// No replacements
@@ -443,16 +443,16 @@ func (a cStringArray) free() {
 	// We pool allocation and don't need to explicitly free.
 }
 
-func malloc(abi *libre2ABI, size uint32) uintptr {
+func malloc(abi *libre2ABI, size uint32) uint32 {
 	callStack := abi.callStack
 	callStack[0] = uint64(size)
 	if err := abi.malloc.CallWithStack(context.Background(), callStack); err != nil {
 		panic(err)
 	}
-	return uintptr(callStack[0])
+	return uint32(callStack[0])
 }
 
-func free(abi *libre2ABI, ptr uintptr) {
+func free(abi *libre2ABI, ptr uint32) {
 	callStack := abi.callStack
 	callStack[0] = uint64(ptr)
 	if err := abi.free.CallWithStack(context.Background(), callStack); err != nil {
@@ -473,7 +473,7 @@ func (m *sharedMemory) reserve(abi *libre2ABI, size uint32) {
 	}
 
 	if m.bufPtr != 0 {
-		free(abi, uintptr(m.bufPtr))
+		free(abi, uint32(m.bufPtr))
 	}
 
 	m.bufPtr = uint32(malloc(abi, size))
