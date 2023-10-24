@@ -42,7 +42,7 @@ jobs:
         if: ${{ startsWith(matrix.os, 'macos-') && matrix.mode == 'cgo' }}
         run: brew install re2
       - name: setup msys2 for cgo (windows)
-        if: ${{ startsWith(matrix.os, 'windows-') && (matrix.mode == 'cgo' || matrix.mode == 'wazero) }}
+        if: ${{ startsWith(matrix.os, 'windows-') && (matrix.mode == 'cgo' || matrix.mode == 'wazero') }}
         uses: msys2/setup-msys2@v2
         with:
           update: true
