@@ -37,7 +37,7 @@ func Test() error {
 	mode := strings.ToLower(os.Getenv("RE2_TEST_MODE"))
 
 	if mode != "tinygo" {
-		return sh.RunV("go", "test", "-v", "-timeout=20m", "-tags", buildTags(), "./...")
+		return sh.RunV("go", "test", "-v", "-timeout=20m", "-race", "-tags", buildTags(), "./...")
 	}
 
 	return sh.RunV("tinygo", "test", "-scheduler=none", "-gc=custom", "-target=wasi", "-v", "-tags", buildTags(), "./...")

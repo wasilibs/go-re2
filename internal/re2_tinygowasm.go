@@ -37,7 +37,7 @@ func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) uintptr {
 	if opts.Latin1 {
 		cre2.OptSetLatin1Encoding(opt)
 	}
-	return uintptr(cre2.New(unsafe.Pointer(uintptr(pattern.ptr)), int(pattern.length), opt))
+	return uintptr(cre2.New(pattern.ptr, pattern.length, opt))
 }
 
 func reError(abi *libre2ABI, rePtr uintptr) (int, string) {
@@ -49,7 +49,7 @@ func reError(abi *libre2ABI, rePtr uintptr) (int, string) {
 	arg := cString{}
 	cre2.ErrorArg(unsafe.Pointer(rePtr), unsafe.Pointer(&arg))
 
-	return int(code), cre2.CopyCStringN(unsafe.Pointer(arg.ptr), arg.length)
+	return code, cre2.CopyCStringN(arg.ptr, arg.length)
 }
 
 func numCapturingGroups(abi *libre2ABI, rePtr uintptr) int {
@@ -65,17 +65,17 @@ func release(re *Regexp) {
 }
 
 func match(re *Regexp, s cString, matchesPtr uintptr, nMatches uint32) bool {
-	return cre2.Match(unsafe.Pointer(re.ptr), unsafe.Pointer(s.ptr),
-		int(s.length), 0, int(s.length), 0, unsafe.Pointer(matchesPtr), int(nMatches))
+	return cre2.Match(unsafe.Pointer(re.ptr), s.ptr,
+		s.length, 0, s.length, 0, unsafe.Pointer(matchesPtr), int(nMatches))
 }
 
 func matchFrom(re *Regexp, s cString, startPos int, matchesPtr uintptr, nMatches uint32) bool {
-	return cre2.Match(unsafe.Pointer(re.ptr), unsafe.Pointer(s.ptr),
-		int(s.length), startPos, int(s.length), 0, unsafe.Pointer(matchesPtr), int(nMatches))
+	return cre2.Match(unsafe.Pointer(re.ptr), s.ptr,
+		s.length, startPos, s.length, 0, unsafe.Pointer(matchesPtr), int(nMatches))
 }
 
 type cString struct {
-	ptr    uintptr
+	ptr    unsafe.Pointer
 	length int
 }
 
@@ -89,16 +89,16 @@ func newCString(_ *libre2ABI, s string) cString {
 	}
 	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
 	return cString{
-		ptr:    sh.Data,
-		length: int(sh.Len),
+		ptr:    unsafe.Pointer(sh.Data),
+		length: sh.Len,
 	}
 }
 
 func newCStringFromBytes(_ *libre2ABI, s []byte) cString {
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&s))
 	return cString{
-		ptr:    sh.Data,
-		length: int(sh.Len),
+		ptr:    unsafe.Pointer(sh.Data),
+		length: sh.Len,
 	}
 }
 
@@ -138,7 +138,7 @@ func namedGroupsIterNext(_ *libre2ABI, iterPtr uintptr) (string, int, bool) {
 }
 
 func namedGroupsIterDelete(_ *libre2ABI, iterPtr uintptr) {
-	cre2.NamedGroupsIterDelete(unsafe.Pointer(uintptr(iterPtr)))
+	cre2.NamedGroupsIterDelete(unsafe.Pointer(iterPtr))
 }
 
 func globalReplace(re *Regexp, textAndTargetPtr uintptr, rewritePtr uintptr) ([]byte, bool) {
@@ -148,7 +148,7 @@ func globalReplace(re *Regexp, textAndTargetPtr uintptr, rewritePtr uintptr) ([]
 
 	textAndTarget := (*cString)(unsafe.Pointer(textAndTargetPtr))
 	// This was malloc'd by cre2, so free it
-	defer cre2.Free(unsafe.Pointer(textAndTarget.ptr))
+	defer cre2.Free(textAndTarget.ptr)
 
 	if !res {
 		// No replacements
@@ -156,16 +156,16 @@ func globalReplace(re *Regexp, textAndTargetPtr uintptr, rewritePtr uintptr) ([]
 	}
 
 	// content of buf will be free'd, so copy it
-	return cre2.CopyCBytes(unsafe.Pointer(textAndTarget.ptr), textAndTarget.length), true
+	return cre2.CopyCBytes(textAndTarget.ptr, textAndTarget.length), true
 }
 
 func readMatch(abi *libre2ABI, cs cString, matchPtr uintptr, dstCap []int) []int {
 	match := (*cString)(unsafe.Pointer(matchPtr))
 	subStrPtr := match.ptr
-	if subStrPtr == 0 {
+	if subStrPtr == nil {
 		return append(dstCap, -1, -1)
 	}
-	sIdx := subStrPtr - cs.ptr
+	sIdx := uintptr(subStrPtr) - uintptr(cs.ptr)
 	return append(dstCap, int(sIdx), int(sIdx+uintptr(match.length)))
 }
 
