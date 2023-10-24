@@ -35,7 +35,7 @@ type stringError struct {
 var badRe = []stringError{
 	{`*`, "missing argument to repetition operator: `*`"},
 	{`+`, "missing argument to repetition operator: `+`"},
-	{`?`, " missing argument to repetition operator: `?`"},
+	{`?`, "missing argument to repetition operator: `?`"},
 	{`(abc`, "missing closing ): `(abc`"},
 	{`abc)`, "unexpected ): `abc)`"},
 	{`x[a-z`, "missing closing ]: `[a-z`"},
