@@ -427,7 +427,15 @@ type cStringArray struct {
 }
 
 func newCStringArray(abi *libre2ABI, n int) cStringArray {
-	ptr := abi.memory.allocate(uint32(n * 8))
+	sz := n * 8
+	ptr := abi.memory.allocate(uint32(sz))
+	buf, ok := abi.wasmMemory.Read(uint32(ptr), uint32(sz))
+	if !ok {
+		panic(errFailedRead)
+	}
+	for i := range buf {
+		buf[i] = 0
+	}
 	return cStringArray{ptr: ptr}
 }
 
