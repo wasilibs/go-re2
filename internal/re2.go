@@ -11,7 +11,7 @@ import (
 )
 
 type Regexp struct {
-	ptr uintptr
+	ptr wasmPtr
 
 	opts CompileOptions
 
@@ -725,7 +725,7 @@ func (re *Regexp) Match(b []byte) bool {
 	defer re.abi.endOperation()
 
 	cs := newCStringFromBytes(re.abi, b)
-	res := match(re, cs, 0, 0)
+	res := match(re, cs, nilWasmPtr, 0)
 	runtime.KeepAlive(b)
 	return res
 }
@@ -737,7 +737,7 @@ func (re *Regexp) MatchString(s string) bool {
 	defer re.abi.endOperation()
 
 	cs := newCString(re.abi, s)
-	res := match(re, cs, 0, 0)
+	res := match(re, cs, nilWasmPtr, 0)
 	runtime.KeepAlive(s)
 	return res
 }
@@ -764,9 +764,9 @@ func (re *Regexp) ReplaceAll(src, repl []byte) []byte {
 	re.abi.startOperation(len(src) + len(replRE2) + 16)
 	defer re.abi.endOperation()
 
-	srcCS := newCStringFromBytes(re.abi, src)
+	srcCSPtr := newCStringPtrFromBytes(re.abi, src)
 
-	res, matched := re.replaceAll(srcCS, replRE2)
+	res, matched := re.replaceAll(srcCSPtr, replRE2)
 	if !matched {
 		return src
 	}
@@ -782,9 +782,9 @@ func (re *Regexp) ReplaceAllLiteral(src, repl []byte) []byte {
 	re.abi.startOperation(len(src) + len(replRE2) + 16)
 	defer re.abi.endOperation()
 
-	srcCS := newCStringFromBytes(re.abi, src)
+	srcCSPtr := newCStringPtrFromBytes(re.abi, src)
 
-	res, matched := re.replaceAll(srcCS, replRE2)
+	res, matched := re.replaceAll(srcCSPtr, replRE2)
 	if !matched {
 		return src
 	}
@@ -801,9 +801,9 @@ func (re *Regexp) ReplaceAllLiteralString(src, repl string) string {
 	re.abi.startOperation(len(src) + len(replRE2) + 16)
 	defer re.abi.endOperation()
 
-	srcCS := newCString(re.abi, src)
+	srcCSPtr := newCStringPtr(re.abi, src)
 
-	res, matched := re.replaceAll(srcCS, replRE2)
+	res, matched := re.replaceAll(srcCSPtr, replRE2)
 	if !matched {
 		return src
 	}
@@ -820,9 +820,9 @@ func (re *Regexp) ReplaceAllString(src, repl string) string {
 	re.abi.startOperation(len(src) + len(replRE2) + 16)
 	defer re.abi.endOperation()
 
-	srcCS := newCString(re.abi, src)
+	srcCSPtr := newCStringPtr(re.abi, src)
 
-	res, matched := re.replaceAll(srcCS, replRE2)
+	res, matched := re.replaceAll(srcCSPtr, replRE2)
 	if !matched {
 		return src
 	}
@@ -830,11 +830,8 @@ func (re *Regexp) ReplaceAllString(src, repl string) string {
 	return string(res)
 }
 
-func (re *Regexp) replaceAll(srcCS cString, repl []byte) ([]byte, bool) {
-	replCS := newCStringFromBytes(re.abi, repl)
-
-	replCSPtr := newCStringPtr(re.abi, replCS)
-	srcCSPtr := newCStringPtr(re.abi, srcCS)
+func (re *Regexp) replaceAll(srcCSPtr pointer, repl []byte) ([]byte, bool) {
+	replCSPtr := newCStringPtrFromBytes(re.abi, repl)
 
 	res, matched := globalReplace(re, srcCSPtr.ptr, replCSPtr.ptr)
 	if !matched {
@@ -848,7 +845,7 @@ func (re *Regexp) String() string {
 	return re.expr
 }
 
-func subexpNames(abi *libre2ABI, rePtr uintptr, numMatches int) []string {
+func subexpNames(abi *libre2ABI, rePtr wasmPtr, numMatches int) []string {
 	res := make([]string, numMatches)
 
 	iter := namedGroupsIter(abi, rePtr)
