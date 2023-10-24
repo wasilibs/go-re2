@@ -42,7 +42,7 @@ jobs:
         if: ${{ startsWith(matrix.os, 'macos-') && matrix.mode == 'cgo' }}
         run: brew install re2
       - name: setup msys2 for cgo (windows)
-        if: ${{ startsWith(matrix.os, 'windows-') && (matrix.mode == 'cgo' || matrix.mode == 'wazero') }}
+        if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'cgo' }}
         uses: msys2/setup-msys2@v2
         with:
           update: true
@@ -60,7 +60,7 @@ jobs:
 
       - name: run checks
         run: go run mage.go check
-        if: ${{ !startsWith(matrix.os, 'windows-') || matrix.mode == 'tinygo' }}
+        if: ${{ !startsWith(matrix.os, 'windows-') || matrix.mode != 'cgo' }}
         env:
           RE2_TEST_MODE: ${{ matrix.mode }}
           # General coverage should be good enough to not need to slow down development
@@ -68,10 +68,12 @@ jobs:
           RE2_TEST_EXHAUSTIVE: ${{ github.event_name != 'pull_request' && '1' || '0'}}
           # Windows runner seems to not have enough CPU performance to keep up without a memory limit
           GOMEMLIMIT: ${{ github.event_name != 'pull_request' && '1GiB' || '' }}
+          # Race detector currently fails with Windows
+          TEST_NORACE: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'wazero' && 'true' || '' }}
 
-      - name: run checks (windows wazero/cgo)
+      - name: run checks (windows cgo)
         run: go run mage.go check
-        if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode != 'tinygo' }}
+        if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'cgo' }}
         # Shell does not support conditional expressions using matrix, so for now we duplicate the steps
         shell: 'msys2 {0}'
         env:
