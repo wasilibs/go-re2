@@ -67,7 +67,9 @@ jobs:
           # on these slow tests.
           RE2_TEST_EXHAUSTIVE: ${{ github.event_name != 'pull_request' && '1' || '0'}}
           # Windows runner seems to not have enough CPU performance to keep up without a memory limit
-          GOMEMLIMIT: ${{ startsWith(matrix.os, 'windows-') && '1GiB' || '' }}
+          GOMEMLIMIT: ${{ github.event_name != 'pull_request' && '1GiB' || '' }}
+          # Race detector currently fails with Windows
+          TEST_NORACE: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'wazero' && 'true' || '' }}
 
       - name: run checks (windows cgo)
         run: go run mage.go check
