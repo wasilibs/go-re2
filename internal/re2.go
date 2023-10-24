@@ -245,6 +245,7 @@ func (re *Regexp) FindStringIndex(s string) (loc []int) {
 
 func (re *Regexp) find(cs cString, dstCap []int) []int {
 	matchArr := newCStringArray(re.abi, 1)
+	defer matchArr.free()
 
 	res := match(re, cs, matchArr.ptr, 1)
 	if !res {
@@ -341,6 +342,7 @@ func (re *Regexp) findAll(cs cString, n int, deliver func(match []int)) {
 	}
 
 	matchArr := newCStringArray(re.abi, 1)
+	defer matchArr.free()
 
 	count := 0
 	prevMatchEnd := -1
@@ -477,6 +479,7 @@ func (re *Regexp) findAllSubmatch(cs cString, n int, deliver func(match [][]int)
 
 	numGroups := re.numMatches
 	matchArr := newCStringArray(re.abi, numGroups)
+	defer matchArr.free()
 
 	count := 0
 	prevMatchEnd := -1
@@ -595,6 +598,7 @@ func (re *Regexp) FindStringSubmatchIndex(s string) []int {
 func (re *Regexp) findSubmatch(cs cString, deliver func(match []int)) {
 	numGroups := re.numMatches
 	matchArr := newCStringArray(re.abi, numGroups)
+	defer matchArr.free()
 
 	if !match(re, cs, matchArr.ptr, uint32(numGroups)) {
 		return
@@ -765,6 +769,7 @@ func (re *Regexp) ReplaceAll(src, repl []byte) []byte {
 	defer re.abi.endOperation()
 
 	srcCSPtr := newCStringPtrFromBytes(re.abi, src)
+	defer srcCSPtr.free()
 
 	res, matched := re.replaceAll(srcCSPtr, replRE2)
 	if !matched {
@@ -783,6 +788,7 @@ func (re *Regexp) ReplaceAllLiteral(src, repl []byte) []byte {
 	defer re.abi.endOperation()
 
 	srcCSPtr := newCStringPtrFromBytes(re.abi, src)
+	defer srcCSPtr.free()
 
 	res, matched := re.replaceAll(srcCSPtr, replRE2)
 	if !matched {
@@ -802,6 +808,7 @@ func (re *Regexp) ReplaceAllLiteralString(src, repl string) string {
 	defer re.abi.endOperation()
 
 	srcCSPtr := newCStringPtr(re.abi, src)
+	defer srcCSPtr.free()
 
 	res, matched := re.replaceAll(srcCSPtr, replRE2)
 	if !matched {
@@ -821,6 +828,7 @@ func (re *Regexp) ReplaceAllString(src, repl string) string {
 	defer re.abi.endOperation()
 
 	srcCSPtr := newCStringPtr(re.abi, src)
+	defer srcCSPtr.free()
 
 	res, matched := re.replaceAll(srcCSPtr, replRE2)
 	if !matched {
@@ -832,6 +840,7 @@ func (re *Regexp) ReplaceAllString(src, repl string) string {
 
 func (re *Regexp) replaceAll(srcCSPtr pointer, repl []byte) ([]byte, bool) {
 	replCSPtr := newCStringPtrFromBytes(re.abi, repl)
+	defer replCSPtr.free()
 
 	res, matched := globalReplace(re, srcCSPtr.ptr, replCSPtr.ptr)
 	if !matched {

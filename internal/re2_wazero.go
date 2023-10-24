@@ -389,6 +389,11 @@ func newCStringFromBytes(abi *libre2ABI, s []byte) cString {
 	}
 }
 
+type pointer struct {
+	ptr wasmPtr
+	abi *libre2ABI
+}
+
 func newCStringPtr(abi *libre2ABI, s string) pointer {
 	cs := newCString(abi, s)
 	ptr := abi.memory.allocate(8)
@@ -413,6 +418,10 @@ func newCStringPtrFromBytes(abi *libre2ABI, s []byte) pointer {
 	return pointer{ptr: ptr, abi: abi}
 }
 
+func (p pointer) free() {
+	// We pool allocation and don't need to explicitly free.
+}
+
 type cStringArray struct {
 	ptr wasmPtr
 }
@@ -422,9 +431,8 @@ func newCStringArray(abi *libre2ABI, n int) cStringArray {
 	return cStringArray{ptr: ptr}
 }
 
-type pointer struct {
-	ptr wasmPtr
-	abi *libre2ABI
+func (a cStringArray) free() {
+	// We pool allocation and don't need to explicitly free.
 }
 
 func malloc(abi *libre2ABI, size uint32) uintptr {
