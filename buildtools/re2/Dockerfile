@@ -17,16 +17,14 @@ WORKDIR /cre2
 ADD internal/cre2/cre2.cpp /cre2
 ADD internal/cre2/cre2.h /cre2
 # Just one source file so not worth running make
-RUN $CXX -c cre2.cpp -o cre2.o -I. -I/re2 $CXXFLAGS && \
-    $AR cru libcre2.a  cre2.o && \
-    $RANLIB libcre2.a
+RUN $CXX -c cre2.cpp -o cre2.o -I. -I/re2 $CXXFLAGS
 
 # Separate step so exports can be updated without recompiling.
 # Number of layers isn't really a concern for this image.
 # global-base=1024 same as emcc and allows further wasm-opt optimizations
 RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     /re2/obj/libre2.a \
-    /cre2/libcre2.a \
+    /cre2/cre2.o \
     -Wl,--export=malloc \
     -Wl,--export=free \
     -Wl,--export=cre2_new \
