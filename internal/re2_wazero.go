@@ -59,7 +59,7 @@ type libre2ABI struct {
 	mu     sync.Mutex
 }
 
-type wasmPtr uint32
+type wasmPtr uintptr
 
 var nilWasmPtr = wasmPtr(0)
 
