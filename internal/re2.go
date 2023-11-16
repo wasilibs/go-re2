@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"unicode"
 	"unicode/utf8"
@@ -17,8 +18,9 @@ type Regexp struct {
 
 	expr string
 
-	numMatches int
-	groupNames []string
+	numMatches     int
+	groupNames     []string
+	groupNamesOnce sync.Once
 
 	abi *libre2ABI
 
@@ -698,9 +700,9 @@ func (re *Regexp) Split(s string, n int) []string {
 // Since the Regexp as a whole cannot be named, names[0] is always
 // the empty string. The slice should not be modified.
 func (re *Regexp) SubexpNames() []string {
-	if re.groupNames == nil {
+	re.groupNamesOnce.Do(func() {
 		re.groupNames = subexpNames(re.abi, re.ptr, re.numMatches)
-	}
+	})
 	return re.groupNames
 }
 
