@@ -31,3 +31,20 @@ func TestConcurrency(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestConcurrenctSubgroupNames(t *testing.T) {
+	r := MustCompile("(?P<foo>foo)(?P<bar>bar)(?P<baz>baz)")
+
+	wg := &sync.WaitGroup{}
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if len(r.SubexpNames()) != 4 {
+				t.Error("wrong number of subgroup names")
+			}
+		}()
+	}
+
+	wg.Wait()
+}
