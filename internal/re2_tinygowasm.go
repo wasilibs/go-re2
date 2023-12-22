@@ -4,6 +4,7 @@ package internal
 
 import (
 	"reflect"
+	"runtime"
 	"unsafe"
 
 	"github.com/wasilibs/go-re2/internal/cre2"
@@ -19,10 +20,11 @@ func newABI() *libre2ABI {
 	return &libre2ABI{}
 }
 
-func (abi *libre2ABI) startOperation(memorySize int) {
+func (abi *libre2ABI) startOperation(memorySize int) allocation {
+	return allocation{}
 }
 
-func (abi *libre2ABI) endOperation() {
+func (abi *libre2ABI) endOperation(allocation) {
 }
 
 func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) wasmPtr {
@@ -44,7 +46,7 @@ func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) wasmPtr {
 	return wasmPtr(cre2.New(pattern.ptr, pattern.length, opt))
 }
 
-func reError(abi *libre2ABI, rePtr wasmPtr) (int, string) {
+func reError(abi *libre2ABI, _ *allocation, rePtr wasmPtr) (int, string) {
 	code := cre2.ErrorCode(unsafe.Pointer(rePtr))
 	if code == 0 {
 		return 0, ""
@@ -78,61 +80,79 @@ func matchFrom(re *Regexp, s cString, startPos int, matchesPtr wasmPtr, nMatches
 		s.length, startPos, s.length, 0, unsafe.Pointer(matchesPtr), int(nMatches))
 }
 
+type allocation struct{}
+
+func (*allocation) newCString(s string) cString {
+	if len(s) == 0 {
+		// TinyGo uses a null pointer to represent an empty string, but this
+		// prevents us from distinguishing a match on the empty string vs no
+		// match for subexpressions. So we replace with an empty-length slice
+		// to a string that isn't null.
+		s = "a"[0:0]
+	}
+	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	res := cString{
+		ptr:    unsafe.Pointer(sh.Data),
+		length: int(sh.Len),
+	}
+	runtime.KeepAlive(s)
+	return res
+}
+
+func (*allocation) newCStringFromBytes(s []byte) cString {
+	sh := (*reflect.SliceHeader)(unsafe.Pointer(&s))
+	res := cString{
+		ptr:    unsafe.Pointer(sh.Data),
+		length: int(sh.Len),
+	}
+	runtime.KeepAlive(s)
+	return res
+}
+
+func (a *allocation) newCStringPtr(s string) pointer {
+	if len(s) == 0 {
+		// TinyGo uses a null pointer to represent an empty string, but this
+		// prevents us from distinguishing a match on the empty string vs no
+		// match for subexpressions. So we replace with an empty-length slice
+		// to a string that isn't null.
+		s = "a"[0:0]
+	}
+	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	csPtr := cre2.Malloc(int(unsafe.Sizeof(cString{})))
+	cs := (*cString)(csPtr)
+	cs.ptr = unsafe.Pointer(sh.Data)
+	cs.length = int(sh.Len)
+	runtime.KeepAlive(s)
+	return pointer{ptr: wasmPtr(csPtr)}
+}
+
+func (a *allocation) newCStringPtrFromBytes(s []byte) pointer {
+	sh := (*reflect.SliceHeader)(unsafe.Pointer(&s))
+	csPtr := cre2.Malloc(int(unsafe.Sizeof(cString{})))
+	cs := (*cString)(csPtr)
+	cs.ptr = unsafe.Pointer(sh.Data)
+	cs.length = int(sh.Len)
+	runtime.KeepAlive(s)
+	return pointer{ptr: wasmPtr(csPtr)}
+}
+
+func (a *allocation) newCStringArray(n int) cStringArray {
+	sz := int(unsafe.Sizeof(cString{})) * n
+	ptr := cre2.Malloc(sz)
+	for i := 0; i < sz; i++ {
+		*(*byte)(unsafe.Add(ptr, i)) = 0
+	}
+
+	return cStringArray{ptr: wasmPtr(ptr)}
+}
+
 type cString struct {
 	ptr    unsafe.Pointer
 	length int
 }
 
-func newCString(_ *libre2ABI, s string) cString {
-	if len(s) == 0 {
-		// TinyGo uses a null pointer to represent an empty string, but this
-		// prevents us from distinguishing a match on the empty string vs no
-		// match for subexpressions. So we replace with an empty-length slice
-		// to a string that isn't null.
-		s = "a"[0:0]
-	}
-	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
-	return cString{
-		ptr:    unsafe.Pointer(sh.Data),
-		length: int(sh.Len),
-	}
-}
-
-func newCStringFromBytes(_ *libre2ABI, s []byte) cString {
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&s))
-	return cString{
-		ptr:    unsafe.Pointer(sh.Data),
-		length: int(sh.Len),
-	}
-}
-
 type pointer struct {
 	ptr wasmPtr
-}
-
-func newCStringPtrFromBytes(_ *libre2ABI, s []byte) pointer {
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&s))
-	csPtr := cre2.Malloc(int(unsafe.Sizeof(cString{})))
-	cs := (*cString)(csPtr)
-	cs.ptr = unsafe.Pointer(sh.Data)
-	cs.length = int(sh.Len)
-	return pointer{ptr: wasmPtr(csPtr)}
-}
-
-func newCStringPtr(_ *libre2ABI, s string) pointer {
-	if len(s) == 0 {
-		// TinyGo uses a null pointer to represent an empty string, but this
-		// prevents us from distinguishing a match on the empty string vs no
-		// match for subexpressions. So we replace with an empty-length slice
-		// to a string that isn't null.
-		s = "a"[0:0]
-	}
-	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
-	csPtr := cre2.Malloc(int(unsafe.Sizeof(cString{})))
-	cs := (*cString)(csPtr)
-	cs.ptr = unsafe.Pointer(sh.Data)
-	cs.length = int(sh.Len)
-	return pointer{ptr: wasmPtr(csPtr)}
 }
 
 func (p pointer) free() {
@@ -141,16 +161,6 @@ func (p pointer) free() {
 
 type cStringArray struct {
 	ptr wasmPtr
-}
-
-func newCStringArray(abi *libre2ABI, n int) cStringArray {
-	sz := int(unsafe.Sizeof(cString{})) * n
-	ptr := cre2.Malloc(sz)
-	for i := 0; i < sz; i++ {
-		*(*byte)(unsafe.Add(ptr, i)) = 0
-	}
-
-	return cStringArray{ptr: wasmPtr(ptr)}
 }
 
 func (a cStringArray) free() {
@@ -194,7 +204,7 @@ func globalReplace(re *Regexp, textAndTargetPtr wasmPtr, rewritePtr wasmPtr) ([]
 	return cre2.CopyCBytes(textAndTarget.ptr, textAndTarget.length), true
 }
 
-func readMatch(abi *libre2ABI, cs cString, matchPtr wasmPtr, dstCap []int) []int {
+func readMatch(_ *allocation, cs cString, matchPtr wasmPtr, dstCap []int) []int {
 	match := (*cString)(matchPtr)
 	subStrPtr := match.ptr
 	if subStrPtr == nil {
@@ -204,11 +214,11 @@ func readMatch(abi *libre2ABI, cs cString, matchPtr wasmPtr, dstCap []int) []int
 	return append(dstCap, int(sIdx), int(sIdx+uintptr(match.length)))
 }
 
-func readMatches(abi *libre2ABI, cs cString, matchesPtr wasmPtr, n int, deliver func([]int)) {
+func readMatches(alloc *allocation, cs cString, matchesPtr wasmPtr, n int, deliver func([]int)) {
 	var dstCap [2]int
 
 	for i := 0; i < n; i++ {
-		dst := readMatch(abi, cs, wasmPtr(unsafe.Add(unsafe.Pointer(matchesPtr), unsafe.Sizeof(cString{})*uintptr(i))), dstCap[:0])
+		dst := readMatch(alloc, cs, wasmPtr(unsafe.Add(unsafe.Pointer(matchesPtr), unsafe.Sizeof(cString{})*uintptr(i))), dstCap[:0])
 		deliver(dst)
 	}
 }
