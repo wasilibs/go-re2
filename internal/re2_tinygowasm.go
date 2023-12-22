@@ -4,6 +4,7 @@ package internal
 
 import (
 	"reflect"
+	"runtime"
 	"unsafe"
 
 	"github.com/wasilibs/go-re2/internal/cre2"
@@ -90,18 +91,22 @@ func (*allocation) newCString(s string) cString {
 		s = "a"[0:0]
 	}
 	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
-	return cString{
+	res := cString{
 		ptr:    unsafe.Pointer(sh.Data),
 		length: int(sh.Len),
 	}
+	runtime.KeepAlive(s)
+	return res
 }
 
 func (*allocation) newCStringFromBytes(s []byte) cString {
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&s))
-	return cString{
+	res := cString{
 		ptr:    unsafe.Pointer(sh.Data),
 		length: int(sh.Len),
 	}
+	runtime.KeepAlive(s)
+	return res
 }
 
 func (a *allocation) newCStringPtr(s string) pointer {
@@ -117,6 +122,7 @@ func (a *allocation) newCStringPtr(s string) pointer {
 	cs := (*cString)(csPtr)
 	cs.ptr = unsafe.Pointer(sh.Data)
 	cs.length = int(sh.Len)
+	runtime.KeepAlive(s)
 	return pointer{ptr: wasmPtr(csPtr)}
 }
 
@@ -126,6 +132,7 @@ func (a *allocation) newCStringPtrFromBytes(s []byte) pointer {
 	cs := (*cString)(csPtr)
 	cs.ptr = unsafe.Pointer(sh.Data)
 	cs.length = int(sh.Len)
+	runtime.KeepAlive(s)
 	return pointer{ptr: wasmPtr(csPtr)}
 }
 
