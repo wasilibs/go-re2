@@ -1,6 +1,6 @@
 github.com/magefile/mage v1.14.0 h1:6QDX3g6z1YvJ4olPhT1wksUcSa/V0a1B+pJb73fBjyo=
 github.com/magefile/mage v1.14.0/go.mod h1:z5UZb/iS3GoOSn0JgWuiw7dxlurVYTu+/jHXqQg881A=
+github.com/tetratelabs/wazero v1.6.1-0.20240124004658-4185e533bb18 h1:Gi/arySP4fsMGdfv1uLMBZ59P4trxQVybzo/jEmqSOE=
+github.com/tetratelabs/wazero v1.6.1-0.20240124004658-4185e533bb18/go.mod h1:0U0G41+ochRKoPKCJlh0jMg1CHkyfK8kDqiirMmKY8A=
 github.com/wasilibs/nottinygc v0.4.0 h1:h1TJMihMC4neN6Zq+WKpLxgd9xCFMw7O9ETLwY2exJQ=
 github.com/wasilibs/nottinygc v0.4.0/go.mod h1:oDcIotskuYNMpqMF23l7Z8uzD4TC0WXHK8jetlB3HIo=
-github.com/wasilibs/wazerox v0.0.0-20231218050519-52f5e22ee8b5 h1:7GQgc4ewesYeFF8bNxKvsT4q6ngGnGBkCFmwHs1ldwI=
-github.com/wasilibs/wazerox v0.0.0-20231218050519-52f5e22ee8b5/go.mod h1:IQNVyA4d1hWIe23mlMMuqXjyWMdndgSlNx6FqBkwPsM=
