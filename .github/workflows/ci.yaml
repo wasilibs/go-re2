@@ -19,12 +19,16 @@ jobs:
           - tinygo
           - wazero
         os:
-          - macos-12
+          - macos-13
+          - macos-14
           - ubuntu-22.04
           - windows-2022
         exclude:
           # https://github.com/tinygo-org/tinygo/issues/3594
           - os: windows-2022
+            mode: tinygo
+          # No available binary
+          - os: macos-14
             mode: tinygo
     steps:
       - uses: actions/checkout@v3
