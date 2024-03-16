@@ -27,6 +27,9 @@ jobs:
           # https://github.com/tinygo-org/tinygo/issues/3594
           - os: windows-2022
             mode: tinygo
+          # No available binary
+          - os: macos-14
+            mode: tinygo
     steps:
       - uses: actions/checkout@v3
         with:
