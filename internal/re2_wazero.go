@@ -28,6 +28,8 @@ var (
 //go:embed wasm/libcre2.so
 var libre2 []byte
 
+// memoryWasm created by `wat2wasm --enable-threads internal/wasm/memory.wat`
+//
 //go:embed wasm/memory.wasm
 var memoryWasm []byte
 
