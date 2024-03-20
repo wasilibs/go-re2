@@ -7,6 +7,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"os"
 	"runtime"
@@ -18,6 +19,8 @@ import (
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/experimental"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
+
+	"github.com/wasilibs/go-re2/internal/memory"
 )
 
 var (
@@ -27,11 +30,6 @@ var (
 
 //go:embed wasm/libcre2.so
 var libre2 []byte
-
-// memoryWasm created by `wat2wasm --enable-threads internal/wasm/memory.wat`
-//
-//go:embed wasm/memory.wasm
-var memoryWasm []byte
 
 var (
 	wasmRT       wazero.Runtime
@@ -156,7 +154,17 @@ func init() {
 
 	wasi_snapshot_preview1.MustInstantiate(ctx, rt)
 
-	if _, err := rt.InstantiateWithConfig(ctx, memoryWasm, wazero.NewModuleConfig().WithName("env")); err != nil {
+	maxPages := uint32(65536)
+	if m := memory.TotalMemory(); m != 0 {
+		pages := uint32(m / 65536) // Divide by WASM page size
+		if pages < maxPages {
+			maxPages = pages
+		}
+	}
+
+	mem := encodeMemory(maxPages)
+
+	if _, err := rt.InstantiateWithConfig(ctx, mem, wazero.NewModuleConfig().WithName("env")); err != nil {
 		panic(err)
 	}
 
@@ -642,4 +650,42 @@ func (f *lazyFunction) callWithStack(ctx context.Context, callStack []uint64) (u
 		return 0, err
 	}
 	return callStack[0], nil
+}
+
+// Memory module is prefix, max pages, suffix, resulting a module looking like
+// (module (memory (export "memory") 3 <max> shared))
+const (
+	memoryPrefixHex = "0061736d010000000506010303"
+	memorySuffixHex = "070a01066d656d6f72790200"
+)
+
+func encodeMemory(maxPages uint32) []byte {
+	memoryPrefix, _ := hex.DecodeString(memoryPrefixHex)
+	memorySuffix, _ := hex.DecodeString(memorySuffixHex)
+	pages := encodeUint64(uint64(maxPages))
+	res := append([]byte(memoryPrefix), pages...)
+	return append(res, []byte(memorySuffix)...)
+}
+
+// From https://github.com/tetratelabs/wazero/blob/main/internal/leb128/leb128.go#L75
+
+func encodeUint64(value uint64) (buf []byte) {
+	// This is effectively a do/while loop where we take 7 bits of the value and encode them until it is zero.
+	for {
+		// Take 7 remaining low-order bits from the value into b.
+		b := uint8(value & 0x7f)
+		value = value >> 7
+
+		// If there are remaining bits, the value won't be zero: Set the high-
+		// order bit to tell the reader there are more bytes in this uint.
+		if value != 0 {
+			b |= 0x80
+		}
+
+		// Append b into the buffer
+		buf = append(buf, b)
+		if b&0x80 == 0 {
+			return buf
+		}
+	}
 }
