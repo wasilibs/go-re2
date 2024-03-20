@@ -17,15 +17,17 @@ func sysTotalMemory() uint64 {
 	return s
 }
 
+var (
+	rePageSize  = regexp.MustCompile(`page size of ([0-9]*) bytes`)
+	reFreePages = regexp.MustCompile(`Pages free: *([0-9]*)\.`)
+)
+
 func sysFreeMemory() uint64 {
 	cmd := exec.Command("vm_stat")
 	outBytes, err := cmd.Output()
 	if err != nil {
 		return 0
 	}
-
-	rePageSize := regexp.MustCompile("page size of ([0-9]*) bytes")
-	reFreePages := regexp.MustCompile("Pages free: *([0-9]*)\\.")
 
 	// default: page size of 4096 bytes
 	matches := rePageSize.FindSubmatchIndex(outBytes)
