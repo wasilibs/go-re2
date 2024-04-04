@@ -7,7 +7,6 @@ import (
 	"context"
 	_ "embed"
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"os"
 	"runtime"
@@ -654,17 +653,28 @@ func (f *lazyFunction) callWithStack(ctx context.Context, callStack []uint64) (u
 
 // Memory module is prefix, max pages, suffix, resulting a module looking like
 // (module (memory (export "memory") 3 <max> shared))
-const (
-	memoryPrefixHex = "0061736d010000000506010303"
-	memorySuffixHex = "070a01066d656d6f72790200"
-)
-
 func encodeMemory(maxPages uint32) []byte {
-	memoryPrefix, _ := hex.DecodeString(memoryPrefixHex)
-	memorySuffix, _ := hex.DecodeString(memorySuffixHex)
+	minPages := uint32(3)
+	if maxPages < minPages {
+		minPages = maxPages
+	}
+
 	pages := encodeUint64(uint64(maxPages))
-	res := append([]byte(memoryPrefix), pages...)
-	return append(res, []byte(memorySuffix)...)
+
+	memorySection := append([]byte{
+		0x01,           // decodeMemorySection:vs
+		0x03,           // decodeLimitsType:flag
+		byte(minPages), // decodeLimitsType:min
+	}, pages...) // decodeLimitsType:max
+
+	return append(append([]byte{
+		0x00, 0x61, 0x73, 0x6d, // Magic.
+		0x01, 0x00, 0x00, 0x00, // Version.
+		0x05,                     // SectionID (memory_section).
+		byte(len(memorySection)), // SectionSize as leb128.
+	}, memorySection...),
+		0x07, 0x0a, 0x01, 0x06, 0x6d, 0x65, 0x6d, 0x6f, 0x72, 0x79, 0x02, 0x00,
+	)
 }
 
 // From https://github.com/tetratelabs/wazero/blob/main/internal/leb128/leb128.go#L75
