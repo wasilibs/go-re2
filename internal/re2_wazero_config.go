@@ -1,4 +1,4 @@
-//go:build !wasm
+//go:build !tinygo.wasm && !re2_cgo && !wasm
 
 package internal
 
