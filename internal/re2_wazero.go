@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"unsafe"
 
 	wazero "github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -152,12 +153,16 @@ func putChildModule(cm *childModule) {
 }
 
 func init() {
-	maxPages := uint32(65536)
+	maxPages := defaultMaxPages
 	if m := memory.TotalMemory(); m != 0 {
 		pages := uint32(m / 65536) // Divide by WASM page size
 		if pages < maxPages {
 			maxPages = pages
 		}
+	} else if unsafe.Sizeof(uintptr(0)) < 8 {
+		// On a 32-bit system where we couldn't detect available memory. Our default
+		// virtual memory allocation of 4GB will surely fail so we reduce it to 1GB.
+		maxPages = 65536 / 4
 	}
 
 	ctx := context.Background()

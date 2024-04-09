@@ -41,7 +41,21 @@ func Test() error {
 		if os.Getenv("TEST_NORACE") != "" {
 			race = ""
 		}
-		return sh.RunV("go", "test", "-v", "-timeout=20m", race, "-tags", buildTags(), "./...")
+		if err := sh.RunV("go", "test", "-v", "-timeout=20m", race, "-tags", buildTags(), "./..."); err != nil {
+			return err
+		}
+
+		if err := sh.RunWithV(map[string]string{"GOOS": "wasip1", "GOARCH": "wasm"}, "go", "build", "-o", filepath.Join("build", "test.wasm"), "./internal/e2e"); err != nil {
+			return err
+		}
+
+		// Could invoke wazero directly but the CLI has a simpler entry point.
+		// TODO: Enable this after it runs with wazero, it currently has been verified locally with wasmtime.
+		// if err := sh.RunV("go", "run", "github.com/tetratelabs/wazero/cmd/wazero@v1.7.0", "run", filepath.Join("build", "test.wasm")); err != nil {
+		// 	return err
+		// }
+
+		return nil
 	}
 
 	return sh.RunV("tinygo", "test", "-scheduler=none", "-gc=custom", "-target=wasi", "-v", "-tags", buildTags(), "./...")
