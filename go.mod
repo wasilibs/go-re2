@@ -7,4 +7,4 @@ require (
 	github.com/wasilibs/nottinygc v0.4.0
 )
 
-require github.com/tetratelabs/wazero v1.7.0
+require github.com/tetratelabs/wazero v1.7.1

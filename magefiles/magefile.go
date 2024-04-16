@@ -45,14 +45,15 @@ func Test() error {
 			return err
 		}
 
-		// Could invoke wazero directly but the CLI has a simpler entry point.
-		// TODO: Enable this after it runs with wazero, it currently has been verified locally with wasmtime.
-		// if err := sh.RunWithV(map[string]string{"GOOS": "wasip1", "GOARCH": "wasm"}, "go", "build", "-o", filepath.Join("build", "test.wasm"), "./internal/e2e"); err != nil {
-		//	return err
-		// }
-		// if err := sh.RunV("go", "run", "github.com/tetratelabs/wazero/cmd/wazero@v1.7.0", "run", filepath.Join("build", "test.wasm")); err != nil {
-		// 	return err
-		// }
+		if mode == "wazero" {
+			// Could invoke wazero directly but the CLI has a simpler entry point.
+			if err := sh.RunWithV(map[string]string{"GOOS": "wasip1", "GOARCH": "wasm"}, "go", "build", "-o", filepath.Join("build", "test.wasm"), "./internal/e2e"); err != nil {
+				return err
+			}
+			if err := sh.RunV("go", "run", "github.com/tetratelabs/wazero/cmd/wazero@v1.7.1", "run", filepath.Join("build", "test.wasm")); err != nil {
+				return err
+			}
+		}
 
 		return nil
 	}
