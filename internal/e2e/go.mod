@@ -1,6 +1,6 @@
 module github.com/wasilibs/go-re2/e2e
 
-go 1.19
+go 1.20
 
 require github.com/wasilibs/go-re2 v1.5.2
 
