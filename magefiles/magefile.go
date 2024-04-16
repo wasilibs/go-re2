@@ -45,7 +45,7 @@ func Test() error {
 			return err
 		}
 
-		if mode == "wazero" {
+		if mode == "" {
 			// Could invoke wazero directly but the CLI has a simpler entry point.
 			if err := sh.RunWithV(map[string]string{"GOOS": "wasip1", "GOARCH": "wasm"}, "go", "build", "-o", filepath.Join("build", "test.wasm"), "./internal/e2e"); err != nil {
 				return err
