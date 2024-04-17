@@ -137,19 +137,20 @@ func createChildModule(rt wazero.Runtime, root api.Module) *childModule {
 
 func getChildModule() *childModule {
 	modPoolMu.Lock()
-	defer modPoolMu.Unlock()
-	if modPool.Len() == 0 {
+	e := modPool.Front()
+	if e == nil {
+		modPoolMu.Unlock()
 		return createChildModule(wasmRT, rootMod)
 	}
-	e := modPool.Front()
 	modPool.Remove(e)
+	modPoolMu.Unlock()
 	return e.Value.(*childModule)
 }
 
 func putChildModule(cm *childModule) {
 	modPoolMu.Lock()
-	defer modPoolMu.Unlock()
 	modPool.PushBack(cm)
+	modPoolMu.Unlock()
 }
 
 func init() {
