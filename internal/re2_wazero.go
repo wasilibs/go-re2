@@ -19,6 +19,7 @@ import (
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/experimental"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
+	"github.com/wasilibs/go-re2/internal/alloc"
 	"github.com/wasilibs/go-re2/internal/memory"
 )
 
@@ -154,22 +155,28 @@ func putChildModule(cm *childModule) {
 }
 
 func init() {
-	maxPages := defaultMaxPages
-	if m := memory.TotalMemory(); m != 0 {
-		pages := uint32(m / 65536) // Divide by WASM page size
-		if pages < maxPages {
-			maxPages = pages
+	ctx := context.Background()
+
+	rtCfg := wazero.NewRuntimeConfig().WithCoreFeatures(api.CoreFeaturesV2 | experimental.CoreFeaturesThreads)
+
+	if a := alloc.Allocator(); a != nil {
+		ctx = experimental.WithMemoryAllocator(ctx, a)
+	} else {
+		maxPages := defaultMaxPages
+		if m := memory.TotalMemory(); m != 0 {
+			pages := uint32(m / 65536) // Divide by WASM page size
+			if pages < maxPages {
+				maxPages = pages
+			}
+		} else if unsafe.Sizeof(uintptr(0)) < 8 {
+			// On a 32-bit system where we couldn't detect available memory. Our default
+			// virtual memory allocation of 4GB will surely fail so we reduce it to 1GB.
+			maxPages = 65536 / 4
 		}
-	} else if unsafe.Sizeof(uintptr(0)) < 8 {
-		// On a 32-bit system where we couldn't detect available memory. Our default
-		// virtual memory allocation of 4GB will surely fail so we reduce it to 1GB.
-		maxPages = 65536 / 4
+		rtCfg = rtCfg.WithMemoryLimitPages(maxPages)
 	}
 
-	ctx := context.Background()
-	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().
-		WithCoreFeatures(api.CoreFeaturesV2|experimental.CoreFeaturesThreads).
-		WithMemoryLimitPages(maxPages))
+	rt := wazero.NewRuntimeWithConfig(ctx, rtCfg)
 
 	wasi_snapshot_preview1.MustInstantiate(ctx, rt)
 
