@@ -11,6 +11,10 @@ import (
 	"unicode/utf8"
 )
 
+// Use same max size as regexp package.
+// https://github.com/golang/go/blob/master/src/regexp/syntax/parse.go#L95
+const maxSize = 128 << 20
+
 type Regexp struct {
 	ptr wasmPtr
 

@@ -30,6 +30,7 @@ func (abi *libre2ABI) endOperation(allocation) {
 func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) wasmPtr {
 	opt := cre2.NewOpt()
 	defer cre2.DeleteOpt(opt)
+	cre2.OptSetMaxMem(opt, maxSize)
 	cre2.OptSetLogErrors(opt, false)
 	if opts.Longest {
 		cre2.OptSetLongestMatch(opt, true)

@@ -25,6 +25,7 @@ void cre2_opt_set_longest_match(void* opt, int flag);
 void cre2_opt_set_posix_syntax(void* opt, int flag);
 void cre2_opt_set_case_sensitive(void* opt, int flag);
 void cre2_opt_set_latin1_encoding(void* opt);
+void cre2_opt_set_max_mem(void* opt, int64_t size);
 
 void* malloc(size_t size);
 void free(void* ptr);
@@ -105,6 +106,10 @@ func OptSetCaseSensitive(opt unsafe.Pointer, flag bool) {
 
 func OptSetLatin1Encoding(opt unsafe.Pointer) {
 	C.cre2_opt_set_latin1_encoding(opt)
+}
+
+func OptSetMaxMem(opt unsafe.Pointer, size int) {
+	C.cre2_opt_set_max_mem(opt, C.int64_t(size))
 }
 
 func Malloc(size int) unsafe.Pointer {
