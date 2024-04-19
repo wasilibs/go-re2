@@ -63,6 +63,7 @@ type libre2ABI struct {
 	cre2OptSetPosixSyntax     lazyFunction
 	cre2OptSetCaseSensitive   lazyFunction
 	cre2OptSetLatin1Encoding  lazyFunction
+	cre2OptSetMaxMem          lazyFunction
 
 	malloc lazyFunction
 	free   lazyFunction
@@ -219,6 +220,7 @@ func newABI() *libre2ABI {
 		cre2OptSetPosixSyntax:     newLazyFunction("cre2_opt_set_posix_syntax"),
 		cre2OptSetCaseSensitive:   newLazyFunction("cre2_opt_set_case_sensitive"),
 		cre2OptSetLatin1Encoding:  newLazyFunction("cre2_opt_set_latin1_encoding"),
+		cre2OptSetMaxMem:          newLazyFunction("cre2_opt_set_max_mem"),
 
 		malloc: newLazyFunction("malloc"),
 		free:   newLazyFunction("free"),
@@ -238,44 +240,48 @@ func (abi *libre2ABI) endOperation(a allocation) {
 func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) wasmPtr {
 	ctx := context.Background()
 	optPtr := uint32(0)
-	if opts != (CompileOptions{}) {
-		res, err := abi.cre2OptNew.Call0(ctx)
+	res, err := abi.cre2OptNew.Call0(ctx)
+	if err != nil {
+		panic(err)
+	}
+	optPtr = uint32(res)
+	defer func() {
+		if _, err := abi.cre2OptDelete.Call1(ctx, uint64(optPtr)); err != nil {
+			panic(err)
+		}
+	}()
+
+	_, err = abi.cre2OptSetMaxMem.Call2(ctx, uint64(optPtr), uint64(maxSize))
+	if err != nil {
+		panic(err)
+	}
+
+	if opts.Longest {
+		_, err = abi.cre2OptSetLongestMatch.Call2(ctx, uint64(optPtr), 1)
 		if err != nil {
 			panic(err)
 		}
-		optPtr = uint32(res)
-		defer func() {
-			if _, err := abi.cre2OptDelete.Call1(ctx, uint64(optPtr)); err != nil {
-				panic(err)
-			}
-		}()
-		if opts.Longest {
-			_, err = abi.cre2OptSetLongestMatch.Call2(ctx, uint64(optPtr), 1)
-			if err != nil {
-				panic(err)
-			}
+	}
+	if opts.Posix {
+		_, err = abi.cre2OptSetPosixSyntax.Call2(ctx, uint64(optPtr), 1)
+		if err != nil {
+			panic(err)
 		}
-		if opts.Posix {
-			_, err = abi.cre2OptSetPosixSyntax.Call2(ctx, uint64(optPtr), 1)
-			if err != nil {
-				panic(err)
-			}
+	}
+	if opts.CaseInsensitive {
+		_, err = abi.cre2OptSetCaseSensitive.Call2(ctx, uint64(optPtr), 0)
+		if err != nil {
+			panic(err)
 		}
-		if opts.CaseInsensitive {
-			_, err = abi.cre2OptSetCaseSensitive.Call2(ctx, uint64(optPtr), 0)
-			if err != nil {
-				panic(err)
-			}
-		}
-		if opts.Latin1 {
-			_, err = abi.cre2OptSetLatin1Encoding.Call1(ctx, uint64(optPtr))
-			if err != nil {
-				panic(err)
-			}
+	}
+	if opts.Latin1 {
+		_, err = abi.cre2OptSetLatin1Encoding.Call1(ctx, uint64(optPtr))
+		if err != nil {
+			panic(err)
 		}
 	}
 
-	res, err := abi.cre2New.Call3(ctx, uint64(pattern.ptr), uint64(pattern.length), uint64(optPtr))
+	res, err = abi.cre2New.Call3(ctx, uint64(pattern.ptr), uint64(pattern.length), uint64(optPtr))
 	if err != nil {
 		panic(err)
 	}
