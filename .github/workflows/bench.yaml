@@ -21,9 +21,9 @@ jobs:
       - name: setup re2 for cgo
         run: sudo apt-get update && sudo apt-get install -y libre2-dev
 
-      - run: go run mage.go benchall
+      - run: go run mage benchall
 
-      - run: go run mage.go wafbenchall
+      - run: go run mage wafbenchall
 
       - uses: actions/upload-artifact@v3
         with:

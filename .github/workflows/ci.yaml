@@ -60,7 +60,7 @@ jobs:
         run: go install github.com/wasilibs/tools/cmd/wasmtime@875fe73f677c58d467ee373a9e00e6cb66b268f3
 
       - name: run checks
-        run: go run mage.go check
+        run: go run mage check
         if: ${{ !startsWith(matrix.os, 'windows-') || matrix.mode != 'cgo' }}
         env:
           RE2_TEST_MODE: ${{ matrix.mode }}
@@ -73,7 +73,7 @@ jobs:
           TEST_NORACE: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'wazero' && 'true' || '' }}
 
       - name: run checks (windows cgo)
-        run: go run mage.go check
+        run: go run mage check
         if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'cgo' }}
         # Shell does not support conditional expressions using matrix, so for now we duplicate the steps
         shell: 'msys2 {0}'
@@ -98,6 +98,6 @@ jobs:
 
       - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 321; fi
 
-      - run: go run mage.go test
+      - run: go run mage test
         env:
           TEST_NORACE: "true"
