@@ -1,7 +1,7 @@
 # Copyright 2022 The OWASP Coraza contributors
 # SPDX-License-Identifier: Apache-2.0
 
-FROM ghcr.io/webassembly/wasi-sdk:wasi-sdk-20 AS base
+FROM ghcr.io/webassembly/wasi-sdk:wasi-sdk-22 AS base
 
 RUN apt-get update && apt-get install -y binaryen curl
 
@@ -28,7 +28,7 @@ RUN $CXX -c cre2.cpp -o cre2.o -I. -I/re2 $CXXFLAGS && \
 
 FROM base AS wazero
 
-ENV CFLAGS --target=wasm32-wasi-threads --sysroot=/wasi-sysroot -pthread -O3 -D__USE_ISOC11
+ENV CFLAGS --target=wasm32-wasi-threads --sysroot=/wasi-sysroot -pthread -O3 -D__USE_ISOC11 -msimd128
 ENV CXXFLAGS -fno-exceptions $CFLAGS
 ENV LDFLAGS $CFLAGS -mexec-model=reactor
 
