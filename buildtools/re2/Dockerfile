@@ -77,10 +77,17 @@ RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 $LDFLAGS \
 
 RUN wasm-opt -o libcre2.so --low-memory-unused --flatten --rereloop --converge -O3 libcre2-noopt.so
 
-FROM ghcr.io/webassembly/wasi-sdk:wasi-sdk-20
+FROM ghcr.io/webassembly/wasi-sdk:wasi-sdk-22
 
 COPY --from=tinygo /re2/obj/libre2.a libre2.a
 COPY --from=tinygo /cre2/libcre2.a libcre2.a
 COPY --from=wazero /cre2/libcre2.so libcre2.so
 
-CMD ["cp", "libre2.a", "libcre2.a", "libcre2.so", "/out/"]
+CMD ["cp", \
+     "libre2.a", \
+     "libcre2.a", \
+     "libcre2.so", \
+     "/wasi-sysroot/lib/wasm32-wasi/libc++.a", \
+     "/wasi-sysroot/lib/wasm32-wasi/libc++abi.a", \
+     "/usr/lib/llvm-17/lib/clang/17/lib/wasi/libclang_rt.builtins-wasm32.a", \
+     "/out/"]
