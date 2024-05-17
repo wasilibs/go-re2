@@ -169,10 +169,13 @@ func init() {
 			if pages < maxPages {
 				maxPages = pages
 			}
-		} else if unsafe.Sizeof(uintptr(0)) < 8 {
-			// On a 32-bit system where we couldn't detect available memory. Our default
-			// virtual memory allocation of 4GB will surely fail so we reduce it to 1GB.
-			maxPages = 65536 / 4
+		}
+		if unsafe.Sizeof(uintptr(0)) < 8 {
+			// On a 32-bit system. anything more than 1GB is likely to fail so we cap to it.
+			maxPagesLimit := uint32(65536 / 4)
+			if maxPages > maxPagesLimit {
+				maxPages = maxPagesLimit
+			}
 		}
 		rtCfg = rtCfg.WithMemoryLimitPages(maxPages)
 	}
