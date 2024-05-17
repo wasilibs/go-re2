@@ -19,6 +19,7 @@ import (
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/experimental"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
+
 	"github.com/wasilibs/go-re2/internal/alloc"
 	"github.com/wasilibs/go-re2/internal/memory"
 )
