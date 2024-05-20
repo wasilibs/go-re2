@@ -71,7 +71,9 @@ type mmappedMemory struct {
 }
 
 func (m *mmappedMemory) Reallocate(size uint64) []byte {
-	if com := uint64(len(m.buf)); com < size {
+	com := uint64(len(m.buf))
+	res := uint64(cap(m.buf))
+	if com < size && size < res {
 		// Round up to the page size.
 		rnd := uint64(syscall.Getpagesize() - 1)
 		new := (size + rnd) &^ rnd
@@ -85,7 +87,7 @@ func (m *mmappedMemory) Reallocate(size uint64) []byte {
 		// Update committed memory.
 		m.buf = m.buf[:new]
 	}
-	return m.buf[:size]
+	return m.buf[:size:len(m.buf)]
 }
 
 func (m *mmappedMemory) Free() {

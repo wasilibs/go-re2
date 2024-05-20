@@ -19,6 +19,7 @@ import (
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/experimental"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
+
 	"github.com/wasilibs/go-re2/internal/alloc"
 	"github.com/wasilibs/go-re2/internal/memory"
 )
@@ -160,25 +161,26 @@ func init() {
 
 	rtCfg := wazero.NewRuntimeConfig().WithCoreFeatures(api.CoreFeaturesV2 | experimental.CoreFeaturesThreads)
 
+	maxPages := defaultMaxPages
 	if a := alloc.Allocator(); a != nil {
 		ctx = experimental.WithMemoryAllocator(ctx, a)
-	} else {
-		maxPages := defaultMaxPages
-		if m := memory.TotalMemory(); m != 0 {
-			pages := uint32(m / 65536) // Divide by WASM page size
-			if pages < maxPages {
-				maxPages = pages
-			}
+	} else if m := memory.TotalMemory(); m != 0 {
+		pages := uint32(m / 65536) // Divide by WASM page size
+		if pages < maxPages {
+			maxPages = pages
 		}
-		if unsafe.Sizeof(uintptr(0)) < 8 {
-			// On a 32-bit system. anything more than 1GB is likely to fail so we cap to it.
-			maxPagesLimit := uint32(65536 / 4)
-			if maxPages > maxPagesLimit {
-				maxPages = maxPagesLimit
-			}
-		}
-		rtCfg = rtCfg.WithMemoryLimitPages(maxPages)
 	}
+
+	if unsafe.Sizeof(uintptr(0)) < 8 {
+		// On a 32-bit system. anything close to 4GB will fail (part of 4GB is already used by the rest of the process).
+		// We go ahead and cap to 1GB to to be extra conservative. It will be using interpreter mode anyways so either
+		// the memory limit or the performance will be an issue either way.
+		maxPagesLimit := uint32(65536 / 4)
+		if maxPages > maxPagesLimit {
+			maxPages = maxPagesLimit
+		}
+	}
+	rtCfg = rtCfg.WithMemoryLimitPages(maxPages)
 
 	rt := wazero.NewRuntimeWithConfig(ctx, rtCfg)
 
