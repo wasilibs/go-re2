@@ -38,11 +38,13 @@ func virtualAllocator(cap, max uint64) experimental.LinearMemory {
 	cap = (cap + rnd) &^ rnd
 
 	if max > math.MaxInt {
-		// This ensures int(max) overflows to a negative value.
+		// This ensures uintptr(max) overflows to a large value,
+		// and windows.VirtualAlloc returns an error.
 		max = math.MaxUint64
 	}
 
 	// Reserve, but don't commit, max bytes of address space, to ensure we won't need to move it.
+	// This does not commit memory.
 	r, _, err := procVirtualAlloc.Call(0, uintptr(max), windows_MEM_RESERVE, windows_PAGE_READWRITE)
 	if r == 0 {
 		panic(fmt.Errorf("alloc_windows: failed to reserve memory: %w", err))
@@ -54,6 +56,7 @@ func virtualAllocator(cap, max uint64) experimental.LinearMemory {
 		_, _, _ = procVirtualFree.Call(r, 0, windows_MEM_RELEASE)
 		panic(fmt.Errorf("alloc_windows: failed to commit initial memory: %w", err))
 	}
+
 	buf := unsafe.Slice((*byte)(unsafe.Pointer(r)), int(max))
 	return &virtualMemory{buf: buf[:cap], addr: r}
 }
@@ -67,7 +70,9 @@ type virtualMemory struct {
 }
 
 func (m *virtualMemory) Reallocate(size uint64) []byte {
-	if com := uint64(len(m.buf)); com < size {
+	com := uint64(len(m.buf))
+	res := uint64(cap(m.buf))
+	if com < size && size < res {
 		// Round up to the page size.
 		rnd := windows_PAGE_SIZE - 1
 		new := (size + rnd) &^ rnd
@@ -78,10 +83,11 @@ func (m *virtualMemory) Reallocate(size uint64) []byte {
 			panic(fmt.Errorf("alloc_windows: failed to commit memory: %w", err))
 		}
 
-		// Update committed memory.
+		// Limit returned capacity because bytes beyond
+		// len(m.buf) have not yet been committed.
 		m.buf = m.buf[:new]
 	}
-	return m.buf[:size]
+	return m.buf[:size:len(m.buf)]
 }
 
 func (m *virtualMemory) Free() {
@@ -89,4 +95,6 @@ func (m *virtualMemory) Free() {
 	if r == 0 {
 		panic(fmt.Errorf("alloc_windows: failed to release memory: %w", err))
 	}
+	m.addr = 0
+	m.buf = nil
 }
