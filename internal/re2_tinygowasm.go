@@ -96,7 +96,6 @@ func (*allocation) newCString(s string) cString {
 		ptr:    unsafe.Pointer(sh.Data),
 		length: int(sh.Len),
 	}
-	runtime.KeepAlive(s)
 	return res
 }
 
@@ -106,7 +105,6 @@ func (*allocation) newCStringFromBytes(s []byte) cString {
 		ptr:    unsafe.Pointer(sh.Data),
 		length: int(sh.Len),
 	}
-	runtime.KeepAlive(s)
 	return res
 }
 

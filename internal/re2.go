@@ -218,7 +218,9 @@ func (re *Regexp) FindIndex(b []byte) (loc []int) {
 	defer re.abi.endOperation(alloc)
 	cs := alloc.newCStringFromBytes(b)
 
-	return re.find(&alloc, cs, nil)
+	res := re.find(&alloc, cs, nil)
+	runtime.KeepAlive(b)
+	return res
 }
 
 // FindString returns a string holding the text of the leftmost match in s of the regular
@@ -246,7 +248,9 @@ func (re *Regexp) FindStringIndex(s string) (loc []int) {
 	defer re.abi.endOperation(alloc)
 	cs := alloc.newCString(s)
 
-	return re.find(&alloc, cs, nil)
+	res := re.find(&alloc, cs, nil)
+	runtime.KeepAlive(s)
+	return res
 }
 
 func (re *Regexp) find(alloc *allocation, cs cString, dstCap []int) []int {
@@ -299,7 +303,9 @@ func (re *Regexp) FindAllIndex(b []byte, n int) [][]int {
 		matches = append(matches, append([]int(nil), match...))
 	})
 
-	return matches
+	res := matches
+	runtime.KeepAlive(b)
+	return res
 }
 
 // FindAllString is the 'All' version of FindString; it returns a slice of all
@@ -337,7 +343,9 @@ func (re *Regexp) FindAllStringIndex(s string, n int) [][]int {
 		matches = append(matches, append([]int(nil), match...))
 	})
 
-	return matches
+	res := matches
+	runtime.KeepAlive(s)
+	return res
 }
 
 func (re *Regexp) findAll(alloc *allocation, cs cString, n int, deliver func(match []int)) {
@@ -428,7 +436,9 @@ func (re *Regexp) FindAllSubmatchIndex(b []byte, n int) [][]int {
 		matches = append(matches, flat)
 	})
 
-	return matches
+	res := matches
+	runtime.KeepAlive(b)
+	return res
 }
 
 // FindAllStringSubmatch is the 'All' version of FindStringSubmatch; it
@@ -475,7 +485,9 @@ func (re *Regexp) FindAllStringSubmatchIndex(s string, n int) [][]int {
 		matches = append(matches, flat)
 	})
 
-	return matches
+	res := matches
+	runtime.KeepAlive(s)
+	return res
 }
 
 func (re *Regexp) findAllSubmatch(alloc *allocation, cs cString, n int, deliver func(match [][]int)) {
@@ -563,7 +575,9 @@ func (re *Regexp) FindSubmatchIndex(b []byte) []int {
 		matches = append(matches, match...)
 	})
 
-	return matches
+	res := matches
+	runtime.KeepAlive(b)
+	return res
 }
 
 func (re *Regexp) FindStringSubmatch(s string) []string {
@@ -598,7 +612,9 @@ func (re *Regexp) FindStringSubmatchIndex(s string) []int {
 		matches = append(matches, match...)
 	})
 
-	return matches
+	res := matches
+	runtime.KeepAlive(s)
+	return res
 }
 
 func (re *Regexp) findSubmatch(alloc *allocation, cs cString, deliver func(match []int)) {
