@@ -191,6 +191,9 @@ func (re *Regexp) expand(dst []byte, template string, bsrc []byte, src string, m
 			}
 		}
 	}
+
+	runtime.KeepAlive(re) // don't allow finalizer to run during method
+
 	dst = append(dst, template...)
 	return dst
 }
@@ -264,6 +267,8 @@ func (re *Regexp) find(alloc *allocation, cs cString, dstCap []int) []int {
 
 	m := readMatch(alloc, cs, matchArr.ptr, dstCap)
 	runtime.KeepAlive(matchArr)
+
+	runtime.KeepAlive(re) // don't allow finalizer to run during method
 
 	return m
 }
@@ -391,6 +396,8 @@ func (re *Regexp) findAll(alloc *allocation, cs cString, n int, deliver func(mat
 	}
 
 	runtime.KeepAlive(matchArr)
+
+	runtime.KeepAlive(re) // don't allow finalizer to run during method
 }
 
 // FindAllSubmatch is the 'All' version of FindSubmatch; it returns a slice
@@ -536,6 +543,8 @@ func (re *Regexp) findAllSubmatch(alloc *allocation, cs cString, n int, deliver 
 	}
 
 	runtime.KeepAlive(matchArr)
+
+	runtime.KeepAlive(re) // don't allow finalizer to run during method
 }
 
 // FindSubmatch returns a slice of slices holding the text of the leftmost
@@ -629,6 +638,8 @@ func (re *Regexp) findSubmatch(alloc *allocation, cs cString, deliver func(match
 	readMatches(alloc, cs, matchArr.ptr, numGroups, deliver)
 
 	runtime.KeepAlive(matchArr)
+
+	runtime.KeepAlive(re) // don't allow finalizer to run during method
 }
 
 // Longest makes future searches prefer the leftmost-longest match.
@@ -753,6 +764,9 @@ func (re *Regexp) Match(b []byte) bool {
 	cs := alloc.newCStringFromBytes(b)
 	res := match(re, cs, nilWasmPtr, 0)
 	runtime.KeepAlive(b)
+
+	runtime.KeepAlive(re) // don't allow finalizer to run during method
+
 	return res
 }
 
@@ -765,6 +779,9 @@ func (re *Regexp) MatchString(s string) bool {
 	cs := alloc.newCString(s)
 	res := match(re, cs, nilWasmPtr, 0)
 	runtime.KeepAlive(s)
+
+	runtime.KeepAlive(re) // don't allow finalizer to run during method
+
 	return res
 }
 
@@ -865,6 +882,9 @@ func (re *Regexp) replaceAll(alloc *allocation, srcCSPtr pointer, repl []byte) (
 	defer replCSPtr.free()
 
 	res, matched := globalReplace(re, srcCSPtr.ptr, replCSPtr.ptr)
+
+	runtime.KeepAlive(re) // don't allow finalizer to run during method
+
 	if !matched {
 		return nil, false
 	}
