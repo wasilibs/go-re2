@@ -1,8 +1,13 @@
+//go:build !tinygo.wasm
+
 package re2
 
 import (
+	"fmt"
+	"math/rand"
 	"runtime"
 	"testing"
+	"time"
 )
 
 // TestReplaceAllNoMatch is a regression test for https://github.com/wasilibs/go-re2/issues/56
@@ -40,3 +45,37 @@ func TestHighMem(t *testing.T) {
 		t.Errorf("expected match at 6,22, got %d,%d", res[0][0], res[0][1])
 	}
 }
+
+func TestCStringRe2(t *testing.T) {
+	t.Parallel()
+
+	go func() {
+		ticker := time.NewTicker(time.Millisecond * 100)
+		for {
+			<-ticker.C
+			runtime.GC()
+		}
+	}()
+	pat := MustCompile(`(?m)(?:^|\b)(?P<pattern>[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,4})(?:$|\b)`)
+	for i := 0; i < 10; i++ {
+		t.Run(fmt.Sprintf("test-%d", i), func(t *testing.T) {
+			t.Parallel()
+
+			body := randSeq(1024*1024*100, 0, letters)
+			_ = pat.FindSubmatchIndex(body)
+		})
+	}
+	runtime.KeepAlive(pat)
+}
+
+// nolint: gosec
+func randSeq(n int, seed int64, letters []rune) []byte {
+	b := make([]rune, n)
+	src := rand.New(rand.NewSource(seed))
+	for i := range b {
+		b[i] = letters[src.Intn(len(letters))]
+	}
+	return []byte(string(b))
+}
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
