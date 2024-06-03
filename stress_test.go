@@ -46,7 +46,8 @@ func TestHighMem(t *testing.T) {
 	}
 }
 
-func TestCStringRe2(t *testing.T) {
+// TestHeavyGC is a regression test for https://github.com/wasilibs/go-re2/issues/98
+func TestHeavyGC(t *testing.T) {
 	t.Parallel()
 
 	go func() {
