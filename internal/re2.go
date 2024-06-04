@@ -884,6 +884,7 @@ func (re *Regexp) replaceAll(alloc *allocation, srcCSPtr pointer, repl []byte) (
 	res, matched := globalReplace(re, srcCSPtr.ptr, replCSPtr.ptr)
 
 	runtime.KeepAlive(re) // don't allow finalizer to run during method
+	runtime.KeepAlive(repl)
 
 	if !matched {
 		return nil, false
