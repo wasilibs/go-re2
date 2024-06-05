@@ -413,10 +413,10 @@ func (re *Regexp) FindAllSubmatch(b []byte, n int) [][][]byte {
 
 	var matches [][][]byte
 
-	re.findAllSubmatch(&alloc, b, "", cs, re.numMatches, n, func(match [][]int) {
-		matched := make([][]byte, len(match))
-		for i, m := range match {
-			matched[i] = matchedBytes(b, m)
+	re.findAllSubmatch(&alloc, b, "", cs, re.numMatches, n, func(match []int) {
+		matched := make([][]byte, len(match)/2)
+		for i := 0; i < len(match); i += 2 {
+			matched[i/2] = matchedBytes(b, match[i:i+2])
 		}
 		matches = append(matches, matched)
 	})
@@ -436,12 +436,8 @@ func (re *Regexp) FindAllSubmatchIndex(b []byte, n int) [][]int {
 
 	var matches [][]int
 
-	re.findAllSubmatch(&alloc, b, "", cs, re.numMatches, n, func(match [][]int) {
-		var flat []int
-		for _, m := range match {
-			flat = append(flat, m...)
-		}
-		matches = append(matches, flat)
+	re.findAllSubmatch(&alloc, b, "", cs, re.numMatches, n, func(match []int) {
+		matches = append(matches, match)
 	})
 
 	res := matches
@@ -461,10 +457,10 @@ func (re *Regexp) FindAllStringSubmatch(s string, n int) [][]string {
 
 	var matches [][]string
 
-	re.findAllSubmatch(&alloc, nil, s, cs, re.numMatches, n, func(match [][]int) {
-		matched := make([]string, len(match))
-		for i, m := range match {
-			matched[i] = matchedString(s, m)
+	re.findAllSubmatch(&alloc, nil, s, cs, re.numMatches, n, func(match []int) {
+		matched := make([]string, len(match)/2)
+		for i := 0; i < len(match); i += 2 {
+			matched[i/2] = matchedString(s, match[i:i+2])
 		}
 		matches = append(matches, matched)
 	})
@@ -485,12 +481,8 @@ func (re *Regexp) FindAllStringSubmatchIndex(s string, n int) [][]int {
 
 	var matches [][]int
 
-	re.findAllSubmatch(&alloc, nil, s, cs, re.numMatches, n, func(match [][]int) {
-		var flat []int
-		for _, m := range match {
-			flat = append(flat, m...)
-		}
-		matches = append(matches, flat)
+	re.findAllSubmatch(&alloc, nil, s, cs, re.numMatches, n, func(match []int) {
+		matches = append(matches, match)
 	})
 
 	res := matches
@@ -498,7 +490,7 @@ func (re *Regexp) FindAllStringSubmatchIndex(s string, n int) [][]int {
 	return res
 }
 
-func (re *Regexp) findAllSubmatch(alloc *allocation, bsrc []byte, src string, cs cString, nmatch, n int, deliver func(match [][]int)) {
+func (re *Regexp) findAllSubmatch(alloc *allocation, bsrc []byte, src string, cs cString, nmatch, n int, deliver func(match []int)) {
 	if n < 0 {
 		n = cs.length + 1
 	}
@@ -514,7 +506,7 @@ func (re *Regexp) findAllSubmatch(alloc *allocation, bsrc []byte, src string, cs
 			break
 		}
 
-		var matches [][]int
+		var matches []int
 		accept := true
 		readMatches(alloc, cs, matchArr.ptr, nmatch, func(match []int) {
 			if len(matches) == 0 {
@@ -542,7 +534,7 @@ func (re *Regexp) findAllSubmatch(alloc *allocation, bsrc []byte, src string, cs
 				}
 				prevMatchEnd = match[1]
 			}
-			matches = append(matches, append([]int(nil), match...))
+			matches = append(matches, match...)
 		})
 		if accept {
 			deliver(matches)
@@ -919,15 +911,7 @@ func (re *Regexp) replaceAll(alloc *allocation, bsrc []byte, src string, cs cStr
 	lastMatchEnd := 0
 	var buf []byte
 
-	// TODO: Switch to deliver a flattened match array from findAllSubmatch in all cases
-	// instead of flattening here.
-	var abuf []int
-	re.findAllSubmatch(alloc, bsrc, src, cs, nmatch, -1, func(matches [][]int) {
-		a := abuf[:0]
-		for _, m := range matches {
-			a = append(a, m[0], m[1])
-		}
-
+	re.findAllSubmatch(alloc, bsrc, src, cs, nmatch, -1, func(a []int) {
 		// Copy the unmatched characters before this match.
 		if bsrc != nil {
 			buf = append(buf, bsrc[lastMatchEnd:a[0]]...)
@@ -939,7 +923,6 @@ func (re *Regexp) replaceAll(alloc *allocation, bsrc []byte, src string, cs cStr
 			buf = repl(buf, a)
 		}
 		lastMatchEnd = a[1]
-		abuf = a
 	})
 
 	if bsrc != nil {
@@ -1028,14 +1011,14 @@ func extract(str string) (name string, num int, rest string, ok bool) {
 }
 
 func matchedBytes(s []byte, match []int) []byte {
-	if match == nil || match[0] == -1 {
+	if len(match) < 2 || match[0] == -1 {
 		return nil
 	}
 	return s[match[0]:match[1]:match[1]]
 }
 
 func matchedString(s string, match []int) string {
-	if match == nil || match[0] == -1 {
+	if len(match) < 2 || match[0] == -1 {
 		return ""
 	}
 	return s[match[0]:match[1]]
