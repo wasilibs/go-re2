@@ -37,7 +37,6 @@ behavior differences.
 All APIs found in `regexp` are available except
 
 - `*Reader`: re2 does not support streaming input
-- `*Func`: re2 does not support replacement with callback functions
 
 Note that unlike many packages that wrap C++ libraries, there is no added `Close` type of method.
 See the [rationale](./RATIONALE.md) for more details.

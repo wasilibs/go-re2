@@ -829,6 +829,21 @@ func (re *Regexp) ReplaceAll(src, repl []byte) []byte {
 	return b
 }
 
+// ReplaceAllFunc returns a copy of src in which all matches of the
+// [Regexp] have been replaced by the return value of function repl applied
+// to the matched byte slice. The replacement returned by repl is substituted
+// directly, without using [Regexp.Expand].
+func (re *Regexp) ReplaceAllFunc(src []byte, repl func([]byte) []byte) []byte {
+	alloc := re.abi.startOperation(len(src) + 8*re.numMatches + 8)
+	defer re.abi.endOperation(alloc)
+
+	cs := alloc.newCStringFromBytes(src)
+
+	return re.replaceAll(&alloc, src, "", cs, func(dst []byte, m []int) []byte {
+		return append(dst, repl(src[m[0]:m[1]])...)
+	})
+}
+
 // ReplaceAllLiteral returns a copy of src, replacing matches of the Regexp
 // with the replacement bytes repl. The replacement repl is substituted directly,
 // without using Expand.
@@ -870,6 +885,23 @@ func (re *Regexp) ReplaceAllString(src, repl string) string {
 
 	b := re.replaceAll(&alloc, nil, src, cs, func(dst []byte, m []int) []byte {
 		return re.expand(dst, repl, nil, src, m)
+	})
+
+	return string(b)
+}
+
+// ReplaceAllStringFunc returns a copy of src in which all matches of the
+// [Regexp] have been replaced by the return value of function repl applied
+// to the matched substring. The replacement returned by repl is substituted
+// directly, without using [Regexp.Expand].
+func (re *Regexp) ReplaceAllStringFunc(src string, repl func(string) string) string {
+	alloc := re.abi.startOperation(len(src) + 8*re.numMatches + 8)
+	defer re.abi.endOperation(alloc)
+
+	cs := alloc.newCString(src)
+
+	b := re.replaceAll(&alloc, nil, src, cs, func(dst []byte, m []int) []byte {
+		return append(dst, repl(src[m[0]:m[1]])...)
 	})
 
 	return string(b)

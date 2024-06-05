@@ -244,6 +244,18 @@ var replaceLiteralTests = []ReplaceTest{
 	{"a+", "$", "aaa", "$"},
 }
 
+type ReplaceFuncTest struct {
+	pattern       string
+	replacement   func(string) string
+	input, output string
+}
+
+var replaceFuncTests = []ReplaceFuncTest{
+	{"[a-c]", func(s string) string { return "x" + s + "y" }, "defabcdef", "defxayxbyxcydef"},
+	{"[a-c]+", func(s string) string { return "x" + s + "y" }, "defabcdef", "defxabcydef"},
+	{"[a-c]*", func(s string) string { return "x" + s + "y" }, "defabcdef", "xydxyexyfxabcydxyexyfxy"},
+}
+
 func TestReplaceAll(t *testing.T) {
 	for _, tc := range replaceTests {
 		re, err := Compile(tc.pattern)
@@ -306,6 +318,27 @@ func TestReplaceAllLiteral(t *testing.T) {
 		if actual != tc.output {
 			t.Errorf("%q.ReplaceAllLiteral(%q,%q) = %q; want %q",
 				tc.pattern, tc.input, tc.replacement, actual, tc.output)
+		}
+	}
+}
+
+func TestReplaceAllFunc(t *testing.T) {
+	for _, tc := range replaceFuncTests {
+		re, err := Compile(tc.pattern)
+		if err != nil {
+			t.Errorf("Unexpected error compiling %q: %v", tc.pattern, err)
+			continue
+		}
+		actual := re.ReplaceAllStringFunc(tc.input, tc.replacement)
+		if actual != tc.output {
+			t.Errorf("%q.ReplaceFunc(%q,fn) = %q; want %q",
+				tc.pattern, tc.input, actual, tc.output)
+		}
+		// now try bytes
+		actual = string(re.ReplaceAllFunc([]byte(tc.input), func(s []byte) []byte { return []byte(tc.replacement(string(s))) }))
+		if actual != tc.output {
+			t.Errorf("%q.ReplaceFunc(%q,fn) = %q; want %q",
+				tc.pattern, tc.input, actual, tc.output)
 		}
 	}
 }
