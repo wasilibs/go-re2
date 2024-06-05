@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"bytes"
 	"fmt"
 	"runtime"
 	"strconv"
@@ -412,7 +413,7 @@ func (re *Regexp) FindAllSubmatch(b []byte, n int) [][][]byte {
 
 	var matches [][][]byte
 
-	re.findAllSubmatch(&alloc, b, "", cs, n, func(match [][]int) {
+	re.findAllSubmatch(&alloc, b, "", cs, re.numMatches, n, func(match [][]int) {
 		matched := make([][]byte, len(match))
 		for i, m := range match {
 			matched[i] = matchedBytes(b, m)
@@ -435,7 +436,7 @@ func (re *Regexp) FindAllSubmatchIndex(b []byte, n int) [][]int {
 
 	var matches [][]int
 
-	re.findAllSubmatch(&alloc, b, "", cs, n, func(match [][]int) {
+	re.findAllSubmatch(&alloc, b, "", cs, re.numMatches, n, func(match [][]int) {
 		var flat []int
 		for _, m := range match {
 			flat = append(flat, m...)
@@ -460,7 +461,7 @@ func (re *Regexp) FindAllStringSubmatch(s string, n int) [][]string {
 
 	var matches [][]string
 
-	re.findAllSubmatch(&alloc, nil, s, cs, n, func(match [][]int) {
+	re.findAllSubmatch(&alloc, nil, s, cs, re.numMatches, n, func(match [][]int) {
 		matched := make([]string, len(match))
 		for i, m := range match {
 			matched[i] = matchedString(s, m)
@@ -484,7 +485,7 @@ func (re *Regexp) FindAllStringSubmatchIndex(s string, n int) [][]int {
 
 	var matches [][]int
 
-	re.findAllSubmatch(&alloc, nil, s, cs, n, func(match [][]int) {
+	re.findAllSubmatch(&alloc, nil, s, cs, re.numMatches, n, func(match [][]int) {
 		var flat []int
 		for _, m := range match {
 			flat = append(flat, m...)
@@ -497,33 +498,30 @@ func (re *Regexp) FindAllStringSubmatchIndex(s string, n int) [][]int {
 	return res
 }
 
-func (re *Regexp) findAllSubmatch(alloc *allocation, bsrc []byte, src string, cs cString, n int, deliver func(match [][]int)) {
+func (re *Regexp) findAllSubmatch(alloc *allocation, bsrc []byte, src string, cs cString, nmatch, n int, deliver func(match [][]int)) {
 	if n < 0 {
 		n = cs.length + 1
 	}
 
-	numGroups := re.numMatches
-	matchArr := alloc.newCStringArray(numGroups)
+	matchArr := alloc.newCStringArray(nmatch)
 	defer matchArr.free()
 
 	count := 0
 	prevMatchEnd := -1
 	pos := 0
 	for pos < cs.length+1 {
-		if !matchFrom(re, cs, pos, matchArr.ptr, uint32(numGroups)) {
+		if !matchFrom(re, cs, pos, matchArr.ptr, uint32(nmatch)) {
 			break
 		}
 
 		var matches [][]int
 		accept := true
-		readMatches(alloc, cs, matchArr.ptr, numGroups, func(match []int) {
+		readMatches(alloc, cs, matchArr.ptr, nmatch, func(match []int) {
 			if len(matches) == 0 {
 				// First match, check if it's an empty match following a match, which we ignore.
 				// TODO: Don't iterate further when ignoring.
-				if match[0] == match[1] {
-					if match[0] == prevMatchEnd {
-						accept = false
-					}
+				if match[0] == match[1] && match[0] == prevMatchEnd {
+					accept = false
 				}
 				// Advance past this match; always advance at least one character.
 				var width int
@@ -819,8 +817,13 @@ func (re *Regexp) ReplaceAll(src, repl []byte) []byte {
 
 	cs := alloc.newCStringFromBytes(src)
 
+	n := 2
+	if bytes.IndexByte(repl, '$') >= 0 {
+		n = re.numMatches
+	}
+
 	srepl := ""
-	b := re.replaceAll(&alloc, src, "", cs, func(dst []byte, m []int) []byte {
+	b := re.replaceAll(&alloc, src, "", cs, n, func(dst []byte, m []int) []byte {
 		if len(srepl) != len(repl) {
 			srepl = string(repl)
 		}
@@ -839,7 +842,7 @@ func (re *Regexp) ReplaceAllFunc(src []byte, repl func([]byte) []byte) []byte {
 
 	cs := alloc.newCStringFromBytes(src)
 
-	return re.replaceAll(&alloc, src, "", cs, func(dst []byte, m []int) []byte {
+	return re.replaceAll(&alloc, src, "", cs, 2, func(dst []byte, m []int) []byte {
 		return append(dst, repl(src[m[0]:m[1]])...)
 	})
 }
@@ -853,7 +856,7 @@ func (re *Regexp) ReplaceAllLiteral(src, repl []byte) []byte {
 
 	cs := alloc.newCStringFromBytes(src)
 
-	return re.replaceAll(&alloc, src, "", cs, func(dst []byte, m []int) []byte {
+	return re.replaceAll(&alloc, src, "", cs, 2, func(dst []byte, m []int) []byte {
 		return append(dst, repl...)
 	})
 }
@@ -867,7 +870,7 @@ func (re *Regexp) ReplaceAllLiteralString(src, repl string) string {
 
 	cs := alloc.newCString(src)
 
-	b := re.replaceAll(&alloc, nil, src, cs, func(dst []byte, m []int) []byte {
+	b := re.replaceAll(&alloc, nil, src, cs, 2, func(dst []byte, m []int) []byte {
 		return append(dst, repl...)
 	})
 
@@ -883,7 +886,12 @@ func (re *Regexp) ReplaceAllString(src, repl string) string {
 
 	cs := alloc.newCString(src)
 
-	b := re.replaceAll(&alloc, nil, src, cs, func(dst []byte, m []int) []byte {
+	n := 2
+	if strings.Contains(repl, "$") {
+		n = re.numMatches
+	}
+
+	b := re.replaceAll(&alloc, nil, src, cs, n, func(dst []byte, m []int) []byte {
 		return re.expand(dst, repl, nil, src, m)
 	})
 
@@ -900,21 +908,21 @@ func (re *Regexp) ReplaceAllStringFunc(src string, repl func(string) string) str
 
 	cs := alloc.newCString(src)
 
-	b := re.replaceAll(&alloc, nil, src, cs, func(dst []byte, m []int) []byte {
+	b := re.replaceAll(&alloc, nil, src, cs, 2, func(dst []byte, m []int) []byte {
 		return append(dst, repl(src[m[0]:m[1]])...)
 	})
 
 	return string(b)
 }
 
-func (re *Regexp) replaceAll(alloc *allocation, bsrc []byte, src string, cs cString, repl func(dst []byte, m []int) []byte) []byte {
+func (re *Regexp) replaceAll(alloc *allocation, bsrc []byte, src string, cs cString, nmatch int, repl func(dst []byte, m []int) []byte) []byte {
 	lastMatchEnd := 0
 	var buf []byte
 
 	// TODO: Switch to deliver a flattened match array from findAllSubmatch in all cases
 	// instead of flattening here.
 	var abuf []int
-	re.findAllSubmatch(alloc, bsrc, src, cs, -1, func(matches [][]int) {
+	re.findAllSubmatch(alloc, bsrc, src, cs, nmatch, -1, func(matches [][]int) {
 		a := abuf[:0]
 		for _, m := range matches {
 			a = append(a, m[0], m[1])
