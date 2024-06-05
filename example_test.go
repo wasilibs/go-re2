@@ -2,6 +2,7 @@ package re2_test
 
 import (
 	"fmt"
+	"strings"
 
 	regexp "github.com/wasilibs/go-re2"
 )
@@ -255,13 +256,12 @@ func ExampleRegexp_ReplaceAllString() {
 	// -W-xxW-
 }
 
-// GAP: We cannot pass callback functions to re2
-//func ExampleRegexp_ReplaceAllStringFunc() {
-//	re := regexp.MustCompile(`[^aeiou]`)
-//	fmt.Println(re.ReplaceAllStringFunc("seafood fool", strings.ToUpper))
-//	// Output:
-//	// SeaFooD FooL
-//}
+func ExampleRegexp_ReplaceAllStringFunc() {
+	re := regexp.MustCompile(`[^aeiou]`)
+	fmt.Println(re.ReplaceAllStringFunc("seafood fool", strings.ToUpper))
+	// Output:
+	// SeaFooD FooL
+}
 
 func ExampleRegexp_SubexpNames() {
 	re := regexp.MustCompile(`(?P<first>[a-zA-Z]+) (?P<last>[a-zA-Z]+)`)
