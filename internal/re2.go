@@ -899,6 +899,7 @@ func (re *Regexp) replaceAll(alloc *allocation, bsrc []byte, src string, cs cStr
 			buf = repl(buf, a)
 		}
 		lastMatchEnd = a[1]
+		abuf = a
 	})
 
 	if bsrc != nil {
