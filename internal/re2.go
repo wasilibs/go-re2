@@ -508,10 +508,9 @@ func (re *Regexp) findAllSubmatch(alloc *allocation, bsrc []byte, src string, cs
 
 		var matches []int
 		accept := true
-		readMatches(alloc, cs, matchArr.ptr, nmatch, func(match []int) {
+		readMatches(alloc, cs, matchArr.ptr, nmatch, func(match []int) bool {
 			if len(matches) == 0 {
 				// First match, check if it's an empty match following a match, which we ignore.
-				// TODO: Don't iterate further when ignoring.
 				if match[0] == match[1] && match[0] == prevMatchEnd {
 					accept = false
 				}
@@ -534,7 +533,12 @@ func (re *Regexp) findAllSubmatch(alloc *allocation, bsrc []byte, src string, cs
 				}
 				prevMatchEnd = match[1]
 			}
-			matches = append(matches, match...)
+			if accept {
+				matches = append(matches, match...)
+				return true
+			} else {
+				return false
+			}
 		})
 		if accept {
 			deliver(matches)
@@ -564,8 +568,9 @@ func (re *Regexp) FindSubmatch(b []byte) [][]byte {
 
 	var matches [][]byte
 
-	re.findSubmatch(&alloc, cs, func(match []int) {
+	re.findSubmatch(&alloc, cs, func(match []int) bool {
 		matches = append(matches, matchedBytes(b, match))
+		return true
 	})
 
 	return matches
@@ -584,8 +589,9 @@ func (re *Regexp) FindSubmatchIndex(b []byte) []int {
 
 	var matches []int
 
-	re.findSubmatch(&alloc, cs, func(match []int) {
+	re.findSubmatch(&alloc, cs, func(match []int) bool {
 		matches = append(matches, match...)
+		return true
 	})
 
 	res := matches
@@ -601,8 +607,9 @@ func (re *Regexp) FindStringSubmatch(s string) []string {
 
 	var matches []string
 
-	re.findSubmatch(&alloc, cs, func(match []int) {
+	re.findSubmatch(&alloc, cs, func(match []int) bool {
 		matches = append(matches, matchedString(s, match))
+		return true
 	})
 
 	return matches
@@ -621,8 +628,9 @@ func (re *Regexp) FindStringSubmatchIndex(s string) []int {
 
 	var matches []int
 
-	re.findSubmatch(&alloc, cs, func(match []int) {
+	re.findSubmatch(&alloc, cs, func(match []int) bool {
 		matches = append(matches, match...)
+		return true
 	})
 
 	res := matches
@@ -630,7 +638,7 @@ func (re *Regexp) FindStringSubmatchIndex(s string) []int {
 	return res
 }
 
-func (re *Regexp) findSubmatch(alloc *allocation, cs cString, deliver func(match []int)) {
+func (re *Regexp) findSubmatch(alloc *allocation, cs cString, deliver func(match []int) bool) {
 	numGroups := re.numMatches
 	matchArr := alloc.newCStringArray(numGroups)
 	defer matchArr.free()

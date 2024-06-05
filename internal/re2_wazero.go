@@ -361,19 +361,23 @@ func readMatch(alloc *allocation, cs cString, matchPtr wasmPtr, dstCap []int) []
 	return append(dstCap, int(sIdx), int(sIdx+sLen))
 }
 
-func readMatches(alloc *allocation, cs cString, matchesPtr wasmPtr, n int, deliver func([]int)) {
+func readMatches(alloc *allocation, cs cString, matchesPtr wasmPtr, n int, deliver func([]int) bool) {
 	var dstCap [2]int
 
 	matchesBuf := alloc.read(matchesPtr, 8*n)
 	for i := 0; i < n; i++ {
 		subStrPtr := uint32(binary.LittleEndian.Uint32(matchesBuf[8*i:]))
 		if subStrPtr == 0 {
-			deliver(append(dstCap[:0], -1, -1))
+			if !deliver(append(dstCap[:0], -1, -1)) {
+				break
+			}
 			continue
 		}
 		sLen := uint32(binary.LittleEndian.Uint32(matchesBuf[8*i+4:]))
 		sIdx := subStrPtr - uint32(cs.ptr)
-		deliver(append(dstCap[:0], int(sIdx), int(sIdx+sLen)))
+		if !deliver(append(dstCap[:0], int(sIdx), int(sIdx+sLen))) {
+			break
+		}
 	}
 }
 
