@@ -159,11 +159,13 @@ func readMatch(_ *allocation, cs cString, matchPtr wasmPtr, dstCap []int) []int 
 	return append(dstCap, int(sIdx), int(sIdx+uintptr(match.length)))
 }
 
-func readMatches(alloc *allocation, cs cString, matchesPtr wasmPtr, n int, deliver func([]int)) {
+func readMatches(alloc *allocation, cs cString, matchesPtr wasmPtr, n int, deliver func([]int) bool) {
 	var dstCap [2]int
 
 	for i := 0; i < n; i++ {
 		dst := readMatch(alloc, cs, wasmPtr(unsafe.Add(unsafe.Pointer(matchesPtr), unsafe.Sizeof(cString{})*uintptr(i))), dstCap[:0])
-		deliver(dst)
+		if !deliver(dst) {
+			break
+		}
 	}
 }
