@@ -412,7 +412,7 @@ func (re *Regexp) FindAllSubmatch(b []byte, n int) [][][]byte {
 
 	var matches [][][]byte
 
-	re.findAllSubmatch(&alloc, cs, n, func(match [][]int) {
+	re.findAllSubmatch(&alloc, b, "", cs, n, func(match [][]int) {
 		matched := make([][]byte, len(match))
 		for i, m := range match {
 			matched[i] = matchedBytes(b, m)
@@ -435,7 +435,7 @@ func (re *Regexp) FindAllSubmatchIndex(b []byte, n int) [][]int {
 
 	var matches [][]int
 
-	re.findAllSubmatch(&alloc, cs, n, func(match [][]int) {
+	re.findAllSubmatch(&alloc, b, "", cs, n, func(match [][]int) {
 		var flat []int
 		for _, m := range match {
 			flat = append(flat, m...)
@@ -460,7 +460,7 @@ func (re *Regexp) FindAllStringSubmatch(s string, n int) [][]string {
 
 	var matches [][]string
 
-	re.findAllSubmatch(&alloc, cs, n, func(match [][]int) {
+	re.findAllSubmatch(&alloc, nil, s, cs, n, func(match [][]int) {
 		matched := make([]string, len(match))
 		for i, m := range match {
 			matched[i] = matchedString(s, m)
@@ -484,7 +484,7 @@ func (re *Regexp) FindAllStringSubmatchIndex(s string, n int) [][]int {
 
 	var matches [][]int
 
-	re.findAllSubmatch(&alloc, cs, n, func(match [][]int) {
+	re.findAllSubmatch(&alloc, nil, s, cs, n, func(match [][]int) {
 		var flat []int
 		for _, m := range match {
 			flat = append(flat, m...)
@@ -497,7 +497,7 @@ func (re *Regexp) FindAllStringSubmatchIndex(s string, n int) [][]int {
 	return res
 }
 
-func (re *Regexp) findAllSubmatch(alloc *allocation, cs cString, n int, deliver func(match [][]int)) {
+func (re *Regexp) findAllSubmatch(alloc *allocation, bsrc []byte, src string, cs cString, n int, deliver func(match [][]int)) {
 	if n < 0 {
 		n = cs.length + 1
 	}
@@ -524,6 +524,20 @@ func (re *Regexp) findAllSubmatch(alloc *allocation, cs cString, n int, deliver 
 					if match[0] == prevMatchEnd {
 						accept = false
 					}
+				}
+				// Advance past this match; always advance at least one character.
+				var width int
+				if bsrc != nil {
+					_, width = utf8.DecodeRune(bsrc[pos:])
+				} else {
+					_, width = utf8.DecodeRuneInString(src[pos:])
+				}
+
+				if pos+width > match[1] {
+					pos += width
+				} else if pos+1 > match[1] {
+					// This clause is only needed at the end of the input
+					// string. In that case, DecodeRuneInString returns width=0.
 					pos++
 				} else {
 					pos = match[1]
@@ -800,96 +814,99 @@ func Release(re *Regexp) {
 // with the replacement text repl. Inside repl, $ signs are interpreted as
 // in Expand, so for instance $1 represents the text of the first submatch.
 func (re *Regexp) ReplaceAll(src, repl []byte) []byte {
-	// TODO: See if it's worth not converting repl to string here, the stdlib does it
-	// so follow suit for now.
-	replRE2 := convertReplacement(string(repl), re.SubexpNames())
-
-	alloc := re.abi.startOperation(len(src) + len(replRE2) + 16)
+	alloc := re.abi.startOperation(len(src) + 8*re.numMatches + 8)
 	defer re.abi.endOperation(alloc)
 
-	srcCSPtr := alloc.newCStringPtrFromBytes(src)
-	defer srcCSPtr.free()
+	cs := alloc.newCStringFromBytes(src)
 
-	res, matched := re.replaceAll(&alloc, srcCSPtr, replRE2)
-	if !matched {
-		return src
-	}
-	return res
+	srepl := ""
+	b := re.replaceAll(&alloc, src, "", cs, func(dst []byte, m []int) []byte {
+		if len(srepl) != len(repl) {
+			srepl = string(repl)
+		}
+		return re.expand(dst, srepl, src, "", m)
+	})
+	return b
 }
 
 // ReplaceAllLiteral returns a copy of src, replacing matches of the Regexp
 // with the replacement bytes repl. The replacement repl is substituted directly,
 // without using Expand.
 func (re *Regexp) ReplaceAllLiteral(src, repl []byte) []byte {
-	replRE2 := []byte(escapeReplacement(string(repl)))
-
-	alloc := re.abi.startOperation(len(src) + len(replRE2) + 16)
+	alloc := re.abi.startOperation(len(src) + 8*re.numMatches + 8)
 	defer re.abi.endOperation(alloc)
 
-	srcCSPtr := alloc.newCStringPtrFromBytes(src)
-	defer srcCSPtr.free()
+	cs := alloc.newCStringFromBytes(src)
 
-	res, matched := re.replaceAll(&alloc, srcCSPtr, replRE2)
-	if !matched {
-		return src
-	}
-
-	return res
+	return re.replaceAll(&alloc, src, "", cs, func(dst []byte, m []int) []byte {
+		return append(dst, repl...)
+	})
 }
 
 // ReplaceAllLiteralString returns a copy of src, replacing matches of the Regexp
 // with the replacement string repl. The replacement repl is substituted directly,
 // without using Expand.
 func (re *Regexp) ReplaceAllLiteralString(src, repl string) string {
-	replRE2 := []byte(escapeReplacement(repl))
-
-	alloc := re.abi.startOperation(len(src) + len(replRE2) + 16)
+	alloc := re.abi.startOperation(len(src) + 8*re.numMatches + 8)
 	defer re.abi.endOperation(alloc)
 
-	srcCSPtr := alloc.newCStringPtr(src)
-	defer srcCSPtr.free()
+	cs := alloc.newCString(src)
 
-	res, matched := re.replaceAll(&alloc, srcCSPtr, replRE2)
-	if !matched {
-		return src
-	}
+	b := re.replaceAll(&alloc, nil, src, cs, func(dst []byte, m []int) []byte {
+		return append(dst, repl...)
+	})
 
-	return string(res)
+	return string(b)
 }
 
 // ReplaceAllString returns a copy of src, replacing matches of the Regexp
 // with the replacement string repl. Inside repl, $ signs are interpreted as
 // in Expand, so for instance $1 represents the text of the first submatch.
 func (re *Regexp) ReplaceAllString(src, repl string) string {
-	replRE2 := convertReplacement(repl, re.SubexpNames())
-
-	alloc := re.abi.startOperation(len(src) + len(replRE2) + 16)
+	alloc := re.abi.startOperation(len(src) + 8*re.numMatches + 8)
 	defer re.abi.endOperation(alloc)
 
-	srcCSPtr := alloc.newCStringPtr(src)
-	defer srcCSPtr.free()
+	cs := alloc.newCString(src)
 
-	res, matched := re.replaceAll(&alloc, srcCSPtr, replRE2)
-	if !matched {
-		return src
-	}
+	b := re.replaceAll(&alloc, nil, src, cs, func(dst []byte, m []int) []byte {
+		return re.expand(dst, repl, nil, src, m)
+	})
 
-	return string(res)
+	return string(b)
 }
 
-func (re *Regexp) replaceAll(alloc *allocation, srcCSPtr pointer, repl []byte) ([]byte, bool) {
-	replCSPtr := alloc.newCStringPtrFromBytes(repl)
-	defer replCSPtr.free()
+func (re *Regexp) replaceAll(alloc *allocation, bsrc []byte, src string, cs cString, repl func(dst []byte, m []int) []byte) []byte {
+	lastMatchEnd := 0
+	var buf []byte
 
-	res, matched := globalReplace(re, srcCSPtr.ptr, replCSPtr.ptr)
+	// TODO: Switch to deliver a flattened match array from findAllSubmatch in all cases
+	// instead of flattening here.
+	re.findAllSubmatch(alloc, bsrc, src, cs, -1, func(matches [][]int) {
+		var a []int
+		for _, m := range matches {
+			a = append(a, m[0], m[1])
+		}
 
-	runtime.KeepAlive(re) // don't allow finalizer to run during method
-	runtime.KeepAlive(repl)
+		// Copy the unmatched characters before this match.
+		if bsrc != nil {
+			buf = append(buf, bsrc[lastMatchEnd:a[0]]...)
+		} else {
+			buf = append(buf, src[lastMatchEnd:a[0]]...)
+		}
 
-	if !matched {
-		return nil, false
+		if a[1] > lastMatchEnd || a[0] == 0 {
+			buf = repl(buf, a)
+		}
+		lastMatchEnd = a[1]
+	})
+
+	if bsrc != nil {
+		buf = append(buf, bsrc[lastMatchEnd:]...)
+	} else {
+		buf = append(buf, src[lastMatchEnd:]...)
 	}
-	return res, true
+
+	return buf
 }
 
 // String returns the source text used to compile the regular expression.
@@ -912,59 +929,6 @@ func subexpNames(abi *libre2ABI, rePtr wasmPtr, numMatches int) []string {
 	}
 
 	return res
-}
-
-// Copied from
-// https://github.com/golang/go/blob/0fd7be7ee5f36215b5d6b8f23f35d60bf749805a/src/regexp/regexp.go#L932
-// except expansion from regex results is replaced with conversion to re2 replacement syntax.
-func convertReplacement(template string, subexpNames []string) []byte {
-	var dst []byte
-
-	template = escapeReplacement(template)
-
-	for len(template) > 0 {
-		before, after, ok := strings.Cut(template, "$")
-		if !ok {
-			break
-		}
-		dst = append(dst, before...)
-		template = after
-		if template != "" && template[0] == '$' {
-			// Treat $$ as $.
-			dst = append(dst, '$')
-			template = template[1:]
-			continue
-		}
-		name, num, rest, ok := extract(template)
-		if !ok {
-			// Malformed; treat $ as raw text.
-			dst = append(dst, '$')
-			continue
-		}
-		template = rest
-		if num < 0 {
-			// Named group. We convert it to its corresponding numbered group. If the same name
-			// is present multiple times, we concatenate all the numbered groups - this means
-			// if one matches, it will be present while the non-matches will be empty. This works
-			// because it is invalid for a regex to have the same name in multiple groups that
-			// can match at the same time.
-			for i, s := range subexpNames {
-				if s != "" && name == s {
-					dst = append(dst, '\\')
-					dst = strconv.AppendUint(dst, uint64(i), 10)
-				}
-			}
-			continue
-		}
-		if num >= len(subexpNames) {
-			// Not present numbered group, drop it.
-			continue
-		}
-		dst = append(dst, '\\')
-		dst = strconv.AppendUint(dst, uint64(num), 10)
-	}
-	dst = append(dst, template...)
-	return dst
 }
 
 // extract returns the name from a leading "name" or "{name}" in str.
@@ -1019,10 +983,6 @@ func extract(str string) (name string, num int, rest string, ok bool) {
 	rest = str[i:]
 	ok = true
 	return
-}
-
-func escapeReplacement(repl string) string {
-	return strings.ReplaceAll(repl, `\`, `\\`)
 }
 
 func matchedBytes(s []byte, match []int) []byte {
