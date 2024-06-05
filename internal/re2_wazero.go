@@ -24,10 +24,7 @@ import (
 	"github.com/wasilibs/go-re2/internal/memory"
 )
 
-var (
-	errFailedWrite = errors.New("failed to read from wasm memory")
-	errFailedRead  = errors.New("failed to read from wasm memory")
-)
+var errFailedRead = errors.New("failed to read from wasm memory")
 
 //go:embed wasm/libcre2.so
 var libre2 []byte
@@ -445,46 +442,6 @@ func namedGroupsIterDelete(abi *libre2ABI, iterPtr wasmPtr) {
 	}
 }
 
-func globalReplace(re *Regexp, textAndTargetPtr wasmPtr, rewritePtr wasmPtr) ([]byte, bool) {
-	ctx := context.Background()
-
-	res, err := re.abi.cre2GlobalReplace.Call3(ctx, uint64(re.ptr), uint64(textAndTargetPtr), uint64(rewritePtr))
-	if err != nil {
-		panic(err)
-	}
-
-	if int64(res) == -1 {
-		panic("out of memory")
-	}
-
-	// cre2 will allocate even when no matches, make sure to free before
-	// checking result.
-	strPtr, ok := wasmMemory.ReadUint32Le(uint32(textAndTargetPtr))
-	if !ok {
-		panic(errFailedRead)
-	}
-	// This was malloc'd by cre2, so free it
-	defer free(re.abi, wasmPtr(strPtr))
-
-	if res == 0 {
-		// No replacements
-		return nil, false
-	}
-
-	strLen, ok := wasmMemory.ReadUint32Le(uint32(textAndTargetPtr + 4))
-	if !ok {
-		panic(errFailedRead)
-	}
-
-	str, ok := wasmMemory.Read(strPtr, strLen)
-	if !ok {
-		panic(errFailedRead)
-	}
-
-	// Read returns a view, so make sure to copy it
-	return append([]byte{}, str...), true
-}
-
 type cString struct {
 	ptr    wasmPtr
 	length int
@@ -495,14 +452,6 @@ type cStringArray struct {
 }
 
 func (a cStringArray) free() {
-	// We pool allocation and don't need to explicitly free.
-}
-
-type pointer struct {
-	ptr wasmPtr
-}
-
-func (p pointer) free() {
 	// We pool allocation and don't need to explicitly free.
 }
 
@@ -585,30 +534,6 @@ func (a *allocation) newCStringFromBytes(s []byte) cString {
 		ptr:    ptr,
 		length: len(s),
 	}
-}
-
-func (a *allocation) newCStringPtr(s string) pointer {
-	cs := a.newCString(s)
-	ptr := a.allocate(8)
-	if !wasmMemory.WriteUint32Le(uint32(ptr), uint32(cs.ptr)) {
-		panic(errFailedWrite)
-	}
-	if !wasmMemory.WriteUint32Le(uint32(ptr+4), uint32(cs.length)) {
-		panic(errFailedWrite)
-	}
-	return pointer{ptr: ptr}
-}
-
-func (a *allocation) newCStringPtrFromBytes(s []byte) pointer {
-	cs := a.newCStringFromBytes(s)
-	ptr := a.allocate(8)
-	if !wasmMemory.WriteUint32Le(uint32(ptr), uint32(cs.ptr)) {
-		panic(errFailedWrite)
-	}
-	if !wasmMemory.WriteUint32Le(uint32(ptr+4), uint32(cs.length)) {
-		panic(errFailedWrite)
-	}
-	return pointer{ptr: ptr}
 }
 
 func (a *allocation) newCStringArray(n int) cStringArray {

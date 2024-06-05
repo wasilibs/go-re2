@@ -4,7 +4,6 @@ package internal
 
 import (
 	"reflect"
-	"runtime"
 	"unsafe"
 
 	"github.com/wasilibs/go-re2/internal/cre2"
@@ -108,33 +107,6 @@ func (*allocation) newCStringFromBytes(s []byte) cString {
 	return res
 }
 
-func (a *allocation) newCStringPtr(s string) pointer {
-	if len(s) == 0 {
-		// TinyGo uses a null pointer to represent an empty string, but this
-		// prevents us from distinguishing a match on the empty string vs no
-		// match for subexpressions. So we replace with an empty-length slice
-		// to a string that isn't null.
-		s = "a"[0:0]
-	}
-	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
-	csPtr := cre2.Malloc(int(unsafe.Sizeof(cString{})))
-	cs := (*cString)(csPtr)
-	cs.ptr = unsafe.Pointer(sh.Data)
-	cs.length = int(sh.Len)
-	runtime.KeepAlive(s)
-	return pointer{ptr: wasmPtr(csPtr)}
-}
-
-func (a *allocation) newCStringPtrFromBytes(s []byte) pointer {
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&s))
-	csPtr := cre2.Malloc(int(unsafe.Sizeof(cString{})))
-	cs := (*cString)(csPtr)
-	cs.ptr = unsafe.Pointer(sh.Data)
-	cs.length = int(sh.Len)
-	runtime.KeepAlive(s)
-	return pointer{ptr: wasmPtr(csPtr)}
-}
-
 func (a *allocation) newCStringArray(n int) cStringArray {
 	sz := int(unsafe.Sizeof(cString{})) * n
 	ptr := cre2.Malloc(sz)
@@ -148,14 +120,6 @@ func (a *allocation) newCStringArray(n int) cStringArray {
 type cString struct {
 	ptr    unsafe.Pointer
 	length int
-}
-
-type pointer struct {
-	ptr wasmPtr
-}
-
-func (p pointer) free() {
-	cre2.Free(unsafe.Pointer(p.ptr))
 }
 
 type cStringArray struct {
@@ -183,24 +147,6 @@ func namedGroupsIterNext(_ *libre2ABI, iterPtr wasmPtr) (string, int, bool) {
 
 func namedGroupsIterDelete(_ *libre2ABI, iterPtr wasmPtr) {
 	cre2.NamedGroupsIterDelete(unsafe.Pointer(iterPtr))
-}
-
-func globalReplace(re *Regexp, textAndTargetPtr wasmPtr, rewritePtr wasmPtr) ([]byte, bool) {
-	// cre2 will allocate even when no matches, make sure to free before
-	// checking result.
-	res := cre2.GlobalReplace(unsafe.Pointer(re.ptr), unsafe.Pointer(textAndTargetPtr), unsafe.Pointer(rewritePtr))
-
-	textAndTarget := (*cString)(textAndTargetPtr)
-	// This was malloc'd by cre2, so free it
-	defer cre2.Free(textAndTarget.ptr)
-
-	if !res {
-		// No replacements
-		return nil, false
-	}
-
-	// content of buf will be free'd, so copy it
-	return cre2.CopyCBytes(textAndTarget.ptr, textAndTarget.length), true
 }
 
 func readMatch(_ *allocation, cs cString, matchPtr wasmPtr, dstCap []int) []int {
