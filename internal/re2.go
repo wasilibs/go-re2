@@ -881,8 +881,9 @@ func (re *Regexp) replaceAll(alloc *allocation, bsrc []byte, src string, cs cStr
 
 	// TODO: Switch to deliver a flattened match array from findAllSubmatch in all cases
 	// instead of flattening here.
+	var abuf []int
 	re.findAllSubmatch(alloc, bsrc, src, cs, -1, func(matches [][]int) {
-		var a []int
+		a := abuf[:0]
 		for _, m := range matches {
 			a = append(a, m[0], m[1])
 		}
