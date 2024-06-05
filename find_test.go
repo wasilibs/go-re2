@@ -103,6 +103,11 @@ var findTests = []FindTest{
 	{`(?i)\W`, "k", nil},
 	{`(?i)\W`, "s", nil},
 
+	// Multibyte characters -- verify that we don't try to match in the middle
+	// of a character.
+	{"[a-c]*", "\u65e5", build(2, 0, 0, 3, 3)},
+	{"[^\u65e5]", "abc\u65e5def", build(6, 0, 1, 1, 2, 2, 3, 6, 7, 7, 8, 8, 9)},
+
 	// can backslash-escape any punctuation
 	{
 		`\!\"\#\$\%\&\'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\@\[\\\]\^\_\{\|\}\~`,
