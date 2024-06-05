@@ -286,7 +286,7 @@ func (re *Regexp) FindAll(b []byte, n int) [][]byte {
 
 	var matches [][]byte
 
-	re.findAll(&alloc, cs, n, func(match []int) {
+	re.findAll(&alloc, b, "", cs, n, func(match []int) {
 		matches = append(matches, matchedBytes(b, match))
 	})
 
@@ -305,7 +305,7 @@ func (re *Regexp) FindAllIndex(b []byte, n int) [][]int {
 
 	var matches [][]int
 
-	re.findAll(&alloc, cs, n, func(match []int) {
+	re.findAll(&alloc, b, "", cs, n, func(match []int) {
 		matches = append(matches, append([]int(nil), match...))
 	})
 
@@ -326,7 +326,7 @@ func (re *Regexp) FindAllString(s string, n int) []string {
 
 	var matches []string
 
-	re.findAll(&alloc, cs, n, func(match []int) {
+	re.findAll(&alloc, nil, s, cs, n, func(match []int) {
 		matches = append(matches, matchedString(s, match))
 	})
 
@@ -345,7 +345,7 @@ func (re *Regexp) FindAllStringIndex(s string, n int) [][]int {
 
 	var matches [][]int
 
-	re.findAll(&alloc, cs, n, func(match []int) {
+	re.findAll(&alloc, nil, s, cs, n, func(match []int) {
 		matches = append(matches, append([]int(nil), match...))
 	})
 
@@ -354,7 +354,7 @@ func (re *Regexp) FindAllStringIndex(s string, n int) [][]int {
 	return res
 }
 
-func (re *Regexp) findAll(alloc *allocation, cs cString, n int, deliver func(match []int)) {
+func (re *Regexp) findAll(alloc *allocation, bsrc []byte, src string, cs cString, n int, deliver func(match []int)) {
 	var dstCap [2]int
 
 	if n < 0 {
@@ -372,24 +372,22 @@ func (re *Regexp) findAll(alloc *allocation, cs cString, n int, deliver func(mat
 			break
 		}
 
-		matches := readMatch(alloc, cs, matchArr.ptr, dstCap[:0])
+		match := readMatch(alloc, cs, matchArr.ptr, dstCap[:0])
 		accept := true
-		if matches[0] == matches[1] {
-			// We've found an empty match.
-			if matches[0] == prevMatchEnd {
-				// We don't allow an empty match right
-				// after a previous match, so ignore it.
-				accept = false
-			}
-			pos++
-		} else {
-			pos = matches[1]
+		// Check if it's an empty match following a match, which we ignore.
+		if match[0] == match[1] && match[0] == prevMatchEnd {
+			// We don't allow an empty match right
+			// after a previous match, so ignore it.
+			accept = false
 		}
+
+		pos = nextPos(bsrc, src, pos, match[1])
+
 		if accept {
-			deliver(matches)
+			deliver(match)
 			count++
 		}
-		prevMatchEnd = matches[1]
+		prevMatchEnd = match[1]
 
 		if count == n {
 			break
@@ -514,23 +512,8 @@ func (re *Regexp) findAllSubmatch(alloc *allocation, bsrc []byte, src string, cs
 				if match[0] == match[1] && match[0] == prevMatchEnd {
 					accept = false
 				}
-				// Advance past this match; always advance at least one character.
-				var width int
-				if bsrc != nil {
-					_, width = utf8.DecodeRune(bsrc[pos:])
-				} else {
-					_, width = utf8.DecodeRuneInString(src[pos:])
-				}
 
-				if pos+width > match[1] {
-					pos += width
-				} else if pos+1 > match[1] {
-					// This clause is only needed at the end of the input
-					// string. In that case, DecodeRuneInString returns width=0.
-					pos++
-				} else {
-					pos = match[1]
-				}
+				pos = nextPos(bsrc, src, pos, match[1])
 				prevMatchEnd = match[1]
 			}
 			if accept {
@@ -1030,6 +1013,26 @@ func matchedString(s string, match []int) string {
 		return ""
 	}
 	return s[match[0]:match[1]]
+}
+
+func nextPos(bsrc []byte, src string, pos int, matchEnd int) int {
+	// Advance past the match; always advance at least one character.
+	var width int
+	if bsrc != nil {
+		_, width = utf8.DecodeRune(bsrc[pos:])
+	} else {
+		_, width = utf8.DecodeRuneInString(src[pos:])
+	}
+
+	if pos+width > matchEnd {
+		return pos + width
+	} else if pos+1 > matchEnd {
+		// This clause is only needed at the end of the input
+		// string. In that case, DecodeRuneInString returns width=0.
+		return pos + 1
+	} else {
+		return matchEnd
+	}
 }
 
 func QuoteForError(s string) string {
