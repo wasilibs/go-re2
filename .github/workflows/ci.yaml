@@ -85,6 +85,29 @@ jobs:
           # Windows runner seems to not have enough CPU performance to keep up without a memory limit
           GOMEMLIMIT: ${{ github.event_name != 'pull_request' && '1GiB' || '' }}
 
+  test-bsd:
+      runs-on: ubuntu-latest
+
+      steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
+      - name: Build
+        run: go test -c .
+        env:
+          GOOS: freebsd
+
+      - name: Test
+        uses: cross-platform-actions/action@v0.24.0
+        with:
+          operating_system: freebsd
+          version: '14.0'
+          shell: bash
+          run: go-re2.test -test.v -short
+          sync_files: runner-to-vm
+
   # Runs tests using wazero inside a minimal golang docker image. This makes sure the code builds
   # even when there is no C toolchain available. It is possible for code to work fine with CGO_ENABLED=0
   # but not build without a C toolchain available, e.g. if C source files are checked into the repo
