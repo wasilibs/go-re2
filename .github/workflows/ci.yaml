@@ -105,7 +105,7 @@ jobs:
           operating_system: freebsd
           version: '14.0'
           shell: bash
-          run: go-re2.test -test.v -short
+          run: ./go-re2.test -test.v -short
           sync_files: runner-to-vm
 
   # Runs tests using wazero inside a minimal golang docker image. This makes sure the code builds
