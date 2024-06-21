@@ -3,7 +3,7 @@ module github.com/wasilibs/go-re2
 go 1.20
 
 require (
-	github.com/tetratelabs/wazero v1.7.2
+	github.com/tetratelabs/wazero v1.7.3
 	github.com/wasilibs/nottinygc v0.4.0
 	golang.org/x/sys v0.21.0
 )
