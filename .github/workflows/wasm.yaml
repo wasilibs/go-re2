@@ -31,7 +31,7 @@ jobs:
     
       - uses: actions/checkout@v4
         with:
-          token: ${{ github.event_name != 'pull_request' && steps.app-token.outputs.token || null }}
+          token: ${{ github.event_name != 'pull_request' && steps.app-token.outputs.token || github.token }}
           persist-credentials: false
 
       - uses: actions/setup-go@v5
