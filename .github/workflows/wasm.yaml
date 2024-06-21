@@ -42,6 +42,8 @@ jobs:
       - name: generate memory.wasm
         run: go run github.com/wasilibs/go-wabt/cmd/wat2wasm@face6b1 --enable-threads -o internal/wasm/memory.wasm internal/wasm/memory.wat
 
+      - run: go run mage test
+
       - uses: actions/attest-build-provenance@v1
         if: github.event_name != 'pull_request'
         with:
