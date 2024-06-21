@@ -68,7 +68,6 @@ RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     -Wl,--export=cre2_named_groups_iter_new \
     -Wl,--export=cre2_named_groups_iter_next \
     -Wl,--export=cre2_named_groups_iter_delete \
-    -Wl,--export=cre2_global_replace_re \
     -Wl,--export=__wasm_init_tls \
     -Wl,--export=__stack_pointer \
     -Wl,--export=__tls_base \
