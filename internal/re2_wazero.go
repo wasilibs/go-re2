@@ -54,7 +54,6 @@ type libre2ABI struct {
 	cre2NamedGroupsIterNew    lazyFunction
 	cre2NamedGroupsIterNext   lazyFunction
 	cre2NamedGroupsIterDelete lazyFunction
-	cre2GlobalReplace         lazyFunction
 	cre2OptNew                lazyFunction
 	cre2OptDelete             lazyFunction
 	cre2OptSetLongestMatch    lazyFunction
@@ -215,7 +214,6 @@ func newABI() *libre2ABI {
 		cre2NamedGroupsIterNew:    newLazyFunction("cre2_named_groups_iter_new"),
 		cre2NamedGroupsIterNext:   newLazyFunction("cre2_named_groups_iter_next"),
 		cre2NamedGroupsIterDelete: newLazyFunction("cre2_named_groups_iter_delete"),
-		cre2GlobalReplace:         newLazyFunction("cre2_global_replace_re"),
 		cre2OptNew:                newLazyFunction("cre2_opt_new"),
 		cre2OptDelete:             newLazyFunction("cre2_opt_delete"),
 		cre2OptSetLongestMatch:    newLazyFunction("cre2_opt_set_longest_match"),
