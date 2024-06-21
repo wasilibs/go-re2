@@ -1,4 +1,4 @@
-name: Build Wasm
+name: Wasm
 on:
   pull_request:
     branches:
@@ -19,7 +19,7 @@ permissions:
   attestations: write
 
 jobs:
-  bench:
+  build:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/create-github-app-token@v1
