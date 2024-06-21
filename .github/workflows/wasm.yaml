@@ -27,7 +27,7 @@ jobs:
         if: github.event_name != 'pull_request'
         with:
           app-id: ${{ vars.WASILIBS_APP_ID }}
-          private-key: ${{ secrets.WASILIBS_PRIVATE_KEY }}
+          private-key: ${{ secrets.WASILIBS_APP_PRIVATE_KEY }}
     
       - uses: actions/checkout@v4
         with:
