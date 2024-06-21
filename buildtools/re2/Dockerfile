@@ -70,9 +70,7 @@ RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     -Wl,--export=cre2_named_groups_iter_delete \
     -Wl,--export=__wasm_init_tls \
     -Wl,--export=__stack_pointer \
-    -Wl,--export=__tls_base \
-    -Wl,--export=__tls_align \
-    -Wl,--export=__tls_size
+    -Wl,--export=__tls_base
 
 RUN wasm-opt -o libcre2.so --low-memory-unused --flatten --rereloop --converge -O3 libcre2-noopt.so
 
