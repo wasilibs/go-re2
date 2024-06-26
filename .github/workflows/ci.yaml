@@ -31,8 +31,8 @@ jobs:
           - os: macos-14
             mode: tinygo
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5
         with:
           go-version-file: go.work
 
@@ -44,7 +44,7 @@ jobs:
         run: brew install re2
       - name: setup msys2 for cgo (windows)
         if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'cgo' }}
-        uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@d0e80f58dffbc64f6a3a1f43527d469b4fc7b6c8 # v2
         with:
           update: true
           # This version of go is not sync with setup-go, but this is probably the best we can do
@@ -52,7 +52,7 @@ jobs:
 
       - name: setup tinygo
         if: ${{ matrix.mode == 'tinygo' }}
-        uses: acifani/setup-tinygo@v1
+        uses: acifani/setup-tinygo@6e428a5b0ce2a2c806818b3891fc6530b8db6e33 # v1
         with:
           tinygo-version: 0.31.2
       - name: setup wasmtime for tinygo
@@ -89,8 +89,8 @@ jobs:
       runs-on: ubuntu-latest
 
       steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5
         with:
           go-version-file: go.work
 
@@ -100,7 +100,7 @@ jobs:
           GOOS: freebsd
 
       - name: Test
-        uses: cross-platform-actions/action@v0.24.0
+        uses: cross-platform-actions/action@0eaba0c982c4946c2410055c694efaeaa8cf33e0 # v0.24.0
         with:
           operating_system: freebsd
           version: '14.0'
@@ -117,7 +117,7 @@ jobs:
     container:
       image: golang:alpine
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 321; fi
 
