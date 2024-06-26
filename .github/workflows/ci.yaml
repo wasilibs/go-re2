@@ -52,7 +52,7 @@ jobs:
 
       - name: setup tinygo
         if: ${{ matrix.mode == 'tinygo' }}
-        uses: acifani/setup-tinygo@6e428a5b0ce2a2c806818b3891fc6530b8db6e33 # v1
+        uses: acifani/setup-tinygo@b2ba42b249c7d3efdfe94166ec0f48b3191404f7 # v1
         with:
           tinygo-version: 0.31.2
       - name: setup wasmtime for tinygo
