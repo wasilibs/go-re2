@@ -52,7 +52,7 @@ jobs:
 
       - name: setup tinygo
         if: ${{ matrix.mode == 'tinygo' }}
-        uses: acifani/setup-tinygo@6e428a5b0ce2a2c806818b3891fc6530b8db6e33 # v1
+        uses: acifani/setup-tinygo@b2ba42b249c7d3efdfe94166ec0f48b3191404f7 # v1
         with:
           tinygo-version: 0.31.2
       - name: setup wasmtime for tinygo
@@ -100,7 +100,7 @@ jobs:
           GOOS: freebsd
 
       - name: Test
-        uses: cross-platform-actions/action@0eaba0c982c4946c2410055c694efaeaa8cf33e0 # v0.24.0
+        uses: cross-platform-actions/action@b2e15da1e667187766fff4945d20b98ac7055576 # v0.24.0
         with:
           operating_system: freebsd
           version: '14.0'
