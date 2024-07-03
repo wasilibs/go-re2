@@ -19,9 +19,7 @@ import (
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/experimental"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
-
-	"github.com/wasilibs/go-re2/internal/alloc"
-	"github.com/wasilibs/go-re2/internal/memory"
+	"github.com/wasilibs/wazero-helpers/allocator"
 )
 
 var errFailedRead = errors.New("failed to read from wasm memory")
@@ -154,19 +152,11 @@ func putChildModule(cm *childModule) {
 
 func init() {
 	ctx := context.Background()
+	ctx = experimental.WithMemoryAllocator(ctx, allocator.NewNonMoving())
 
 	rtCfg := wazero.NewRuntimeConfig().WithCoreFeatures(api.CoreFeaturesV2 | experimental.CoreFeaturesThreads)
 
 	maxPages := defaultMaxPages
-	if a := alloc.Allocator(); a != nil {
-		ctx = experimental.WithMemoryAllocator(ctx, a)
-	} else if m := memory.TotalMemory(); m != 0 {
-		pages := uint32(m / 65536) // Divide by WASM page size
-		if pages < maxPages {
-			maxPages = pages
-		}
-	}
-
 	if unsafe.Sizeof(uintptr(0)) < 8 {
 		// On a 32-bit system. anything close to 4GB will fail (part of 4GB is already used by the rest of the process).
 		// We go ahead and cap to 1GB to to be extra conservative. It will be using interpreter mode anyways so either
