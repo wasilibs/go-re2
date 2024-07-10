@@ -91,6 +91,7 @@ On Windows start by installing [MSYS2][8]. Then open the MINGW64 terminal and in
 ```bash
 pacman -S mingw-w64-x86_64-gcc
 pacman -S mingw-w64-x86_64-re2
+pacman -S mingw-w64-x86_64-pkg-config
 ```
 If you want to run the resulting exe program outside the MINGW64 terminal you need to add a path to the MinGW-w64 libraries to the PATH environmental variable (adjust as needed for your system):
 
