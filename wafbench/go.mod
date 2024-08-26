@@ -2,8 +2,6 @@ module github.com/wasilibs/go-re2/wafbench
 
 go 1.21
 
-toolchain go1.23.0
-
 require (
 	github.com/bmatcuk/doublestar/v4 v4.4.0
 	github.com/corazawaf/coraza/v3 v3.0.0-20221129120302-63a49c8b1723
