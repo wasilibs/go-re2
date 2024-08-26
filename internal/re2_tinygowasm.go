@@ -90,7 +90,7 @@ func (*allocation) newCString(s string) cString {
 		s = "a"[0:0]
 	}
 	res := cString{
-		ptr:    unsafe.StringData(s),
+		ptr:    unsafe.Pointer(unsafe.StringData(s)),
 		length: len(s),
 	}
 	return res
@@ -98,7 +98,7 @@ func (*allocation) newCString(s string) cString {
 
 func (*allocation) newCStringFromBytes(s []byte) cString {
 	res := cString{
-		ptr:    unsafe.SliceData(s),
+		ptr:    unsafe.Pointer(unsafe.SliceData(s)),
 		length: len(s),
 	}
 	return res
