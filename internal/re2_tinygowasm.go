@@ -90,8 +90,8 @@ func (*allocation) newCString(s string) cString {
 		s = "a"[0:0]
 	}
 	res := cString{
-		ptr:    unsafe.StringData(s)
-		length: len(s)
+		ptr:    unsafe.StringData(s),
+		length: len(s),
 	}
 	return res
 }
