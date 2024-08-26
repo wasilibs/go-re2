@@ -17,6 +17,9 @@ jobs:
       - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5
         with:
           go-version-file: go.work
+          cache-dependency-path: |
+            **/go.sum
+            magefiles/versions.go
 
       - name: setup re2 for cgo
         run: sudo apt-get update && sudo apt-get install -y libre2-dev

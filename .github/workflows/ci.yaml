@@ -34,7 +34,11 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
       - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5
         with:
-          go-version-file: go.work
+          # TODO: Split lint step to allow it to have a higher minimum Go requirement.
+          go-version: '^1.22'
+          cache-dependency-path: |
+            **/go.sum
+            magefiles/versions.go
 
       - name: setup re2 for cgo (linux)
         if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.mode == 'cgo' }}
@@ -54,7 +58,7 @@ jobs:
         if: ${{ matrix.mode == 'tinygo' }}
         uses: acifani/setup-tinygo@b2ba42b249c7d3efdfe94166ec0f48b3191404f7 # v1
         with:
-          tinygo-version: 0.31.2
+          tinygo-version: 0.33.0
       - name: setup wasmtime for tinygo
         if: ${{ matrix.mode == 'tinygo' }}
         run: go install github.com/wasilibs/tools/cmd/wasmtime@875fe73f677c58d467ee373a9e00e6cb66b268f3
@@ -93,6 +97,9 @@ jobs:
       - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5
         with:
           go-version-file: go.work
+          cache-dependency-path: |
+            **/go.sum
+            magefiles/versions.go
 
       - name: Build
         run: go test -c .

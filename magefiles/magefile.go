@@ -58,7 +58,7 @@ func Test() error {
 		return nil
 	}
 
-	return sh.RunV("tinygo", "test", "-scheduler=none", "-gc=custom", "-target=wasi", "-v", "-tags", buildTags(), "./...")
+	return sh.RunV("tinygo", "test", "-scheduler=none", "-gc=custom", "-target=wasip1", "-v", "-tags", buildTags(), "./...")
 }
 
 func Format() error {

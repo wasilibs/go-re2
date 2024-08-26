@@ -3,7 +3,6 @@
 package internal
 
 import (
-	"reflect"
 	"unsafe"
 
 	"github.com/wasilibs/go-re2/internal/cre2"
@@ -90,19 +89,17 @@ func (*allocation) newCString(s string) cString {
 		// to a string that isn't null.
 		s = "a"[0:0]
 	}
-	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
 	res := cString{
-		ptr:    unsafe.Pointer(sh.Data),
-		length: int(sh.Len),
+		ptr:    unsafe.Pointer(unsafe.StringData(s)),
+		length: len(s),
 	}
 	return res
 }
 
 func (*allocation) newCStringFromBytes(s []byte) cString {
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&s))
 	res := cString{
-		ptr:    unsafe.Pointer(sh.Data),
-		length: int(sh.Len),
+		ptr:    unsafe.Pointer(unsafe.SliceData(s)),
+		length: len(s),
 	}
 	return res
 }
