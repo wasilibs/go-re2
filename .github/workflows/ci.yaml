@@ -54,7 +54,7 @@ jobs:
         if: ${{ matrix.mode == 'tinygo' }}
         uses: acifani/setup-tinygo@b2ba42b249c7d3efdfe94166ec0f48b3191404f7 # v1
         with:
-          tinygo-version: 0.31.2
+          tinygo-version: 0.33.0
       - name: setup wasmtime for tinygo
         if: ${{ matrix.mode == 'tinygo' }}
         run: go install github.com/wasilibs/tools/cmd/wasmtime@875fe73f677c58d467ee373a9e00e6cb66b268f3
