@@ -47,7 +47,7 @@ jobs:
 
       - run: go run mage test
 
-      - uses: actions/attest-build-provenance@6149ea5740be74af77f260b9db67e633f6b0a9a1 # v1
+      - uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c # v1
         if: github.event_name != 'pull_request'
         with:
           subject-path: internal/wasm/*
