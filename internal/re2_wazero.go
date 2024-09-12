@@ -183,9 +183,9 @@ func init() {
 	}
 	wasmCompiled = code
 
-	//In some situations (eg, running as a service on windows)
-	//Stdout and Stderr may not be available.
-	//In this case, use io.Discard to avoid InstantiateModule returning an error.
+	// In some situations (eg, running as a service on windows)
+	// Stdout and Stderr may not be available.
+	// In this case, use io.Discard to avoid InstantiateModule returning an error.
 	var stdout, stderr io.Writer = os.Stdout, os.Stderr
 
 	if _, err := os.Stdout.Stat(); err != nil {
