@@ -8,6 +8,7 @@ import (
 	_ "embed"
 	"encoding/binary"
 	"errors"
+	"io"
 	"os"
 	"runtime"
 	"strings"
@@ -182,8 +183,20 @@ func init() {
 	}
 	wasmCompiled = code
 
+	//In some situations (eg, running as a service on windows)
+	//Stdout and Stderr may not be available.
+	//In this case, use io.Discard to avoid InstantiateModule returning an error.
+	var stdout, stderr io.Writer = os.Stdout, os.Stderr
+
+	if _, err := os.Stdout.Stat(); err != nil {
+		stdout = io.Discard
+	}
+	if _, err := os.Stderr.Stat(); err != nil {
+		stderr = io.Discard
+	}
+
 	wasmRT = rt
-	root, err := wasmRT.InstantiateModule(ctx, wasmCompiled, wazero.NewModuleConfig().WithSysWalltime().WithSysNanotime().WithSysNanosleep().WithStdout(os.Stdout).WithStderr(os.Stderr).WithStartFunctions("_initialize").WithName(""))
+	root, err := wasmRT.InstantiateModule(ctx, wasmCompiled, wazero.NewModuleConfig().WithSysWalltime().WithSysNanotime().WithSysNanosleep().WithStdout(stdout).WithStderr(stderr).WithStartFunctions("_initialize").WithName(""))
 	if err != nil {
 		panic(err)
 	}
