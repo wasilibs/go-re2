@@ -14,10 +14,10 @@ RUN patch -p1 < patch-re2.txt
 RUN cd abseil-cpp && patch -p1 < ../patch-absl.txt
 
 ENV CMAKE_TOOLCHAIN_FILE="/opt/wasi-sdk/share/cmake/wasi-sdk-pthread.cmake"
-ENV CFLAGS="-g -O2 --target=wasm32-wasi-threads --sysroot=/opt/wasi-sdk/share/wasi-sysroot -D_WASI_EMULATED_MMAN -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_SIGNAL -DABSL_HAVE_MMAP"
+ENV CFLAGS="-O3 --target=wasm32-wasi-threads --sysroot=/opt/wasi-sdk/share/wasi-sysroot -DABSL_FORCE_THREAD_IDENTITY_MODE=1 -D_WASI_EMULATED_MMAN -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_SIGNAL -DABSL_HAVE_MMAP"
 ENV CXXFLAGS="-fno-exceptions $CFLAGS"
 
-RUN cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS" -S . -B build
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS" -S . -B build
 RUN cmake --build build --target re2 -j 2
 
 WORKDIR /cre2
@@ -28,7 +28,7 @@ RUN $CXX -c cre2.cpp -o cre2.o -I. -I/re2 -I/re2/abseil-cpp $CXXFLAGS \
   && $AR cru libcre2.a cre2.o \
   && $RANLIB libcre2.a
 
-ENV LDFLAGS="-g --target=wasm32-wasi-threads --sysroot=/opt/wasi-sdk/share/wasi-sysroot -mexec-model=reactor -pthread -lwasi-emulated-process-clocks -lwasi-emulated-mman -lwasi-emulated-signal -Wl,--max-memory=4294967296 -Wl,--global-base=1024"
+ENV LDFLAGS="-O3 --target=wasm32-wasi-threads --sysroot=/opt/wasi-sdk/share/wasi-sysroot -mexec-model=reactor -pthread -lwasi-emulated-process-clocks -lwasi-emulated-mman -lwasi-emulated-signal -Wl,--max-memory=4294967296 -Wl,--global-base=1024"
 
 # Separate step so exports can be updated without recompiling.
 # Number of layers isn't really a concern for this image.
@@ -61,7 +61,6 @@ RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 $LDFLAGS \
   -Wl,--export=__stack_pointer \
   -Wl,--export=__tls_base
 
-#RUN wasm-opt -o libcre2.wasm --low-memory-unused --flatten --rereloop --converge -O3 libcre2-noopt.so
-RUN mv libcre2-noopt.so libcre2.wasm
+RUN wasm-opt -o libcre2.wasm --low-memory-unused --flatten --rereloop --converge -O3 libcre2-noopt.so
 
 CMD ["cp", "libcre2.wasm", "/out/"]
