@@ -99,8 +99,7 @@ func createChildModule(rt wazero.Runtime, root api.Module) *childModule {
 
 	child, err := rt.InstantiateModule(ctx, wasmCompiled, wazero.NewModuleConfig().WithSysNanotime().WithSysWalltime().WithSysNanosleep().WithStdout(os.Stdout).WithStderr(os.Stderr).
 		// Don't need to execute start functions again in child, it crashes anyways.
-		WithStartFunctions().
-		WithName(""))
+		WithStartFunctions())
 	if err != nil {
 		panic(err)
 	}
