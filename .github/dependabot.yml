@@ -1,10 +1,20 @@
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "daily"
+      interval: daily
     groups:
       gha:
+        patterns:
+          - "*"
+  - package-ecosystem: gomod
+    directories:
+      - /
+      - build
+    schedule:
+      interval: weekly
+    groups:
+      go:
         patterns:
           - "*"
