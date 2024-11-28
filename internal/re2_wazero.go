@@ -25,7 +25,7 @@ import (
 
 var errFailedRead = errors.New("failed to read from wasm memory")
 
-//go:embed wasm/libcre2.so
+//go:embed wasm/libcre2.wasm
 var libre2 []byte
 
 // memoryWasm created by `wat2wasm --enable-threads internal/wasm/memory.wat -o internal/wasm/memory.wasm`

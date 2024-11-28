@@ -16,11 +16,6 @@ import (
 func main() {
 	tags := buildTags()
 
-	build.DefineTasks(
-		build.Tags(tags...),
-		build.ExcludeTasks("test-go"),
-	)
-
 	build.RegisterTestTask(goyek.Define(goyek.Task{
 		Name:  "test-go",
 		Usage: "Runs Go tests.",
@@ -34,7 +29,7 @@ func main() {
 			if mode == "" {
 				cmd.Exec(a, fmt.Sprintf("go build -o %s ./internal/e2e", filepath.Join("out", "test.wasm")), cmd.Env("GOOS", "wasip1"), cmd.Env("GOARCH", "wasm"))
 				// Could invoke wazero directly but the CLI has a simpler entry point.
-				cmd.Exec(a, fmt.Sprintf("go run github.com/tetratelabs/wazero/cmd/wazero@v1.7.1 run %s", filepath.Join("out", "test.wasm")))
+				cmd.Exec(a, fmt.Sprintf("go run github.com/tetratelabs/wazero/cmd/wazero@v1.8.2 run %s", filepath.Join("out", "test.wasm")))
 			}
 		},
 	}))
@@ -49,6 +44,11 @@ func main() {
 
 	defineBenchTasks("bench", "./...")
 	defineBenchTasks("wafbench", "./wafbench")
+
+	build.DefineTasks(
+		build.Tags(tags...),
+		build.ExcludeTasks("test-go"),
+	)
 
 	boot.Main()
 }
@@ -69,7 +69,7 @@ func buildTags() []string {
 }
 
 func buildWasm(a *goyek.A) {
-	if !cmd.Exec(a, fmt.Sprintf("docker build -t wasilibs-build -f %s .", filepath.Join("buildtools", "re2", "Dockerfile"))) {
+	if !cmd.Exec(a, fmt.Sprintf("docker build -t wasilibs-build -f %s .", filepath.Join("buildtools", "wasm", "Dockerfile"))) {
 		return
 	}
 	wd, err := os.Getwd()
