@@ -1,4 +1,3 @@
-
 FROM ghcr.io/webassembly/wasi-sdk:wasi-sdk-22 AS base
 
 RUN apt-get update && apt-get install -y binaryen curl
