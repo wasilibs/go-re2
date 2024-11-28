@@ -111,7 +111,7 @@ This project began as a way to use re2 with TinyGo WASI projects. However, recen
 their build, notably depending on absl which requires threads support and breaks compatibility with TinyGo programs.
 To stay up-to-date with re2, after much time this project has removed building of TinyGo-specific Wasm artifacts.
 Build tags to enable cgo codepaths for TinyGo are kept to provide best-effort support with projects bringing their
-own Wasm, with the only known usagecurrently in [coraza-wasilibs][10].
+own Wasm, with the only known usage currently in [coraza-wasilibs][10].
 
 ## Performance
 
