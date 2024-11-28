@@ -5,14 +5,10 @@ go-re2 is a drop-in replacement for the standard library [regexp][1] package whi
 re2 is packaged as a WebAssembly module and accessed with the pure Go runtime, [wazero][3].
 This means that it is compatible with any Go application, regardless of availability of cgo.
 
-The library can also be used in a TinyGo application being compiled to WebAssembly. Currently,
-`regexp` when compiled with TinyGo always has very slow performance and sometimes fails to
-compile expressions completely.
-
 Note that if your regular expressions or input are small, this library is slower than the
 standard library. You will generally "know" if your application requires high performance for
 complex regular expressions, for example in security filtering software. If you do not know
-your app has such needs and are not using TinyGo, you should turn away now.
+your app has such needs, you should turn away now.
 
 ## Behavior differences
 
@@ -51,7 +47,7 @@ provide any guarantee of API stability even across minor version updates.
 ## Usage
 
 go-re2 is a standard Go library package and can be added to a go.mod file. It will work fine in
-Go or TinyGo projects.
+any Go project. See [below](#tinygo) for notes about TinyGo support.
 
 ```
 go get github.com/wasilibs/go-re2
@@ -108,6 +104,14 @@ On Mac start by installing [homebrew][9] including installation of the command l
 ```bash
 brew install re2
 ```
+
+### TinyGo
+
+This project began as a way to use re2 with TinyGo WASI projects. However, recent versions of re2 have reworked
+their build, notably depending on absl which requires threads support and breaks compatibility with TinyGo programs.
+To stay up-to-date with re2, after much time this project has removed building of TinyGo-specific Wasm artifacts.
+Build tags to enable cgo codepaths for TinyGo are kept to provide best-effort support with projects bringing their
+own Wasm, with the only known usagecurrently in [coraza-wasilibs][10].
 
 ## Performance
 
@@ -259,3 +263,4 @@ performance in real world use cases.
 [6]: https://github.com/corazawaf/coraza
 [8]: https://www.msys2.org/
 [9]: https://brew.sh/
+[10]: https://github.com/corazawaf/coraza-wasilibs
