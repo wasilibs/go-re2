@@ -1,0 +1,32 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a2ade77..3fd20f4 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -77,7 +77,9 @@ set(ABSL_DEPS
+     absl_synchronization
+     )
+ 
+-# If a top-level project has called add_directory(abseil-cpp) already (possibly
++add_subdirectory(abseil-cpp)
++
++# If a top-level project has called add_subdirectory(abseil-cpp) already (possibly
+ # indirectly), let that take precedence over any copy of Abseil that might have
+ # been installed on the system. And likewise for ICU, GoogleTest and Benchmark.
+ if(NOT TARGET absl::base)
+@@ -238,16 +240,12 @@ if(RE2_BUILD_TESTING)
+ endif()
+ 
+ install(TARGETS re2
+-        EXPORT re2Targets
+         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+         FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR}
+         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/re2
+         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+-install(EXPORT re2Targets
+-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/re2
+-        NAMESPACE re2::)
+ 
+ configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/re2Config.cmake.in
+                               ${CMAKE_CURRENT_BINARY_DIR}/re2Config.cmake

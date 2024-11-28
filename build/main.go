@@ -16,11 +16,6 @@ import (
 func main() {
 	tags := buildTags()
 
-	build.DefineTasks(
-		build.Tags(tags...),
-		build.ExcludeTasks("test-go"),
-	)
-
 	build.RegisterTestTask(goyek.Define(goyek.Task{
 		Name:  "test-go",
 		Usage: "Runs Go tests.",
@@ -50,6 +45,11 @@ func main() {
 	defineBenchTasks("bench", "./...")
 	defineBenchTasks("wafbench", "./wafbench")
 
+	build.DefineTasks(
+		build.Tags(tags...),
+		build.ExcludeTasks("test-go"),
+	)
+
 	boot.Main()
 }
 
@@ -69,7 +69,7 @@ func buildTags() []string {
 }
 
 func buildWasm(a *goyek.A) {
-	if !cmd.Exec(a, fmt.Sprintf("docker build -t wasilibs-build -f %s .", filepath.Join("buildtools", "re2", "Dockerfile"))) {
+	if !cmd.Exec(a, fmt.Sprintf("docker build -t wasilibs-build -f %s .", filepath.Join("buildtools", "wasm", "Dockerfile"))) {
 		return
 	}
 	wd, err := os.Getwd()

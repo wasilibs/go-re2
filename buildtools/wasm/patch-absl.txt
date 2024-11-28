@@ -1,0 +1,12 @@
+diff --git a/absl/base/config.h b/absl/base/config.h
+index 762bb7f7..69bcb1fb 100644
+--- a/absl/base/config.h
++++ b/absl/base/config.h
+@@ -412,7 +412,6 @@ static_assert(ABSL_INTERNAL_INLINE_NAMESPACE_STR[0] != 'h' ||
+ // Checks whether the platform has an mmap(2) implementation as defined in
+ // POSIX.1-2001.
+ #ifdef ABSL_HAVE_MMAP
+-#error ABSL_HAVE_MMAP cannot be directly set
+ #elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) ||    \
+     defined(_AIX) || defined(__ros__) || defined(__native_client__) ||       \
+     defined(__asmjs__) || defined(__EMSCRIPTEN__) || defined(__Fuchsia__) || \
