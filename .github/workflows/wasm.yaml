@@ -28,7 +28,7 @@ jobs:
         with:
           app-id: ${{ vars.WASILIBS_APP_ID }}
           private-key: ${{ secrets.WASILIBS_APP_PRIVATE_KEY }}
-    
+
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           token: ${{ github.event_name != 'pull_request' && steps.app-token.outputs.token || github.token }}
@@ -38,20 +38,20 @@ jobs:
           go-version: ^1.22
           cache-dependency-path: |
             **/go.sum
-            magefiles/versions.go
+            build/versions.go
 
-      - run: go run mage updateLibs
+      - run: go run ./build wasm
 
       - name: generate memory.wasm
         run: go run github.com/wasilibs/go-wabt/cmd/wat2wasm@face6b1 --enable-threads -o internal/wasm/memory.wasm internal/wasm/memory.wat
 
-      - run: go run mage test
+      - run: go run ./build test
 
       - uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184180e6d0018 # v1
         if: github.event_name != 'pull_request'
         with:
           subject-path: internal/wasm/*
-      
+
       - name: push wasm
         if: github.event_name != 'pull_request'
         continue-on-error: true # Ignore if there is no change
