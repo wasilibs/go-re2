@@ -35,10 +35,10 @@ jobs:
       - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5
         with:
           # TODO: Split lint step to allow it to have a higher minimum Go requirement.
-          go-version: '^1.22'
+          go-version: "^1.22"
           cache-dependency-path: |
             **/go.sum
-            magefiles/versions.go
+            build/versions.go
 
       - name: setup re2 for cgo (linux)
         if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.mode == 'cgo' }}
@@ -64,7 +64,7 @@ jobs:
         run: go install github.com/wasilibs/tools/cmd/wasmtime@875fe73f677c58d467ee373a9e00e6cb66b268f3
 
       - name: run checks
-        run: go run mage check
+        run: go run ./build check
         if: ${{ !startsWith(matrix.os, 'windows-') || matrix.mode != 'cgo' }}
         env:
           RE2_TEST_MODE: ${{ matrix.mode }}
@@ -76,11 +76,11 @@ jobs:
           # Race detector currently fails with Windows
           TEST_NORACE: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'wazero' && 'true' || '' }}
 
-      - name: run checks (windows cgo)
-        run: go run mage check
+      - name: run tests (windows cgo)
+        run: go run ./build test
         if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'cgo' }}
         # Shell does not support conditional expressions using matrix, so for now we duplicate the steps
-        shell: 'msys2 {0}'
+        shell: "msys2 {0}"
         env:
           RE2_TEST_MODE: ${{ matrix.mode }}
           # General coverage should be good enough to not need to slow down development
@@ -90,16 +90,16 @@ jobs:
           GOMEMLIMIT: ${{ github.event_name != 'pull_request' && '1GiB' || '' }}
 
   test-bsd:
-      runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
 
-      steps:
+    steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5
         with:
           go-version-file: go.work
           cache-dependency-path: |
             **/go.sum
-            magefiles/versions.go
+            build/versions.go
 
       - name: Build
         run: go test -c .
@@ -110,7 +110,7 @@ jobs:
         uses: cross-platform-actions/action@cdc9ee69ef84a5f2e59c9058335d9c57bcb4ac86 # v0.25.0
         with:
           operating_system: freebsd
-          version: '14.0'
+          version: "14.0"
           shell: bash
           run: ./go-re2.test -test.v -test.short
           sync_files: runner-to-vm
@@ -128,6 +128,6 @@ jobs:
 
       - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 321; fi
 
-      - run: go run mage test
+      - run: go run ./build test
         env:
           TEST_NORACE: "true"

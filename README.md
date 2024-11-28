@@ -21,8 +21,9 @@ behavior differences. These are likely corner cases that don't affect typical ap
 best to confirm them before proceeding.
 
 - Invalid utf-8 strings are treated differently. The standard library silently replaces invalid utf-8
-with the unicode replacement character. This library will stop consuming strings when encountering
-invalid utf-8.
+  with the unicode replacement character. This library will stop consuming strings when encountering
+  invalid utf-8.
+
   - `experimental.CompileLatin1` can be used to match against non-utf8 strings
 
 - `reflect.DeepEqual` cannot compare `Regexp` objects.
@@ -93,6 +94,7 @@ pacman -S mingw-w64-x86_64-gcc
 pacman -S mingw-w64-x86_64-re2
 pacman -S mingw-w64-x86_64-pkg-config
 ```
+
 If you want to run the resulting exe program outside the MINGW64 terminal you need to add a path to the MinGW-w64 libraries to the PATH environmental variable (adjust as needed for your system):
 
 ```cmd
@@ -105,7 +107,7 @@ On Mac start by installing [homebrew][9] including installation of the command l
 
 ```bash
 brew install re2
-````
+```
 
 ## Performance
 

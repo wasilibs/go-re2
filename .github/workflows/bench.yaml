@@ -4,9 +4,9 @@ on:
     branches:
       - main
     paths-ignore:
-      - '**/*.md'
-      - '**/*.txt'
-      - '**/*.yaml'
+      - "**/*.md"
+      - "**/*.txt"
+      - "**/*.yaml"
   workflow_dispatch:
 
 jobs:
@@ -19,14 +19,14 @@ jobs:
           go-version-file: go.work
           cache-dependency-path: |
             **/go.sum
-            magefiles/versions.go
+            build/versions.go
 
       - name: setup re2 for cgo
         run: sudo apt-get update && sudo apt-get install -y libre2-dev
 
-      - run: go run mage benchall
+      - run: go run ./build bench-all
 
-      - run: go run mage wafbenchall
+      - run: go run ./build wafbench-all
 
       - uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v3
         with:

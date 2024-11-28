@@ -2,8 +2,7 @@ go 1.21
 
 use (
 	.
+	./build
 	./internal/e2e
-	./mage
-	./magefiles
 	./wafbench
 )
