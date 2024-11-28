@@ -26,21 +26,16 @@ func main() {
 		Usage: "Runs Go tests.",
 		Action: func(a *goyek.A) {
 			mode := strings.ToLower(os.Getenv("RE2_TEST_MODE"))
-			if mode != "tinygo" {
-				race := "-race"
-				if os.Getenv("TEST_NORACE") != "" {
-					race = ""
-				}
-				cmd.Exec(a, fmt.Sprintf(`go test -v -timeout=20m %s -tags "%s" ./...`, race, strings.Join(tags, ",")))
-				if mode == "" {
-					cmd.Exec(a, fmt.Sprintf("go build -o %s ./internal/e2e", filepath.Join("out", "test.wasm")), cmd.Env("GOOS", "wasip1"), cmd.Env("GOARCH", "wasm"))
-					// Could invoke wazero directly but the CLI has a simpler entry point.
-					cmd.Exec(a, fmt.Sprintf("go run github.com/tetratelabs/wazero/cmd/wazero@v1.7.1 run %s", filepath.Join("out", "test.wasm")))
-				}
-				return
+			race := "-race"
+			if os.Getenv("TEST_NORACE") != "" {
+				race = ""
 			}
-
-			cmd.Exec(a, fmt.Sprintf(`tinygo test -scheduler=none -gc=custom -target=wasip1 -v -tags "%s" ./...`, strings.Join(tags, ",")))
+			cmd.Exec(a, fmt.Sprintf(`go test -v -timeout=20m %s -tags "%s" ./...`, race, strings.Join(tags, ",")))
+			if mode == "" {
+				cmd.Exec(a, fmt.Sprintf("go build -o %s ./internal/e2e", filepath.Join("out", "test.wasm")), cmd.Env("GOOS", "wasip1"), cmd.Env("GOARCH", "wasm"))
+				// Could invoke wazero directly but the CLI has a simpler entry point.
+				cmd.Exec(a, fmt.Sprintf("go run github.com/tetratelabs/wazero/cmd/wazero@v1.7.1 run %s", filepath.Join("out", "test.wasm")))
+			}
 		},
 	}))
 
@@ -63,11 +58,8 @@ func buildTags() []string {
 	exhaustive := os.Getenv("RE2_TEST_EXHAUSTIVE") == "1"
 
 	var tags []string
-	switch mode {
-	case "cgo":
+	if mode == "cgo" {
 		tags = append(tags, "re2_cgo")
-	case "tinygo":
-		tags = append(tags, "custommalloc")
 	}
 	if exhaustive {
 		tags = append(tags, "re2_test_exhaustive")

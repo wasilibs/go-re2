@@ -1,6 +1,4 @@
-// Currently these tests run too slow with TinyGo, likely due to low default GC performance so
-// disable by default there.
-//go:build !tinygo.wasm || re2_test_exhaustive
+//go:build re2_test_exhaustive
 
 package re2
 
