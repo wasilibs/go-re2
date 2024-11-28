@@ -1,6 +1,4 @@
-// Disable on tinygo.wasm for now since due to the poor performance of the default GC,
-// these tests don't complete.
-//go:build re2_test_exhaustive && !tinygo.wasm
+//go:build re2_test_exhaustive
 
 package re2
 

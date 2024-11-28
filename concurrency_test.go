@@ -1,5 +1,3 @@
-//go:build !tinygo.wasm
-
 package re2
 
 import (

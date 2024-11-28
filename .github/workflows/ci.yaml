@@ -16,20 +16,12 @@ jobs:
       matrix:
         mode:
           - cgo
-          - tinygo
           - wazero
         os:
           - macos-13
           - macos-14
           - ubuntu-22.04
           - windows-2022
-        exclude:
-          # https://github.com/tinygo-org/tinygo/issues/3594
-          - os: windows-2022
-            mode: tinygo
-          # No available binary
-          - os: macos-14
-            mode: tinygo
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5
@@ -53,15 +45,6 @@ jobs:
           update: true
           # This version of go is not sync with setup-go, but this is probably the best we can do
           pacboy: gcc:p re2:p go:p pkg-config:p diffutils:p
-
-      - name: setup tinygo
-        if: ${{ matrix.mode == 'tinygo' }}
-        uses: acifani/setup-tinygo@b2ba42b249c7d3efdfe94166ec0f48b3191404f7 # v1
-        with:
-          tinygo-version: 0.33.0
-      - name: setup wasmtime for tinygo
-        if: ${{ matrix.mode == 'tinygo' }}
-        run: go install github.com/wasilibs/tools/cmd/wasmtime@875fe73f677c58d467ee373a9e00e6cb66b268f3
 
       - name: run checks
         run: go run ./build ${{ startsWith(matrix.os, 'ubuntu-') && 'check' || 'test' }}
