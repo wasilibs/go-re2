@@ -64,7 +64,7 @@ jobs:
         run: go install github.com/wasilibs/tools/cmd/wasmtime@875fe73f677c58d467ee373a9e00e6cb66b268f3
 
       - name: run checks
-        run: go run ./build check
+        run: go run ./build ${{ startsWith(matrix.os, 'ubuntu-') && 'check' || 'test' }}
         if: ${{ !startsWith(matrix.os, 'windows-') || matrix.mode != 'cgo' }}
         env:
           RE2_TEST_MODE: ${{ matrix.mode }}
