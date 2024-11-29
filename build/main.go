@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/curioswitch/go-build"
+	"github.com/google/go-github/github"
 	"github.com/goyek/goyek/v2"
 	"github.com/goyek/x/boot"
 	"github.com/goyek/x/cmd"
@@ -38,6 +40,56 @@ func main() {
 		Name:  "wasm",
 		Usage: "Builds the WebAssembly module.",
 		Action: func(a *goyek.A) {
+			buildWasm(a)
+		},
+	})
+
+	goyek.Define(goyek.Task{
+		Name:  "update",
+		Usage: "Checks upstream repo for new version and updates and builds if so.",
+		Action: func(a *goyek.A) {
+			currBytes, err := os.ReadFile(filepath.Join("buildtools", "wasm", "version.txt"))
+			if err != nil {
+				a.Fatal(err)
+			}
+			curr := strings.TrimSpace(string(currBytes))
+
+			gh, err := api.DefaultRESTClient()
+			if err != nil {
+				a.Fatal(err)
+			}
+
+			var latest string
+			var release *github.RepositoryRelease
+			if err := gh.Get(fmt.Sprintf("repos/%s/releases/latest", "google/re2"), &release); err != nil {
+				a.Log(err)
+			}
+
+			if release != nil {
+				latest = release.GetTagName()
+			} else {
+				a.Log("could not find releases, falling back to tag")
+
+				var tags []github.RepositoryTag
+				if err := gh.Get(fmt.Sprintf("repos/%s/tags", "google/re2"), &tags); err != nil {
+					a.Error(err)
+				}
+				if len(tags) == 0 {
+					a.Fatal("could not find tags")
+				}
+				latest = tags[0].GetName()
+			}
+
+			if latest == curr {
+				fmt.Println("up to date")
+				return
+			}
+
+			fmt.Println("updating to", latest)
+			if err := os.WriteFile(filepath.Join("buildtools", "wasm", "version.txt"), []byte(latest), 0o644); err != nil {
+				a.Error(err)
+			}
+
 			buildWasm(a)
 		},
 	})
