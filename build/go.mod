@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/cli/go-gh/v2 v2.11.1
-	github.com/curioswitch/go-build v0.0.0-20241128010140-c23617fb13e0
+	github.com/curioswitch/go-build v0.1.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/goyek/goyek/v2 v2.2.0
 	github.com/goyek/x v0.2.0

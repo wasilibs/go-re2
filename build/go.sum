@@ -7,8 +7,8 @@ github.com/cli/safeexec v1.0.0/go.mod h1:Z/D4tTN8Vs5gXYHDCbaM1S/anmEDnJb1iW0+EJ5
 github.com/cli/shurcooL-graphql v0.0.4 h1:6MogPnQJLjKkaXPyGqPRXOI2qCsQdqNfUY1QSJu2GuY=
 github.com/cli/shurcooL-graphql v0.0.4/go.mod h1:3waN4u02FiZivIV+p1y4d0Jo1jc6BViMA73C+sZo2fk=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/curioswitch/go-build v0.0.0-20241128010140-c23617fb13e0 h1:8vJgbqblea6p+Aej1gU5Zlz1Z2D4tWy/rEYerLmr51A=
-github.com/curioswitch/go-build v0.0.0-20241128010140-c23617fb13e0/go.mod h1:N585oVwaSkxE9Iwus9TAHJEkoSQ+1/sSNFxFqLzn4iU=
+github.com/curioswitch/go-build v0.1.0 h1:alOmsN5hdh7RgU/3m+K5MYtphd955LxiO3M1A2t00uA=
+github.com/curioswitch/go-build v0.1.0/go.mod h1:N585oVwaSkxE9Iwus9TAHJEkoSQ+1/sSNFxFqLzn4iU=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fatih/color v1.17.0 h1:GlRw1BRJxkpqUCBKzKOw098ed57fEsKeNjpTe3cSjK4=
