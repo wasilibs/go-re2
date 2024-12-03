@@ -109,7 +109,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 321; fi
+      - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 2; fi
 
       - run: go run ./build test
         env:
