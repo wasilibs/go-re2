@@ -40,7 +40,7 @@ jobs:
         run: brew install re2
       - name: setup msys2 for cgo (windows)
         if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'cgo' }}
-        uses: msys2/setup-msys2@c52d1fa9c7492275e60fe763540fb601f5f232a1 # v2
+        uses: msys2/setup-msys2@d44ca8e88d8b43d56cf5670f91747359d5537f97 # v2
         with:
           update: true
           # This version of go is not sync with setup-go, but this is probably the best we can do
