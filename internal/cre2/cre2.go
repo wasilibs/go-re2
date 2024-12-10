@@ -26,6 +26,12 @@ void cre2_opt_set_posix_syntax(void* opt, int flag);
 void cre2_opt_set_case_sensitive(void* opt, int flag);
 void cre2_opt_set_latin1_encoding(void* opt);
 void cre2_opt_set_max_mem(void* opt, int64_t size);
+void* cre2_set_new(void* opt, int anchor);
+int cre2_set_add_simple(void* set, void* pattern);
+int cre2_set_add(void* set, void* pattern, int pattern_len, void* errors, int errors_len);
+int cre2_set_compile(void* set);
+int cre2_set_match(void* set, void* text, int text_len, void* match, int nmatch);
+void cre2_set_delete(void* set);
 
 void* malloc(size_t size);
 void free(void* ptr);
@@ -86,6 +92,30 @@ func NewOpt() unsafe.Pointer {
 
 func DeleteOpt(opt unsafe.Pointer) {
 	C.cre2_opt_delete(opt)
+}
+
+func NewSet(opt unsafe.Pointer, anchor int) unsafe.Pointer {
+	return C.cre2_set_new(opt, C.int(anchor))
+}
+
+func SetAddSimple(set unsafe.Pointer, patternPtr unsafe.Pointer) int {
+	return int(C.cre2_set_add_simple(set, patternPtr))
+}
+
+func SetAdd(set unsafe.Pointer, patternPtr unsafe.Pointer, patternLen int, errors unsafe.Pointer, errorLen int) int {
+	return int(C.cre2_set_add(set, patternPtr, C.int(patternLen), errors, C.int(errorLen)))
+}
+
+func SetCompile(set unsafe.Pointer) int {
+	return int(C.cre2_set_compile(set))
+}
+
+func SetMatch(set unsafe.Pointer, textPtr unsafe.Pointer, textLen int, match unsafe.Pointer, nMatch int) int {
+	return int(C.cre2_set_match(set, textPtr, C.int(textLen), match, C.int(nMatch)))
+}
+
+func SetDelete(ptr unsafe.Pointer) {
+	C.cre2_set_delete(ptr)
 }
 
 func OptSetLogErrors(opt unsafe.Pointer, flag bool) {

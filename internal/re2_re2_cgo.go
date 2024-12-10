@@ -3,9 +3,8 @@
 package internal
 
 import (
-	"unsafe"
-
 	"github.com/wasilibs/go-re2/internal/cre2"
+	"unsafe"
 )
 
 type wasmPtr unsafe.Pointer
@@ -114,6 +113,10 @@ func (a *allocation) newCStringArray(n int) cStringArray {
 	return cStringArray{ptr: wasmPtr(ptr)}
 }
 
+func (a *allocation) read(ptr wasmPtr, size int) []byte {
+	return (*[1 << 30]byte)(unsafe.Pointer(ptr))[:size:size]
+}
+
 type cString struct {
 	ptr    unsafe.Pointer
 	length int
@@ -165,4 +168,44 @@ func readMatches(alloc *allocation, cs cString, matchesPtr wasmPtr, n int, deliv
 			break
 		}
 	}
+}
+
+func newSet(_ *libre2ABI, opts CompileOptions) wasmPtr {
+	opt := cre2.NewOpt()
+	defer cre2.DeleteOpt(opt)
+	cre2.OptSetMaxMem(opt, maxSize)
+	cre2.OptSetLogErrors(opt, false)
+	if opts.Longest {
+		cre2.OptSetLongestMatch(opt, true)
+	}
+	if opts.Posix {
+		cre2.OptSetPosixSyntax(opt, true)
+	}
+	if opts.CaseInsensitive {
+		cre2.OptSetCaseSensitive(opt, false)
+	}
+	if opts.Latin1 {
+		cre2.OptSetLatin1Encoding(opt)
+	}
+	return wasmPtr(cre2.NewSet(opt, 0))
+}
+
+func setAddSimple(set *Set, s cString) int32 {
+	return int32(cre2.SetAddSimple(unsafe.Pointer(set.ptr), s.ptr))
+}
+
+func setAdd(set *Set, s cString, errors wasmPtr, errorsLen int) int32 {
+	return int32(cre2.SetAdd(unsafe.Pointer(set.ptr), s.ptr, s.length, unsafe.Pointer(errors), errorsLen))
+}
+
+func setCompile(set *Set) int32 {
+	return int32(cre2.SetCompile(unsafe.Pointer(set.ptr)))
+}
+
+func setMatch(set *Set, cs cString, matchedPtr wasmPtr, nMatch int) int {
+	return cre2.SetMatch(unsafe.Pointer(set.ptr), cs.ptr, cs.length, unsafe.Pointer(matchedPtr), nMatch)
+}
+
+func deleteSet(_ *libre2ABI, setPtr wasmPtr) {
+	cre2.SetDelete(unsafe.Pointer(setPtr))
 }

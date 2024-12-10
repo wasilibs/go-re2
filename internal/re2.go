@@ -2,6 +2,8 @@ package internal
 
 import (
 	"bytes"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"runtime"
 	"strconv"
@@ -15,6 +17,13 @@ import (
 // Use same max size as regexp package.
 // https://github.com/golang/go/blob/master/src/regexp/syntax/parse.go#L95
 const maxSize = 128 << 20
+
+type Set struct {
+	ptr      wasmPtr
+	abi      *libre2ABI
+	opts     CompileOptions
+	released uint32
+}
 
 type Regexp struct {
 	ptr wasmPtr
@@ -55,6 +64,77 @@ type CompileOptions struct {
 	Longest         bool
 	CaseInsensitive bool
 	Latin1          bool
+}
+
+const errorBufferLength = 64
+
+func CompileSet(exprs []string, opts CompileOptions) (*Set, error) {
+	abi := newABI()
+	setPtr := newSet(abi, opts)
+	set := &Set{
+		ptr:  setPtr,
+		abi:  abi,
+		opts: opts,
+	}
+	estimatedMemorySize := errorBufferLength
+	for _, expr := range exprs {
+		estimatedMemorySize += len(expr) + 2 + 8
+	}
+	alloc := abi.startOperation(estimatedMemorySize)
+	defer abi.endOperation(alloc)
+
+	errorBuffer := alloc.newCStringArray(1)
+	for _, expr := range exprs {
+		cs := alloc.newCString(expr)
+		res := setAdd(set, cs, errorBuffer.ptr, errorBufferLength)
+		if res == -1 {
+			errorMessage := readErrorMessage(&alloc, errorBuffer.ptr, errorBufferLength)
+			return nil, errors.New(errorMessage)
+		}
+	}
+	setCompile(set)
+	// Use func(interface{}) form for nottinygc compatibility.
+	runtime.SetFinalizer(set, func(obj interface{}) {
+		obj.(*Set).release()
+	})
+	return set, nil
+}
+
+func readErrorMessage(alloc *allocation, ptr wasmPtr, length int) string {
+	errMsgBytes := alloc.read(ptr, length)
+	nulIndex := bytes.IndexByte(errMsgBytes, 0)
+	if nulIndex != -1 {
+		errMsgBytes = errMsgBytes[:nulIndex]
+	}
+	return string(errMsgBytes)
+}
+
+func (set *Set) release() {
+	if !atomic.CompareAndSwapUint32(&set.released, 0, 1) {
+		return
+	}
+	deleteSet(set.abi, set.ptr)
+}
+
+func (set *Set) Match(b []byte, n int) []int {
+	alloc := set.abi.startOperation(len(b) + 8 + n*8)
+	defer set.abi.endOperation(alloc)
+
+	matchArr := alloc.newCStringArray(n)
+	defer matchArr.free()
+
+	cs := alloc.newCStringFromBytes(b)
+	matchedCount := setMatch(set, cs, matchArr.ptr, n)
+	matchedIDs := make([]int, min(matchedCount, n))
+	matches := alloc.read(matchArr.ptr, n*4)
+	for i := 0; i < len(matchedIDs); i++ {
+		matchedIDs[i] = int(binary.LittleEndian.Uint32(matches[i*4:]))
+	}
+
+	runtime.KeepAlive(b)
+	runtime.KeepAlive(matchArr)
+	runtime.KeepAlive(set) // don't allow finalizer to run during method
+	return matchedIDs
 }
 
 func Compile(expr string, opts CompileOptions) (*Regexp, error) {
