@@ -402,16 +402,16 @@ type subexpCase struct {
 var emptySubexpIndices = []subexpIndex{{"", -1}, {"missing", -1}}
 
 var subexpCases = []subexpCase{
-	//{``, 0, nil, emptySubexpIndices},
-	//{`.*`, 0, nil, emptySubexpIndices},
-	//{`abba`, 0, nil, emptySubexpIndices},
-	//{`ab(b)a`, 1, []string{"", ""}, emptySubexpIndices},
-	//{`ab(.*)a`, 1, []string{"", ""}, emptySubexpIndices},
-	//{`(.*)ab(.*)a`, 2, []string{"", "", ""}, emptySubexpIndices},
-	//{`(.*)(ab)(.*)a`, 3, []string{"", "", "", ""}, emptySubexpIndices},
-	//{`(.*)((a)b)(.*)a`, 4, []string{"", "", "", "", ""}, emptySubexpIndices},
-	//{`(.*)(\(ab)(.*)a`, 3, []string{"", "", "", ""}, emptySubexpIndices},
-	//{`(.*)(\(a\)b)(.*)a`, 3, []string{"", "", "", ""}, emptySubexpIndices},
+	{``, 0, nil, emptySubexpIndices},
+	{`.*`, 0, nil, emptySubexpIndices},
+	{`abba`, 0, nil, emptySubexpIndices},
+	{`ab(b)a`, 1, []string{"", ""}, emptySubexpIndices},
+	{`ab(.*)a`, 1, []string{"", ""}, emptySubexpIndices},
+	{`(.*)ab(.*)a`, 2, []string{"", "", ""}, emptySubexpIndices},
+	{`(.*)(ab)(.*)a`, 3, []string{"", "", "", ""}, emptySubexpIndices},
+	{`(.*)((a)b)(.*)a`, 4, []string{"", "", "", "", ""}, emptySubexpIndices},
+	{`(.*)(\(ab)(.*)a`, 3, []string{"", "", "", ""}, emptySubexpIndices},
+	{`(.*)(\(a\)b)(.*)a`, 3, []string{"", "", "", ""}, emptySubexpIndices},
 	{`(?P<foo>.*)(?P<bar>(a)b)(?P<foo>.*)a`, 4, []string{"", "foo", "bar", "", "foo"}, []subexpIndex{{"", -1}, {"missing", -1}, {"foo", 1}, {"bar", 2}}},
 }
 

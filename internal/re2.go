@@ -141,10 +141,10 @@ func (set *Set) SetAdd(expr string) error {
 
 	cs := alloc.newCString(expr)
 	errorBuffer := alloc.newCStringArray(1)
-	res := setAdd(set, cs, errorBuffer.ptr, errorBufferLength)
-	if res == -1 {
-		errorMessage := readErrorMessage(&alloc, errorBuffer.ptr, errorBufferLength)
-		return errors.New(errorMessage)
+	defer errorBuffer.free()
+
+	if res := setAdd(set, cs, errorBuffer.ptr, errorBufferLength); res == -1 {
+		return errors.New(readErrorMessage(&alloc, errorBuffer.ptr, errorBufferLength))
 	}
 	return nil
 }
