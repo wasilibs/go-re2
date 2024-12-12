@@ -10,22 +10,14 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
-	"github.com/bmatcuk/doublestar/v4"
 	"github.com/corazawaf/coraza/v3"
 	txhttp "github.com/corazawaf/coraza/v3/http"
 	"github.com/corazawaf/coraza/v3/types"
-	"github.com/coreruleset/go-ftw/config"
-	"github.com/coreruleset/go-ftw/output"
-	"github.com/coreruleset/go-ftw/runner"
-	"github.com/coreruleset/go-ftw/test"
-	"github.com/rs/zerolog"
 )
 
 //go:embed coreruleset-32e6d80419d386a330ddaf5e60047a4a1c38a160.zip
@@ -122,48 +114,6 @@ SecRule REQUEST_HEADERS:X-CRS-Test "@rx ^.*$" \
 		}
 	})))
 	defer s.Close()
-
-	b.Run("FTW", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			var tests []test.FTWTest
-			err = doublestar.GlobWalk(crs, "tests/regression/tests/**/*.yaml", func(path string, d os.DirEntry) error {
-				yaml, err := fs.ReadFile(crs, path)
-				if err != nil {
-					return err
-				}
-				t, err := test.GetTestFromYaml(yaml)
-				if err != nil {
-					return err
-				}
-				tests = append(tests, t)
-				return nil
-			})
-			if err != nil {
-				b.Fatal(err)
-			}
-
-			u, _ := url.Parse(s.URL)
-			host := u.Hostname()
-			port, _ := strconv.Atoi(u.Port())
-			// TODO(anuraaga): Don't use global config for FTW for better support of programmatic.
-			zerolog.SetGlobalLevel(zerolog.InfoLevel)
-			_ = config.NewConfigFromFile(".ftw.yml")
-			config.FTWConfig.LogFile = errorPath
-			config.FTWConfig.TestOverride.Input.DestAddr = &host
-			config.FTWConfig.TestOverride.Input.Port = &port
-
-			res, err := runner.Run(tests, runner.Config{
-				ShowTime: false,
-			}, output.NewOutput("quiet", os.Stdout))
-			if err != nil {
-				b.Fatal(err)
-			}
-
-			if len(res.Stats.Failed) > 0 {
-				b.Errorf("failed tests: %v", res.Stats.Failed)
-			}
-		}
-	})
 
 	for _, size := range []int{1, 1000, 10000, 100000} {
 		payload := strings.Repeat("a", size)
