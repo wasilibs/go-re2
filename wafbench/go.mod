@@ -1,6 +1,6 @@
 module github.com/wasilibs/go-re2/wafbench
 
-go 1.21
+go 1.22
 
 require (
 	github.com/bmatcuk/doublestar/v4 v4.4.0
