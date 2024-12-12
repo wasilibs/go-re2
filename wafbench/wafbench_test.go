@@ -93,8 +93,8 @@ SecRule REQUEST_HEADERS:X-CRS-Test "@rx ^.*$" \
 		b.Fatalf("failed to create error log: %v", err)
 	}
 	errorWriter := bufio.NewWriter(errorFile)
-	conf = conf.WithErrorLogger(func(rule types.MatchedRule) {
-		msg := rule.ErrorLog(0)
+	conf = conf.WithErrorCallback(func(rule types.MatchedRule) {
+		msg := rule.ErrorLog()
 		if _, err := io.WriteString(errorWriter, msg); err != nil {
 			b.Fatal(err)
 		}
@@ -108,7 +108,7 @@ SecRule REQUEST_HEADERS:X-CRS-Test "@rx ^.*$" \
 		b.Fatal(err)
 	}
 
-	s := httptest.NewServer(txhttp.WrapHandler(waf, b.Logf, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	s := httptest.NewServer(txhttp.WrapHandler(waf, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Emulated httpbin behaviour: /anything endpoint acts as an echo server, writing back the request body
 		if r.URL.Path == "/anything" {
 			defer r.Body.Close()
