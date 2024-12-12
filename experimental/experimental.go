@@ -22,3 +22,11 @@ func MustCompileLatin1(str string) *re2.Regexp {
 	}
 	return regexp
 }
+
+type Set = internal.Set
+
+// CompileSet parses a regular expression and returns, if successful,
+// a Set object that can be used to match against text.
+func CompileSet(exprs []string) (*Set, error) {
+	return internal.CompileSet(exprs, internal.CompileOptions{})
+}

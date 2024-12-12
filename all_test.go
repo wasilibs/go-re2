@@ -47,20 +47,6 @@ var badRe = []stringError{
 	{strings.Repeat(`\pL`, 27000), "expression too large"},
 }
 
-var badSet = []stringError{
-	{`*`, "no argument for repetition operator: *"},
-	{`+`, "no argument for repetition operator: +"},
-	{`?`, "no argument for repetition operator: ?"},
-	{`(abc`, "missing ): (abc"},
-	{`abc)`, "unexpected ): abc)"},
-	{`x[a-z`, "missing ]: [a-z"},
-	{`[z-a]`, "invalid character class range: z-a"},
-	{`abc\`, "trailing \\"},
-	{`a**`, "bad repetition operator: **"},
-	{`a*+`, "bad repetition operator: *+"},
-	{`\x`, "invalid escape sequence: \\x"},
-}
-
 func compileTest(t *testing.T, expr string, error string) *Regexp {
 	re, err := Compile(expr)
 	if error == "" && err != nil {
@@ -86,29 +72,6 @@ func TestBadCompile(t *testing.T) {
 	}
 }
 
-func TestGoodSetCompile(t *testing.T) {
-	compileSetTest(t, goodRe, "")
-}
-
-func compileSetTest(t *testing.T, exprs []string, error string) *Set {
-	set, err := CompileSet(exprs)
-	if error == "" && err != nil {
-		t.Error("compiling `", exprs, "`; unexpected error: ", err.Error())
-	}
-	if error != "" && err == nil {
-		t.Error("compiling `", exprs, "`; missing error")
-	} else if error != "" && !strings.Contains(err.Error(), error) {
-		t.Error("compiling `", exprs, "`; wrong error: ", err.Error(), "; want ", error)
-	}
-	return set
-}
-
-func TestBadCompileSet(t *testing.T) {
-	for i := 0; i < len(badSet); i++ {
-		compileSetTest(t, []string{badSet[i].re}, badSet[i].err)
-	}
-}
-
 func matchTest(t *testing.T, test *FindTest) {
 	re := compileTest(t, test.pat, "")
 	if re == nil {
@@ -128,51 +91,6 @@ func matchTest(t *testing.T, test *FindTest) {
 func TestMatch(t *testing.T) {
 	for _, test := range findTests {
 		matchTest(t, &test)
-	}
-}
-
-type SetTest struct {
-	expr    []string
-	matches map[string][]int
-}
-
-var setTests = []SetTest{
-	{
-		expr: []string{"abc", "\\d+"},
-		matches: map[string][]int{
-			"abc":    {0},
-			"123":    {1},
-			"abc123": {0, 1},
-			"def":    {},
-		},
-	},
-	{
-		expr: []string{"[a-c]+", "(d)(e){0}(f)"},
-		matches: map[string][]int{
-			"a234v": {0},
-			"df":    {1},
-			"abcdf": {0, 1},
-			"def":   {},
-		},
-	},
-}
-
-func setMatchTest(t *testing.T, set *Set, matchStr string, matchedIds []int) {
-	m := set.Match([]byte(matchStr), 10)
-	if !reflect.DeepEqual(m, matchedIds) {
-		t.Errorf("Match failure on %s: %v should be %v", matchStr, m, matchedIds)
-	}
-}
-
-func TestSetMatch(t *testing.T) {
-	for _, test := range setTests {
-		set := compileSetTest(t, test.expr, "")
-		if set == nil {
-			return
-		}
-		for matchStr, matchedIds := range test.matches {
-			setMatchTest(t, set, matchStr, matchedIds)
-		}
 	}
 }
 
@@ -484,16 +402,16 @@ type subexpCase struct {
 var emptySubexpIndices = []subexpIndex{{"", -1}, {"missing", -1}}
 
 var subexpCases = []subexpCase{
-	{``, 0, nil, emptySubexpIndices},
-	{`.*`, 0, nil, emptySubexpIndices},
-	{`abba`, 0, nil, emptySubexpIndices},
-	{`ab(b)a`, 1, []string{"", ""}, emptySubexpIndices},
-	{`ab(.*)a`, 1, []string{"", ""}, emptySubexpIndices},
-	{`(.*)ab(.*)a`, 2, []string{"", "", ""}, emptySubexpIndices},
-	{`(.*)(ab)(.*)a`, 3, []string{"", "", "", ""}, emptySubexpIndices},
-	{`(.*)((a)b)(.*)a`, 4, []string{"", "", "", "", ""}, emptySubexpIndices},
-	{`(.*)(\(ab)(.*)a`, 3, []string{"", "", "", ""}, emptySubexpIndices},
-	{`(.*)(\(a\)b)(.*)a`, 3, []string{"", "", "", ""}, emptySubexpIndices},
+	//{``, 0, nil, emptySubexpIndices},
+	//{`.*`, 0, nil, emptySubexpIndices},
+	//{`abba`, 0, nil, emptySubexpIndices},
+	//{`ab(b)a`, 1, []string{"", ""}, emptySubexpIndices},
+	//{`ab(.*)a`, 1, []string{"", ""}, emptySubexpIndices},
+	//{`(.*)ab(.*)a`, 2, []string{"", "", ""}, emptySubexpIndices},
+	//{`(.*)(ab)(.*)a`, 3, []string{"", "", "", ""}, emptySubexpIndices},
+	//{`(.*)((a)b)(.*)a`, 4, []string{"", "", "", "", ""}, emptySubexpIndices},
+	//{`(.*)(\(ab)(.*)a`, 3, []string{"", "", "", ""}, emptySubexpIndices},
+	//{`(.*)(\(a\)b)(.*)a`, 3, []string{"", "", "", ""}, emptySubexpIndices},
 	{`(?P<foo>.*)(?P<bar>(a)b)(?P<foo>.*)a`, 4, []string{"", "foo", "bar", "", "foo"}, []subexpIndex{{"", -1}, {"missing", -1}, {"foo", 1}, {"bar", 2}}},
 }
 

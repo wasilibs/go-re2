@@ -8,8 +8,6 @@ import (
 
 type Regexp = internal.Regexp
 
-type Set = internal.Set
-
 // MatchString reports whether the string s
 // contains any match of the regular expression pattern.
 // More complicated queries need to use Compile and the full Regexp interface.
@@ -46,12 +44,6 @@ func Match(pattern string, b []byte) (matched bool, err error) {
 // For POSIX leftmost-longest matching, see CompilePOSIX.
 func Compile(expr string) (*Regexp, error) {
 	return internal.Compile(expr, internal.CompileOptions{})
-}
-
-// CompileSet parses a regular expression and returns, if successful,
-// a Set object that can be used to match against text.
-func CompileSet(exprs []string) (*Set, error) {
-	return internal.CompileSet(exprs, internal.CompileOptions{})
 }
 
 // CompilePOSIX is like Compile but restricts the regular expression

@@ -100,6 +100,21 @@ func CompileSet(exprs []string, opts CompileOptions) (*Set, error) {
 	return set, nil
 }
 
+func NewSet(opts CompileOptions) (*Set, error) {
+	abi := newABI()
+	setPtr := newSet(abi, opts)
+	set := &Set{
+		ptr:  setPtr,
+		abi:  abi,
+		opts: opts,
+	}
+	// Use func(interface{}) form for nottinygc compatibility.
+	runtime.SetFinalizer(set, func(obj interface{}) {
+		obj.(*Set).release()
+	})
+	return set, nil
+}
+
 func readErrorMessage(alloc *allocation, ptr wasmPtr, length int) string {
 	errMsgBytes := alloc.read(ptr, length)
 	nulIndex := bytes.IndexByte(errMsgBytes, 0)
@@ -114,6 +129,32 @@ func (set *Set) release() {
 		return
 	}
 	deleteSet(set.abi, set.ptr)
+}
+
+func (set *Set) Compile(expr string) {
+	setCompile(set)
+}
+
+func (set *Set) SetAdd(expr string) error {
+	alloc := set.abi.startOperation(len(expr) + 2 + 8)
+	defer set.abi.endOperation(alloc)
+
+	cs := alloc.newCString(expr)
+	errorBuffer := alloc.newCStringArray(1)
+	res := setAdd(set, cs, errorBuffer.ptr, errorBufferLength)
+	if res == -1 {
+		errorMessage := readErrorMessage(&alloc, errorBuffer.ptr, errorBufferLength)
+		return errors.New(errorMessage)
+	}
+	return nil
+}
+
+func (set *Set) SetAddSimple(expr string) {
+	alloc := set.abi.startOperation(len(expr) + 2 + 8)
+	defer set.abi.endOperation(alloc)
+
+	cs := alloc.newCString(expr)
+	setAddSimple(set, cs)
 }
 
 func (set *Set) Match(b []byte, n int) []int {

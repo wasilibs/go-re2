@@ -426,20 +426,3 @@ func ExampleRegexp_FindAllIndex() {
 	// [[1 3]]
 	// [[1 3] [4 6]]
 }
-
-func ExampleCompileSet() {
-	exprs := []string{"abc", "\\d+"}
-	set, err := regexp.CompileSet(exprs)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(set.Match([]byte("abcd"), len(exprs)))
-	fmt.Println(set.Match([]byte("123"), len(exprs)))
-	fmt.Println(set.Match([]byte("abc123"), len(exprs)))
-	fmt.Println(set.Match([]byte("def"), len(exprs)))
-	// Output:
-	// [0]
-	// [1]
-	// [0 1]
-	// []
-}
