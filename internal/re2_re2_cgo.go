@@ -3,8 +3,9 @@
 package internal
 
 import (
-	"github.com/wasilibs/go-re2/internal/cre2"
 	"unsafe"
+
+	"github.com/wasilibs/go-re2/internal/cre2"
 )
 
 type wasmPtr unsafe.Pointer
@@ -115,6 +116,10 @@ func (a *allocation) newCStringArray(n int) cStringArray {
 
 func (a *allocation) read(ptr wasmPtr, size int) []byte {
 	return (*[1 << 30]byte)(unsafe.Pointer(ptr))[:size:size]
+}
+
+func readErr(ptr wasmPtr, _ int) string {
+	return cre2.CopyCString(unsafe.Pointer(ptr))
 }
 
 type cString struct {

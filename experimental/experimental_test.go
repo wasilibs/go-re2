@@ -2,10 +2,11 @@ package experimental
 
 import (
 	"fmt"
-	"github.com/wasilibs/go-re2"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/wasilibs/go-re2"
 )
 
 func TestCompileLatin1(t *testing.T) {
@@ -96,6 +97,7 @@ var badSet = []stringError{
 	{`a**`, "bad repetition operator: **"},
 	{`a*+`, "bad repetition operator: *+"},
 	{`\x`, "invalid escape sequence: \\x"},
+	{strings.Repeat(`)\pL`, 27000), "unexpected ): " + strings.Repeat(`)\pL`, 27000)},
 }
 
 func TestGoodSetCompile(t *testing.T) {

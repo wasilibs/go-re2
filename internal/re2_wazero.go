@@ -618,6 +618,18 @@ func (a *allocation) read(ptr wasmPtr, size int) []byte {
 	return buf
 }
 
+func readErr(ptr wasmPtr, errorsLen int) string {
+	buf, ok := wasmMemory.Read(uint32(ptr), uint32(errorsLen)) // Assuming a maximum length of 1024 for the string
+	if !ok {
+		panic("failed to read from wasm memory")
+	}
+	end := 0
+	for end < len(buf) && buf[end] != 0 {
+		end++
+	}
+	return string(buf[:end])
+}
+
 func (a *allocation) write(b []byte) wasmPtr {
 	ptr := a.allocate(uint32(len(b)))
 	wasmMemory.Write(uint32(ptr), b)
@@ -684,6 +696,7 @@ func (f *lazyFunction) Call3(ctx context.Context, arg1 uint64, arg2 uint64, arg3
 	callStack[2] = arg3
 	return f.callWithStack(ctx, callStack[:])
 }
+
 func (f *lazyFunction) Call5(ctx context.Context, arg1 uint64, arg2 uint64, arg3 uint64, arg4 uint64, arg5 uint64) (uint64, error) {
 	var callStack [5]uint64
 	callStack[0] = arg1

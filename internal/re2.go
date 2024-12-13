@@ -76,20 +76,25 @@ func CompileSet(exprs []string, opts CompileOptions) (*Set, error) {
 		abi:  abi,
 		opts: opts,
 	}
-	estimatedMemorySize := errorBufferLength
+	var errorBufferLen int
+	var estimatedMemorySize int
 	for _, expr := range exprs {
+		errorBufferLen = max(errorBufferLen, len(expr))
 		estimatedMemorySize += len(expr) + 2 + 8
 	}
-	alloc := abi.startOperation(estimatedMemorySize)
+
+	alloc := abi.startOperation(estimatedMemorySize + errorBufferLen + errorBufferLength)
 	defer abi.endOperation(alloc)
 
-	errorBuffer := alloc.newCStringArray(1)
+	errorBuffer := alloc.newCStringArray((errorBufferLen + errorBufferLength) / 16)
+	defer errorBuffer.free()
+
 	for _, expr := range exprs {
+		errorsLen := len(expr) + errorBufferLength
 		cs := alloc.newCString(expr)
-		res := setAdd(set, cs, errorBuffer.ptr, errorBufferLength)
+		res := setAdd(set, cs, errorBuffer.ptr, errorsLen)
 		if res == -1 {
-			errorMessage := readErrorMessage(&alloc, errorBuffer.ptr, errorBufferLength)
-			return nil, errors.New(errorMessage)
+			return nil, errors.New(readErr(errorBuffer.ptr, errorsLen))
 		}
 	}
 	setCompile(set)
@@ -115,15 +120,6 @@ func NewSet(opts CompileOptions) (*Set, error) {
 	return set, nil
 }
 
-func readErrorMessage(alloc *allocation, ptr wasmPtr, length int) string {
-	errMsgBytes := alloc.read(ptr, length)
-	nulIndex := bytes.IndexByte(errMsgBytes, 0)
-	if nulIndex != -1 {
-		errMsgBytes = errMsgBytes[:nulIndex]
-	}
-	return string(errMsgBytes)
-}
-
 func (set *Set) release() {
 	if !atomic.CompareAndSwapUint32(&set.released, 0, 1) {
 		return
@@ -133,21 +129,24 @@ func (set *Set) release() {
 
 func (set *Set) Compile(expr string) {
 	setCompile(set)
+	runtime.KeepAlive(set)
 }
 
-func (set *Set) SetAdd(expr string) error {
-	alloc := set.abi.startOperation(len(expr) + 2 + 8)
-	defer set.abi.endOperation(alloc)
-
-	cs := alloc.newCString(expr)
-	errorBuffer := alloc.newCStringArray(1)
-	defer errorBuffer.free()
-
-	if res := setAdd(set, cs, errorBuffer.ptr, errorBufferLength); res == -1 {
-		return errors.New(readErrorMessage(&alloc, errorBuffer.ptr, errorBufferLength))
-	}
-	return nil
-}
+//func (set *Set) SetAdd(expr string) error {
+//	alloc := set.abi.startOperation(len(expr) + 2 + 8)
+//	defer set.abi.endOperation(alloc)
+//
+//	cs := alloc.newCString(expr)
+//	errorBuffer := alloc.newCStringArray(1)
+//	defer errorBuffer.free()
+//
+//	if res := setAdd(set, cs, errorBuffer.ptr, errorBufferLength); res == -1 {
+//		return errors.New(readErrorMessage(&alloc, errorBuffer.ptr, errorBufferLength))
+//	}
+//
+//	runtime.KeepAlive(set)
+//	return nil
+//}
 
 func (set *Set) SetAddSimple(expr string) {
 	alloc := set.abi.startOperation(len(expr) + 2 + 8)
@@ -155,6 +154,8 @@ func (set *Set) SetAddSimple(expr string) {
 
 	cs := alloc.newCString(expr)
 	setAddSimple(set, cs)
+
+	runtime.KeepAlive(set)
 }
 
 func (set *Set) Match(b []byte, n int) []int {
