@@ -313,10 +313,8 @@ cre2_decl cre2_set *cre2_set_new(cre2_options_t *opt, cre2_anchor_t anchor);
 /* RE2::Set destructor */
 cre2_decl void      cre2_set_delete(cre2_set *set);
 
-/* Add a regex to the set. If invalid: store error message in error buffer.
- * Returns the index associated to this regex, -1 on error */
-cre2_decl int cre2_set_add(cre2_set *set, const char *pattern, size_t pattern_len,
-					 char *error, size_t error_len);
+// Add a regex to the set. If invalid: return error message that must be freed. If valid, return "ok".
+cre2_decl char* cre2_set_add(cre2_set *set, const char *pattern, size_t pattern_len);
 
 /* Add pattern without NULL byte. Discard error message.
  * Returns the index associated to this regex, -1 on error */
