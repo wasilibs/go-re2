@@ -157,12 +157,10 @@ cre2_error_string (const cre2_regexp_t *re)
 {
   return TO_CONST_RE2(re)->error().c_str();
 }
-void
-cre2_error_arg (const cre2_regexp_t *re, cre2_string_t *arg)
+const char *
+cre2_error_arg (const cre2_regexp_t *re)
 {
-  const std::string &argstr = TO_CONST_RE2(re)->error_arg();
-  arg->data   = argstr.data();
-  arg->length = argstr.length();
+  return TO_CONST_RE2(re)->error_arg().c_str();
 }
 int
 cre2_num_capturing_groups (const cre2_regexp_t *re)

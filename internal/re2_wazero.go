@@ -303,7 +303,7 @@ func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) wasmPtr {
 	return wasmPtr(res)
 }
 
-func reError(abi *libre2ABI, alloc *allocation, rePtr wasmPtr) (int, string) {
+func reError(abi *libre2ABI, rePtr wasmPtr) (int, string) {
 	ctx := context.Background()
 	res, err := abi.cre2ErrorCode.Call1(ctx, uint64(rePtr))
 	if err != nil {
@@ -314,15 +314,12 @@ func reError(abi *libre2ABI, alloc *allocation, rePtr wasmPtr) (int, string) {
 		return 0, ""
 	}
 
-	argPtr := alloc.newCStringArray(1)
-	_, err = abi.cre2ErrorArg.Call2(ctx, uint64(rePtr), uint64(argPtr.ptr))
+	res, err = abi.cre2ErrorArg.Call1(ctx, uint64(rePtr))
 	if err != nil {
 		panic(err)
 	}
-	sPtr := binary.LittleEndian.Uint32(alloc.read(argPtr.ptr, 4))
-	sLen := binary.LittleEndian.Uint32(alloc.read(argPtr.ptr+4, 4))
-
-	return code, string(alloc.read(wasmPtr(sPtr), int(sLen)))
+	msg := copyCString(wasmPtr(res))
+	return code, msg
 }
 
 func numCapturingGroups(abi *libre2ABI, rePtr wasmPtr) int {
@@ -428,26 +425,14 @@ func namedGroupsIterNext(abi *libre2ABI, iterPtr wasmPtr) (string, int, bool) {
 		panic(errFailedRead)
 	}
 
-	// C-string, read content until NULL.
-	name := strings.Builder{}
-	for {
-		b, ok := wasmMemory.ReadByte(namePtr)
-		if !ok {
-			panic(errFailedRead)
-		}
-		if b == 0 {
-			break
-		}
-		name.WriteByte(b)
-		namePtr++
-	}
+	name := copyCString(wasmPtr(namePtr))
 
 	index, ok := wasmMemory.ReadUint32Le(uint32(indexPtr))
 	if !ok {
 		panic(errFailedRead)
 	}
 
-	return name.String(), int(index), true
+	return name, int(index), true
 }
 
 func namedGroupsIterDelete(abi *libre2ABI, iterPtr wasmPtr) {
@@ -579,6 +564,22 @@ func free(abi *libre2ABI, ptr wasmPtr) {
 	if _, err := abi.free.Call1(context.Background(), uint64(ptr)); err != nil {
 		panic(err)
 	}
+}
+
+func copyCString(ptr wasmPtr) string {
+	res := strings.Builder{}
+	for {
+		b, ok := wasmMemory.ReadByte(uint32(ptr))
+		if !ok {
+			panic(errFailedRead)
+		}
+		if b == 0 {
+			break
+		}
+		res.WriteByte(b)
+		ptr++
+	}
+	return res.String()
 }
 
 type allocation struct {

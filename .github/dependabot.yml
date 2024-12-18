@@ -12,6 +12,8 @@ updates:
     directories:
       - /
       - build
+      - internal/e2e
+      - wafbench
     schedule:
       interval: weekly
     groups:

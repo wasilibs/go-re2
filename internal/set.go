@@ -3,6 +3,7 @@ package internal
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"runtime"
 	"sync/atomic"
 )
@@ -38,12 +39,14 @@ func CompileSet(exprs []string, opts CompileOptions) (*Set, error) {
 
 	for _, expr := range exprs {
 		cs := alloc.newCString(expr)
-		res := setAdd(set, cs)
-		if res == 0 {
+		msgPtr := setAdd(set, cs)
+		if msgPtr == 0 {
 			return nil, errErrorUnknown
 		}
-		if res == -1 {
-			return nil, errors.New(readErr(errorBuffer.ptr, errorsLen))
+		msg := copyCString(msgPtr)
+		if msg != "ok" {
+			free(abi, msgPtr)
+			return nil, fmt.Errorf("error parsing regexp: %s", msg)
 		}
 	}
 	setCompile(set)

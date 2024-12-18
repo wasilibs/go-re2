@@ -3,8 +3,8 @@
 package wafbench
 
 import (
-	"github.com/corazawaf/coraza/v3/operators"
-	"github.com/corazawaf/coraza/v3/rules"
+	"github.com/corazawaf/coraza/v3/experimental/plugins"
+	"github.com/corazawaf/coraza/v3/experimental/plugins/plugintypes"
 
 	"github.com/wasilibs/go-re2"
 )
@@ -13,9 +13,9 @@ type rx struct {
 	re *re2.Regexp
 }
 
-var _ rules.Operator = (*rx)(nil)
+var _ plugintypes.Operator = (*rx)(nil)
 
-func newRX(options rules.OperatorOptions) (rules.Operator, error) {
+func newRX(options plugintypes.OperatorOptions) (plugintypes.Operator, error) {
 	o := &rx{}
 	data := options.Arguments
 
@@ -28,7 +28,7 @@ func newRX(options rules.OperatorOptions) (rules.Operator, error) {
 	return o, err
 }
 
-func (o *rx) Evaluate(tx rules.TransactionState, value string) bool {
+func (o *rx) Evaluate(tx plugintypes.TransactionState, value string) bool {
 	match := o.re.FindStringSubmatch(value)
 	if len(match) == 0 {
 		return false
@@ -47,5 +47,5 @@ func (o *rx) Evaluate(tx rules.TransactionState, value string) bool {
 }
 
 func init() {
-	operators.Register("rx", newRX)
+	plugins.RegisterOperator("rx", newRX)
 }

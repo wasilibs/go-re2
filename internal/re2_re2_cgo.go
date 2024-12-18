@@ -45,16 +45,14 @@ func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) wasmPtr {
 	return wasmPtr(cre2.New(pattern.ptr, pattern.length, opt))
 }
 
-func reError(abi *libre2ABI, _ *allocation, rePtr wasmPtr) (int, string) {
+func reError(abi *libre2ABI, rePtr wasmPtr) (int, string) {
 	code := cre2.ErrorCode(unsafe.Pointer(rePtr))
 	if code == 0 {
 		return 0, ""
 	}
 
-	arg := cString{}
-	cre2.ErrorArg(unsafe.Pointer(rePtr), unsafe.Pointer(&arg))
-
-	return code, cre2.CopyCStringN(arg.ptr, arg.length)
+	arg := cre2.CopyCString(cre2.ErrorArg(unsafe.Pointer(rePtr)))
+	return code, arg
 }
 
 func numCapturingGroups(abi *libre2ABI, rePtr wasmPtr) int {
