@@ -112,7 +112,9 @@ SecRule REQUEST_HEADERS:X-CRS-Test "@rx ^.*$" \
 				if err != nil {
 					b.Error(err)
 				}
-				resp.Body.Close()
+				if resp.Body != nil {
+					resp.Body.Close()
+				}
 			}
 		})
 	}
