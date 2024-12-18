@@ -150,7 +150,7 @@ var setTests = []SetTest{
 }
 
 func setMatchTest(t *testing.T, set *Set, matchStr string, matchedIds []int) {
-	m := set.Match([]byte(matchStr), 10)
+	m := set.FindAll([]byte(matchStr), 10)
 	if !reflect.DeepEqual(m, matchedIds) {
 		t.Errorf("Match failure on %s: %v should be %v", matchStr, m, matchedIds)
 	}
@@ -175,7 +175,7 @@ func BenchmarkSetMatchWithFindSubmatch(b *testing.B) {
 			panic(err)
 		}
 		for i := 0; i < b.N; i++ {
-			set.Match([]byte("abcd123"), 20)
+			set.FindAll([]byte("abcd123"), 20)
 		}
 	})
 	b.Run("findSubmatch", func(b *testing.B) {
@@ -195,10 +195,10 @@ func ExampleCompileSet() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(set.Match([]byte("abcd"), len(exprs)))
-	fmt.Println(set.Match([]byte("123"), len(exprs)))
-	fmt.Println(set.Match([]byte("abc123"), len(exprs)))
-	fmt.Println(set.Match([]byte("def"), len(exprs)))
+	fmt.Println(set.FindAll([]byte("abcd"), len(exprs)))
+	fmt.Println(set.FindAll([]byte("123"), len(exprs)))
+	fmt.Println(set.FindAll([]byte("abc123"), len(exprs)))
+	fmt.Println(set.FindAll([]byte("def"), len(exprs)))
 	// Output:
 	// [0]
 	// [1]

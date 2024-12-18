@@ -56,10 +56,10 @@ func (set *Set) release() {
 	deleteSet(set.abi, set.ptr)
 }
 
-// Match executes the Set against the input bytes. It returns a slice
+// FindAll executes the Set against the input bytes. It returns a slice
 // with the indices of the matched patterns. If n >= 0, it returns at most
 // n matches; otherwise, it returns all of them.
-func (set *Set) Match(b []byte, n int) []int {
+func (set *Set) FindAll(b []byte, n int) []int {
 	if n == 0 {
 		return nil
 	}
