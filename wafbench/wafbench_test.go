@@ -108,10 +108,11 @@ SecRule REQUEST_HEADERS:X-CRS-Test "@rx ^.*$" \
 		payload := strings.Repeat("a", size)
 		b.Run(fmt.Sprintf("POST/%d", size), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				_, err := http.Post(s.URL+"/anything", "text/plain", strings.NewReader(payload))
+				resp, err := http.Post(s.URL+"/anything", "text/plain", strings.NewReader(payload))
 				if err != nil {
 					b.Error(err)
 				}
+				resp.Body.Close()
 			}
 		})
 	}
