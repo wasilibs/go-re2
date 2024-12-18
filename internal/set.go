@@ -7,6 +7,8 @@ import (
 	"sync/atomic"
 )
 
+var errErrorUnknown = errors.New("unknown error compiling pattern")
+
 const errorBufferLength = 64
 
 type Set struct {
@@ -34,13 +36,12 @@ func CompileSet(exprs []string, opts CompileOptions) (*Set, error) {
 	alloc := abi.startOperation(estimatedMemorySize + errorBufferLen + errorBufferLength)
 	defer abi.endOperation(alloc)
 
-	errorBuffer := alloc.newCStringArray((errorBufferLen + errorBufferLength) / 16)
-	defer errorBuffer.free()
-
 	for _, expr := range exprs {
-		errorsLen := len(expr) + errorBufferLength
 		cs := alloc.newCString(expr)
-		res := setAdd(set, cs, errorBuffer.ptr, errorsLen)
+		res := setAdd(set, cs)
+		if res == 0 {
+			return nil, errErrorUnknown
+		}
 		if res == -1 {
 			return nil, errors.New(readErr(errorBuffer.ptr, errorsLen))
 		}

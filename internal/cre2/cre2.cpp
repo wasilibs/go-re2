@@ -661,24 +661,26 @@ cre2_set_delete(cre2_set *set)
   delete TO_RE2_SET(set);
 }
 
-// Add a regex to the set. If invalid: store error message in error buffer.
-int
-cre2_set_add(cre2_set *set, const char *pattern, size_t pattern_len, char *error, size_t error_len)
+static char* ok = "ok";
+
+// Add a regex to the set. If invalid: return error message that must be freed. If valid, return "ok".
+char*
+cre2_set_add(cre2_set *set, const char *pattern, size_t pattern_len)
 {
   RE2::Set *s = TO_RE2_SET(set);
   re2::StringPiece regex(pattern, static_cast<int>(pattern_len));
-  if ((NULL == error) || (0 == error_len)) {
-    return s->Add(regex, NULL);
-  } else {
-    std::string err;
-    int regex_index = s->Add(regex, &err);
-    if (regex_index < 0) {
-      size_t len = err.size() < error_len - 1 ? err.size() : error_len - 1;
-      err.copy(error, len);
-      error[len] = '\0';
-    }
-    return regex_index;
+  std::string err;
+  int regex_index = s->Add(regex, &err);
+  if (regex_index >= 0) {
+    return ok;
   }
+  size_t len = err.size() + 1;
+  void* msg = malloc(len);
+  if (msg == NULL) {
+    return NULL;
+  }
+  memcpy(msg, err.c_str(), len);
+  return (char*)msg;
 }
 
 // Add pattern without NULL byte. Don't store error message.

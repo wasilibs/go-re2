@@ -519,13 +519,13 @@ func setAddSimple(set *Set, s cString) int32 {
 	return int32(res)
 }
 
-func setAdd(set *Set, s cString, errors wasmPtr, errorsLen int) int32 {
+func setAdd(set *Set, s cString) wasmPtr {
 	ctx := context.Background()
-	res, err := set.abi.cre2SetAdd.Call5(ctx, uint64(set.ptr), uint64(s.ptr), uint64(s.length), uint64(errors), uint64(errorsLen))
+	res, err := set.abi.cre2SetAdd.Call3(ctx, uint64(set.ptr), uint64(s.ptr), uint64(s.length))
 	if err != nil {
 		panic(err)
 	}
-	return int32(res)
+	return wasmPtr(res)
 }
 
 func setCompile(set *Set) int32 {
