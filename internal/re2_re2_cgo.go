@@ -117,10 +117,6 @@ func (a *allocation) read(ptr wasmPtr, size int) []byte {
 	return (*[1 << 30]byte)(unsafe.Pointer(ptr))[:size:size]
 }
 
-func readErr(ptr wasmPtr, _ int) string {
-	return cre2.CopyCString(unsafe.Pointer(ptr))
-}
-
 type cString struct {
 	ptr    unsafe.Pointer
 	length int
