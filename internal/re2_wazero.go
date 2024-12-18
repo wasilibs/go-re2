@@ -60,14 +60,16 @@ type libre2ABI struct {
 	cre2OptSetCaseSensitive   lazyFunction
 	cre2OptSetLatin1Encoding  lazyFunction
 	cre2OptSetMaxMem          lazyFunction
-	cre2SetNew                lazyFunction
-	cre2SetAdd                lazyFunction
-	cre2SetAddSimple          lazyFunction
-	cre2SetCompile            lazyFunction
-	cre2SetMatch              lazyFunction
-	cre2SetDelete             lazyFunction
-	malloc                    lazyFunction
-	free                      lazyFunction
+
+	cre2SetNew       lazyFunction
+	cre2SetAdd       lazyFunction
+	cre2SetAddSimple lazyFunction
+	cre2SetCompile   lazyFunction
+	cre2SetMatch     lazyFunction
+	cre2SetDelete    lazyFunction
+
+	malloc lazyFunction
+	free   lazyFunction
 }
 
 type wasmPtr uint32
