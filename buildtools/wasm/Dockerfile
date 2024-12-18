@@ -58,7 +58,6 @@ RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 $LDFLAGS \
   -Wl,--export=cre2_named_groups_iter_next \
   -Wl,--export=cre2_named_groups_iter_delete \
   -Wl,--export=cre2_set_new \
-  -Wl,--export=cre2_set_add_simple \
   -Wl,--export=cre2_set_add \
   -Wl,--export=cre2_set_match \
   -Wl,--export=cre2_set_delete \
