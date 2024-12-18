@@ -59,13 +59,13 @@ type CompileOptions struct {
 
 func Compile(expr string, opts CompileOptions) (*Regexp, error) {
 	abi := newABI()
-	alloc := abi.startOperation(len(expr) + 2 + 8)
+	alloc := abi.startOperation(len(expr) + 2)
 	defer abi.endOperation(alloc)
 
 	cs := alloc.newCString(expr)
 
 	rePtr := newRE(abi, cs, opts)
-	errCode, errArg := reError(abi, &alloc, rePtr)
+	errCode, errArg := reError(abi, rePtr)
 	switch errCode {
 	case 0:
 	// No error.

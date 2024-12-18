@@ -130,7 +130,7 @@ cre2_decl void cre2_named_groups_iter_delete(cre2_named_groups_iter_t *iter);
 
 /* invalidated by further re use */
 cre2_decl const char *cre2_error_string(const cre2_regexp_t *re);
-cre2_decl void cre2_error_arg(const cre2_regexp_t *re, cre2_string_t * arg);
+cre2_decl const char *cre2_error_arg(const cre2_regexp_t *re);
 
 
 /** --------------------------------------------------------------------
