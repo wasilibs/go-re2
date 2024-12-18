@@ -8,6 +8,7 @@ import (
 	_ "embed"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"runtime"
@@ -61,12 +62,11 @@ type libre2ABI struct {
 	cre2OptSetLatin1Encoding  lazyFunction
 	cre2OptSetMaxMem          lazyFunction
 
-	cre2SetNew       lazyFunction
-	cre2SetAdd       lazyFunction
-	cre2SetAddSimple lazyFunction
-	cre2SetCompile   lazyFunction
-	cre2SetMatch     lazyFunction
-	cre2SetDelete    lazyFunction
+	cre2SetNew     lazyFunction
+	cre2SetAdd     lazyFunction
+	cre2SetCompile lazyFunction
+	cre2SetMatch   lazyFunction
+	cre2SetDelete  lazyFunction
 
 	malloc lazyFunction
 	free   lazyFunction
@@ -233,7 +233,6 @@ func newABI() *libre2ABI {
 		cre2OptSetMaxMem:          newLazyFunction("cre2_opt_set_max_mem"),
 		cre2SetNew:                newLazyFunction("cre2_set_new"),
 		cre2SetAdd:                newLazyFunction("cre2_set_add"),
-		cre2SetAddSimple:          newLazyFunction("cre2_set_add_simple"),
 		cre2SetCompile:            newLazyFunction("cre2_set_compile"),
 		cre2SetMatch:              newLazyFunction("cre2_set_match"),
 		cre2SetDelete:             newLazyFunction("cre2_set_delete"),
@@ -495,22 +494,22 @@ func newSet(abi *libre2ABI, opts CompileOptions) wasmPtr {
 	return wasmPtr(res)
 }
 
-func setAddSimple(set *Set, s cString) int32 {
-	ctx := context.Background()
-	res, err := set.abi.cre2SetAddSimple.Call2(ctx, uint64(set.ptr), uint64(s.ptr))
-	if err != nil {
-		panic(err)
-	}
-	return int32(res)
-}
-
-func setAdd(set *Set, s cString) wasmPtr {
+func setAdd(set *Set, s cString) string {
 	ctx := context.Background()
 	res, err := set.abi.cre2SetAdd.Call3(ctx, uint64(set.ptr), uint64(s.ptr), uint64(s.length))
 	if err != nil {
 		panic(err)
 	}
-	return wasmPtr(res)
+	if res == 0 {
+		return unknownCompileError
+	}
+	msgPtr := wasmPtr(res)
+	msg := copyCString(wasmPtr(msgPtr))
+	if msg != "ok" {
+		free(set.abi, msgPtr)
+		return fmt.Sprintf("error parsing regexp: %s", msg)
+	}
+	return ""
 }
 
 func setCompile(set *Set) int32 {
@@ -619,18 +618,6 @@ func (a *allocation) read(ptr wasmPtr, size int) []byte {
 		panic(errFailedRead)
 	}
 	return buf
-}
-
-func readErr(ptr wasmPtr, errorsLen int) string {
-	buf, ok := wasmMemory.Read(uint32(ptr), uint32(errorsLen)) // Assuming a maximum length of 1024 for the string
-	if !ok {
-		panic("failed to read from wasm memory")
-	}
-	end := 0
-	for end < len(buf) && buf[end] != 0 {
-		end++
-	}
-	return string(buf[:end])
 }
 
 func (a *allocation) write(b []byte) wasmPtr {

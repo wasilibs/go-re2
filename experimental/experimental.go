@@ -23,10 +23,10 @@ func MustCompileLatin1(str string) *re2.Regexp {
 	return regexp
 }
 
+// Set is a compiled collection of regular expressions that can be searched for simultaneously.
 type Set = internal.Set
 
-// CompileSet parses a regular expression and returns, if successful,
-// a Set object that can be used to match against text.
+// CompileSet compiles the set of regular expression in preparation for matching.
 func CompileSet(exprs []string) (*Set, error) {
 	return internal.CompileSet(exprs, internal.CompileOptions{})
 }

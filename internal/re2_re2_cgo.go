@@ -3,6 +3,7 @@
 package internal
 
 import (
+	"fmt"
 	"unsafe"
 
 	"github.com/wasilibs/go-re2/internal/cre2"
@@ -193,12 +194,17 @@ func newSet(_ *libre2ABI, opts CompileOptions) wasmPtr {
 	return wasmPtr(cre2.NewSet(opt, 0))
 }
 
-func setAddSimple(set *Set, s cString) int32 {
-	return int32(cre2.SetAddSimple(unsafe.Pointer(set.ptr), s.ptr))
-}
-
-func setAdd(set *Set, s cString, errors wasmPtr, errorsLen int) int32 {
-	return int32(cre2.SetAdd(unsafe.Pointer(set.ptr), s.ptr, s.length, unsafe.Pointer(errors), errorsLen))
+func setAdd(set *Set, s cString) string {
+	msgPtr := cre2.SetAdd(unsafe.Pointer(set.ptr), s.ptr, s.length)
+	if msgPtr == nil {
+		return unknownCompileError
+	}
+	msg := cre2.CopyCString(msgPtr)
+	if msg != "ok" {
+		cre2.Free(msgPtr)
+		return fmt.Sprintf("error parsing regexp: %s", msg)
+	}
+	return ""
 }
 
 func setCompile(set *Set) int32 {

@@ -2,20 +2,18 @@ package internal
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"runtime"
 	"sync/atomic"
 )
 
-var errErrorUnknown = errors.New("unknown error compiling pattern")
-
-const errorBufferLength = 64
+const unknownCompileError = "unknown error compiling pattern"
 
 type Set struct {
 	ptr      wasmPtr
 	abi      *libre2ABI
 	opts     CompileOptions
+	exprs    []string
 	released uint32
 }
 
@@ -23,48 +21,27 @@ func CompileSet(exprs []string, opts CompileOptions) (*Set, error) {
 	abi := newABI()
 	setPtr := newSet(abi, opts)
 	set := &Set{
-		ptr:  setPtr,
-		abi:  abi,
-		opts: opts,
+		ptr:   setPtr,
+		abi:   abi,
+		opts:  opts,
+		exprs: exprs,
 	}
-	var errorBufferLen int
 	var estimatedMemorySize int
 	for _, expr := range exprs {
-		errorBufferLen = max(errorBufferLen, len(expr))
-		estimatedMemorySize += len(expr) + 2 + 8
+		estimatedMemorySize += len(expr) + 2
 	}
 
-	alloc := abi.startOperation(estimatedMemorySize + errorBufferLen + errorBufferLength)
+	alloc := abi.startOperation(estimatedMemorySize)
 	defer abi.endOperation(alloc)
 
 	for _, expr := range exprs {
 		cs := alloc.newCString(expr)
-		msgPtr := setAdd(set, cs)
-		if msgPtr == 0 {
-			return nil, errErrorUnknown
-		}
-		msg := copyCString(msgPtr)
-		if msg != "ok" {
-			free(abi, msgPtr)
-			return nil, fmt.Errorf("error parsing regexp: %s", msg)
+		errMsg := setAdd(set, cs)
+		if errMsg != "" {
+			return nil, fmt.Errorf("error parsing regexp: %s", errMsg)
 		}
 	}
 	setCompile(set)
-	// Use func(interface{}) form for nottinygc compatibility.
-	runtime.SetFinalizer(set, func(obj interface{}) {
-		obj.(*Set).release()
-	})
-	return set, nil
-}
-
-func NewSet(opts CompileOptions) (*Set, error) {
-	abi := newABI()
-	setPtr := newSet(abi, opts)
-	set := &Set{
-		ptr:  setPtr,
-		abi:  abi,
-		opts: opts,
-	}
 	// Use func(interface{}) form for nottinygc compatibility.
 	runtime.SetFinalizer(set, func(obj interface{}) {
 		obj.(*Set).release()
@@ -79,38 +56,17 @@ func (set *Set) release() {
 	deleteSet(set.abi, set.ptr)
 }
 
-func (set *Set) Compile(expr string) {
-	setCompile(set)
-	runtime.KeepAlive(set)
-}
-
-//func (set *Set) SetAdd(expr string) error {
-//	alloc := set.abi.startOperation(len(expr) + 2 + 8)
-//	defer set.abi.endOperation(alloc)
-//
-//	cs := alloc.newCString(expr)
-//	errorBuffer := alloc.newCStringArray(1)
-//	defer errorBuffer.free()
-//
-//	if res := setAdd(set, cs, errorBuffer.ptr, errorBufferLength); res == -1 {
-//		return errors.New(readErrorMessage(&alloc, errorBuffer.ptr, errorBufferLength))
-//	}
-//
-//	runtime.KeepAlive(set)
-//	return nil
-//}
-
-func (set *Set) SetAddSimple(expr string) {
-	alloc := set.abi.startOperation(len(expr) + 2 + 8)
-	defer set.abi.endOperation(alloc)
-
-	cs := alloc.newCString(expr)
-	setAddSimple(set, cs)
-
-	runtime.KeepAlive(set)
-}
-
+// Match executes the Set against the input bytes. It returns a slice
+// with the indices of the matched patterns. If n >= 0, it returns at most
+// n matches; otherwise, it returns all of them.
 func (set *Set) Match(b []byte, n int) []int {
+	if n == 0 {
+		return nil
+	}
+	if n < 0 {
+		n = len(set.exprs)
+	}
+
 	alloc := set.abi.startOperation(len(b) + 8 + n*8)
 	defer set.abi.endOperation(alloc)
 
