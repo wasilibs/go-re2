@@ -8,6 +8,7 @@ import (
 	_ "embed"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"runtime"
@@ -60,6 +61,12 @@ type libre2ABI struct {
 	cre2OptSetCaseSensitive   lazyFunction
 	cre2OptSetLatin1Encoding  lazyFunction
 	cre2OptSetMaxMem          lazyFunction
+
+	cre2SetNew     lazyFunction
+	cre2SetAdd     lazyFunction
+	cre2SetCompile lazyFunction
+	cre2SetMatch   lazyFunction
+	cre2SetDelete  lazyFunction
 
 	malloc lazyFunction
 	free   lazyFunction
@@ -224,9 +231,13 @@ func newABI() *libre2ABI {
 		cre2OptSetCaseSensitive:   newLazyFunction("cre2_opt_set_case_sensitive"),
 		cre2OptSetLatin1Encoding:  newLazyFunction("cre2_opt_set_latin1_encoding"),
 		cre2OptSetMaxMem:          newLazyFunction("cre2_opt_set_max_mem"),
-
-		malloc: newLazyFunction("malloc"),
-		free:   newLazyFunction("free"),
+		cre2SetNew:                newLazyFunction("cre2_set_new"),
+		cre2SetAdd:                newLazyFunction("cre2_set_add"),
+		cre2SetCompile:            newLazyFunction("cre2_set_compile"),
+		cre2SetMatch:              newLazyFunction("cre2_set_match"),
+		cre2SetDelete:             newLazyFunction("cre2_set_delete"),
+		malloc:                    newLazyFunction("malloc"),
+		free:                      newLazyFunction("free"),
 	}
 
 	return abi
@@ -432,6 +443,101 @@ func namedGroupsIterDelete(abi *libre2ABI, iterPtr wasmPtr) {
 	}
 }
 
+func newSet(abi *libre2ABI, opts CompileOptions) wasmPtr {
+	ctx := context.Background()
+	optPtr := uint32(0)
+	res, err := abi.cre2OptNew.Call0(ctx)
+	if err != nil {
+		panic(err)
+	}
+	optPtr = uint32(res)
+	defer func() {
+		if _, err := abi.cre2OptDelete.Call1(ctx, uint64(optPtr)); err != nil {
+			panic(err)
+		}
+	}()
+
+	_, err = abi.cre2OptSetMaxMem.Call2(ctx, uint64(optPtr), uint64(maxSize))
+	if err != nil {
+		panic(err)
+	}
+
+	if opts.Longest {
+		_, err = abi.cre2OptSetLongestMatch.Call2(ctx, uint64(optPtr), 1)
+		if err != nil {
+			panic(err)
+		}
+	}
+	if opts.Posix {
+		_, err = abi.cre2OptSetPosixSyntax.Call2(ctx, uint64(optPtr), 1)
+		if err != nil {
+			panic(err)
+		}
+	}
+	if opts.CaseInsensitive {
+		_, err = abi.cre2OptSetCaseSensitive.Call2(ctx, uint64(optPtr), 0)
+		if err != nil {
+			panic(err)
+		}
+	}
+	if opts.Latin1 {
+		_, err = abi.cre2OptSetLatin1Encoding.Call1(ctx, uint64(optPtr))
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	res, err = abi.cre2SetNew.Call2(ctx, uint64(optPtr), 0)
+	if err != nil {
+		panic(err)
+	}
+	return wasmPtr(res)
+}
+
+func setAdd(set *Set, s cString) string {
+	ctx := context.Background()
+	res, err := set.abi.cre2SetAdd.Call3(ctx, uint64(set.ptr), uint64(s.ptr), uint64(s.length))
+	if err != nil {
+		panic(err)
+	}
+	if res == 0 {
+		return unknownCompileError
+	}
+	msgPtr := wasmPtr(res)
+	msg := copyCString(wasmPtr(msgPtr))
+	if msg != "ok" {
+		free(set.abi, msgPtr)
+		return fmt.Sprintf("error parsing regexp: %s", msg)
+	}
+	return ""
+}
+
+func setCompile(set *Set) int32 {
+	ctx := context.Background()
+	res, err := set.abi.cre2SetCompile.Call1(ctx, uint64(set.ptr))
+	if err != nil {
+		panic(err)
+	}
+	return int32(res)
+}
+
+func setMatch(set *Set, cs cString, matchedPtr wasmPtr, nMatch int) int {
+	ctx := context.Background()
+	res, err := set.abi.cre2SetMatch.Call5(ctx, uint64(set.ptr), uint64(cs.ptr), uint64(cs.length), uint64(matchedPtr), uint64(nMatch))
+	if err != nil {
+		panic(err)
+	}
+	return int(res)
+}
+
+func deleteSet(abi *libre2ABI, setPtr wasmPtr) {
+	ctx := context.Background()
+	_, err := abi.cre2SetDelete.Call1(ctx, uint64(setPtr))
+	if err != nil {
+		panic(err)
+	}
+}
+
 type cString struct {
 	ptr    wasmPtr
 	length int
@@ -578,6 +684,16 @@ func (f *lazyFunction) Call3(ctx context.Context, arg1 uint64, arg2 uint64, arg3
 	callStack[0] = arg1
 	callStack[1] = arg2
 	callStack[2] = arg3
+	return f.callWithStack(ctx, callStack[:])
+}
+
+func (f *lazyFunction) Call5(ctx context.Context, arg1 uint64, arg2 uint64, arg3 uint64, arg4 uint64, arg5 uint64) (uint64, error) {
+	var callStack [5]uint64
+	callStack[0] = arg1
+	callStack[1] = arg2
+	callStack[2] = arg3
+	callStack[3] = arg4
+	callStack[4] = arg5
 	return f.callWithStack(ctx, callStack[:])
 }
 
