@@ -38,7 +38,7 @@ func CompileSet(exprs []string, opts CompileOptions) (*Set, error) {
 		cs := alloc.newCString(expr)
 		errMsg := setAdd(set, cs)
 		if errMsg != "" {
-			return nil, fmt.Errorf("error parsing regexp: %s", errMsg)
+			return nil, fmt.Errorf("%s", errMsg)
 		}
 	}
 	setCompile(set)
@@ -54,6 +54,39 @@ func (set *Set) release() {
 		return
 	}
 	deleteSet(set.abi, set.ptr)
+}
+
+// Find searches for the first occurrence of any pattern in the Set within the given byte slice.
+// It returns the index of the matched pattern or -1 if no match is found.
+//
+// Parameters:
+// - b: The byte slice to search within.
+//
+// Returns:
+// - int: The index of the matched pattern, or -1 if no match is found.
+func (set *Set) Find(b []byte) int {
+	if len(b) == 0 {
+		return -1
+	}
+
+	alloc := set.abi.startOperation(len(b) + 8)
+	defer set.abi.endOperation(alloc)
+
+	cs := alloc.newCStringFromBytes(b)
+	matchArr := alloc.newCStringArray(1)
+	defer matchArr.free()
+
+	matchedCount := setMatch(set, cs, matchArr.ptr, 1)
+	if matchedCount == 0 {
+		return -1
+	}
+
+	matches := alloc.read(matchArr.ptr, 4)
+	matchedID := int(binary.LittleEndian.Uint32(matches))
+
+	runtime.KeepAlive(b)
+	runtime.KeepAlive(set) // don't allow finalizer to run during method
+	return matchedID
 }
 
 // FindAll executes the Set against the input bytes. It returns a slice

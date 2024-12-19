@@ -3,6 +3,7 @@ package experimental
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -86,22 +87,18 @@ type stringError struct {
 }
 
 var badSet = []stringError{
-	{`*`, "no argument for repetition operator: *"},
-	{`+`, "no argument for repetition operator: +"},
-	{`?`, "no argument for repetition operator: ?"},
-	{`(abc`, "missing ): (abc"},
-	{`abc)`, "unexpected ): abc)"},
-	{`x[a-z`, "missing ]: [a-z"},
-	{`[z-a]`, "invalid character class range: z-a"},
-	{`abc\`, "trailing \\"},
-	{`a**`, "bad repetition operator: **"},
-	{`a*+`, "bad repetition operator: *+"},
-	{`\x`, "invalid escape sequence: \\x"},
-	{strings.Repeat(`)\pL`, 27000), "unexpected ): " + strings.Repeat(`)\pL`, 27000)},
-}
-
-func TestGoodSetCompile(t *testing.T) {
-	compileSetTest(t, goodRe, "")
+	{`*`, "error parsing regexp: no argument for repetition operator: *"},
+	{`+`, "error parsing regexp: no argument for repetition operator: +"},
+	{`?`, "error parsing regexp: no argument for repetition operator: ?"},
+	{`(abc`, "error parsing regexp: missing ): (abc"},
+	{`abc)`, "error parsing regexp: unexpected ): abc)"},
+	{`x[a-z`, "error parsing regexp: missing ]: [a-z"},
+	{`[z-a]`, "error parsing regexp: invalid character class range: z-a"},
+	{`abc\`, "error parsing regexp: trailing \\"},
+	{`a**`, "error parsing regexp: bad repetition operator: **"},
+	{`a*+`, "error parsing regexp: bad repetition operator: *+"},
+	{`\x`, "error parsing regexp: invalid escape sequence: \\x"},
+	{strings.Repeat(`)\pL`, 27000), "error parsing regexp: unexpected ): " + strings.Repeat(`)\pL`, 27000)},
 }
 
 func compileSetTest(t *testing.T, exprs []string, error string) *Set {
@@ -117,6 +114,10 @@ func compileSetTest(t *testing.T, exprs []string, error string) *Set {
 	return set
 }
 
+func TestGoodSetCompile(t *testing.T) {
+	compileSetTest(t, goodRe, "")
+}
+
 func TestBadCompileSet(t *testing.T) {
 	for i := 0; i < len(badSet); i++ {
 		compileSetTest(t, []string{badSet[i].re}, badSet[i].err)
@@ -124,48 +125,102 @@ func TestBadCompileSet(t *testing.T) {
 }
 
 type SetTest struct {
-	expr    []string
-	matches map[string][]int
+	exprs   []string
+	matches string
+	matched [4][]int
 }
 
 var setTests = []SetTest{
 	{
-		expr: []string{"abc", "\\d+"},
-		matches: map[string][]int{
-			"abc":    {0},
-			"123":    {1},
-			"abc123": {0, 1},
-			"def":    {},
+		exprs:   []string{`(d)(e){0}(f)`, `[a-c]+`, `abc`, `\d+`},
+		matches: "x",
+		matched: [4][]int{
+			nil, {}, {}, {},
 		},
 	},
 	{
-		expr: []string{"[a-c]+", "(d)(e){0}(f)"},
-		matches: map[string][]int{
-			"a234v": {0},
-			"df":    {1},
-			"abcdf": {0, 1},
-			"def":   {},
+		exprs:   []string{`(d)(e){0}(f)`, `[a-c]+`, `abc`, `\d+`},
+		matches: "123",
+		matched: [4][]int{
+			nil, {3}, {3}, {3},
+		},
+	},
+	{
+		exprs:   []string{`(d)(e){0}(f)`, `[a-c]+`, `abc`, `\d+`},
+		matches: "df123abc",
+		matched: [4][]int{
+			nil, {0}, {0, 3}, {0, 1, 2, 3},
+		},
+	},
+	{
+		exprs:   []string{`(d)(e){0}(f)`, `[a-c]+`, `abc`, `\d+`, `d{4}-\d{2}-\d{2}$`, `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`, `1[3-9]\d{9}`, `\.[a-zA-Z0-9]+$`, `<!--[\s\S]*?-->`},
+		matches: "abcdef123</html><!-- test -->13988889181demo@gmail.com",
+		matched: [4][]int{
+			nil, {1}, {1, 2}, {1, 2, 3, 5, 6, 7, 8},
+		},
+	},
+	{
+		exprs:   []string{`(d)(e){0}(f)`, `[a-c]+`, `abc`, `\d+`, `d{4}-\d{2}-\d{2}$`, `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`, `1[3-9]\d{9}`, `\.[a-zA-Z0-9]+$`, `<!--[\s\S]*?-->`},
+		matches: "df12313988889181demo@gmail.com",
+		matched: [4][]int{
+			nil, {0}, {0, 3}, {0, 1, 3, 5, 6, 7},
 		},
 	},
 }
 
-func setMatchTest(t *testing.T, set *Set, matchStr string, matchedIds []int) {
-	m := set.FindAll([]byte(matchStr), 10)
+func setFindAllTest(t *testing.T, set *Set, matchStr string, matchNum int, matchedIds []int) {
+	m := set.FindAll([]byte(matchStr), matchNum)
+	sort.Ints(m)
 	if !reflect.DeepEqual(m, matchedIds) {
 		t.Errorf("Match failure on %s: %v should be %v", matchStr, m, matchedIds)
 	}
 }
 
-func TestSetMatch(t *testing.T) {
+func setFindTest(t *testing.T, set *Set, matchStr string, matchedIds []int) {
+	m := set.Find([]byte(matchStr))
+	match := make([]int, 0)
+	if m >= 0 {
+		match = []int{m}
+	}
+	if !reflect.DeepEqual(match, matchedIds) {
+		t.Errorf("Match failure on %s: %v should be %v", matchStr, m, matchedIds)
+	}
+}
+
+func TestSetFindAll(t *testing.T) {
 	for _, test := range setTests {
-		set := compileSetTest(t, test.expr, "")
+		set := compileSetTest(t, test.exprs, "")
 		if set == nil {
 			return
 		}
-		for matchStr, matchedIds := range test.matches {
-			setMatchTest(t, set, matchStr, matchedIds)
-		}
+		setFindAllTest(t, set, test.matches, 0, test.matched[0])
+		setFindTest(t, set, test.matches, test.matched[1])
+		setFindAllTest(t, set, test.matches, 1, test.matched[1])
+		setFindAllTest(t, set, test.matches, 2, test.matched[2])
+		setFindAllTest(t, set, test.matches, 7, test.matched[3])
+		setFindAllTest(t, set, test.matches, 20, test.matched[3])
 	}
+}
+
+func BenchmarkSet(b *testing.B) {
+	b.Run("find", func(b *testing.B) {
+		set, err := CompileSet(goodRe)
+		if err != nil {
+			panic(err)
+		}
+		for i := 0; i < b.N; i++ {
+			set.Find([]byte("abcdef123</html><!-- test -->13988889181demo@gmail.com"))
+		}
+	})
+	b.Run("findAll", func(b *testing.B) {
+		set, err := CompileSet(goodRe)
+		if err != nil {
+			panic(err)
+		}
+		for i := 0; i < b.N; i++ {
+			set.FindAll([]byte("abcdef123</html><!-- test -->13988889181demo@gmail.com"), 20)
+		}
+	})
 }
 
 func BenchmarkSetMatchWithFindSubmatch(b *testing.B) {
