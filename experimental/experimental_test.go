@@ -135,7 +135,7 @@ var setTests = []SetTest{
 		exprs:   []string{`(d)(e){0}(f)`, `[a-c]+`, `abc`, `\d+`},
 		matches: "x",
 		matched: [4][]int{
-			nil, {}, {}, {},
+			nil, nil, nil, nil,
 		},
 	},
 	{
@@ -176,13 +176,10 @@ func setFindAllTest(t *testing.T, set *Set, matchStr string, matchNum int, match
 	}
 }
 
-func setFindTest(t *testing.T, set *Set, matchStr string, matchedIds []int) {
-	m := set.Find([]byte(matchStr))
-	match := make([]int, 0)
-	if m >= 0 {
-		match = []int{m}
-	}
-	if !reflect.DeepEqual(match, matchedIds) {
+func setFindAllStringTest(t *testing.T, set *Set, matchStr string, matchNum int, matchedIds []int) {
+	m := set.FindAllString(matchStr, matchNum)
+	sort.Ints(m)
+	if !reflect.DeepEqual(m, matchedIds) {
 		t.Errorf("Match failure on %s: %v should be %v", matchStr, m, matchedIds)
 	}
 }
@@ -194,7 +191,6 @@ func TestSetFindAll(t *testing.T) {
 			return
 		}
 		setFindAllTest(t, set, test.matches, 0, test.matched[0])
-		setFindTest(t, set, test.matches, test.matched[1])
 		setFindAllTest(t, set, test.matches, 1, test.matched[1])
 		setFindAllTest(t, set, test.matches, 2, test.matched[2])
 		setFindAllTest(t, set, test.matches, 7, test.matched[3])
@@ -202,16 +198,21 @@ func TestSetFindAll(t *testing.T) {
 	}
 }
 
+func TestSetFindAllString(t *testing.T) {
+	for _, test := range setTests {
+		set := compileSetTest(t, test.exprs, "")
+		if set == nil {
+			return
+		}
+		setFindAllStringTest(t, set, test.matches, 0, test.matched[0])
+		setFindAllStringTest(t, set, test.matches, 1, test.matched[1])
+		setFindAllStringTest(t, set, test.matches, 2, test.matched[2])
+		setFindAllStringTest(t, set, test.matches, 7, test.matched[3])
+		setFindAllStringTest(t, set, test.matches, 20, test.matched[3])
+	}
+}
+
 func BenchmarkSet(b *testing.B) {
-	b.Run("find", func(b *testing.B) {
-		set, err := CompileSet(goodRe)
-		if err != nil {
-			panic(err)
-		}
-		for i := 0; i < b.N; i++ {
-			set.Find([]byte("abcdef123</html><!-- test -->13988889181demo@gmail.com"))
-		}
-	})
 	b.Run("findAll", func(b *testing.B) {
 		set, err := CompileSet(goodRe)
 		if err != nil {

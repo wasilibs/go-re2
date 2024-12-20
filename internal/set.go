@@ -56,37 +56,23 @@ func (set *Set) release() {
 	deleteSet(set.abi, set.ptr)
 }
 
-// Find searches for the first occurrence of any pattern in the Set within the given byte slice.
-// It returns the index of the matched pattern or -1 if no match is found.
-//
-// Parameters:
-// - b: The byte slice to search within.
-//
-// Returns:
-// - int: The index of the matched pattern, or -1 if no match is found.
-func (set *Set) Find(b []byte) int {
-	if len(b) == 0 {
-		return -1
+// FindAllString finds all matches of the regular expressions in the Set against the input string.
+// It returns a slice of indices of the matched patterns. If n >= 0, it returns at most n matches; otherwise, it returns all of them.
+func (set *Set) FindAllString(s string, n int) []int {
+	if n == 0 {
+		return nil
 	}
-
-	alloc := set.abi.startOperation(len(b) + 8)
+	alloc := set.abi.startOperation(len(s) + 8 + n*8)
 	defer set.abi.endOperation(alloc)
 
-	cs := alloc.newCStringFromBytes(b)
-	matchArr := alloc.newCStringArray(1)
-	defer matchArr.free()
+	cs := alloc.newCString(s)
 
-	matchedCount := setMatch(set, cs, matchArr.ptr, 1)
-	if matchedCount == 0 {
-		return -1
-	}
+	var matches []int
 
-	matches := alloc.read(matchArr.ptr, 4)
-	matchedID := int(binary.LittleEndian.Uint32(matches))
-
-	runtime.KeepAlive(b)
-	runtime.KeepAlive(set) // don't allow finalizer to run during method
-	return matchedID
+	set.findAll(&alloc, cs, n, func(match int) {
+		matches = append(matches, match)
+	})
+	return matches
 }
 
 // FindAll executes the Set against the input bytes. It returns a slice
@@ -96,26 +82,34 @@ func (set *Set) FindAll(b []byte, n int) []int {
 	if n == 0 {
 		return nil
 	}
+	alloc := set.abi.startOperation(len(b) + 8 + n*8)
+	defer set.abi.endOperation(alloc)
+
+	cs := alloc.newCStringFromBytes(b)
+
+	var matches []int
+
+	set.findAll(&alloc, cs, n, func(match int) {
+		matches = append(matches, match)
+	})
+
+	return matches
+}
+
+func (set *Set) findAll(alloc *allocation, cs cString, n int, deliver func(match int)) {
 	if n < 0 {
 		n = len(set.exprs)
 	}
 
-	alloc := set.abi.startOperation(len(b) + 8 + n*8)
-	defer set.abi.endOperation(alloc)
-
 	matchArr := alloc.newCStringArray(n)
 	defer matchArr.free()
 
-	cs := alloc.newCStringFromBytes(b)
 	matchedCount := setMatch(set, cs, matchArr.ptr, n)
-	matchedIDs := make([]int, min(matchedCount, n))
 	matches := alloc.read(matchArr.ptr, n*4)
-	for i := 0; i < len(matchedIDs); i++ {
-		matchedIDs[i] = int(binary.LittleEndian.Uint32(matches[i*4:]))
+	for i := 0; i < matchedCount && i < n; i++ {
+		deliver(int(binary.LittleEndian.Uint32(matches[i*4:])))
 	}
 
-	runtime.KeepAlive(b)
 	runtime.KeepAlive(matchArr)
 	runtime.KeepAlive(set) // don't allow finalizer to run during method
-	return matchedIDs
 }
