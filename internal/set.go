@@ -62,6 +62,9 @@ func (set *Set) FindAllString(s string, n int) []int {
 	if n == 0 {
 		return nil
 	}
+	if n < 0 {
+		n = len(set.exprs)
+	}
 	alloc := set.abi.startOperation(len(s) + 8 + n*8)
 	defer set.abi.endOperation(alloc)
 
@@ -82,6 +85,9 @@ func (set *Set) FindAll(b []byte, n int) []int {
 	if n == 0 {
 		return nil
 	}
+	if n < 0 {
+		n = len(set.exprs)
+	}
 	alloc := set.abi.startOperation(len(b) + 8 + n*8)
 	defer set.abi.endOperation(alloc)
 
@@ -97,10 +103,6 @@ func (set *Set) FindAll(b []byte, n int) []int {
 }
 
 func (set *Set) findAll(alloc *allocation, cs cString, n int, deliver func(match int)) {
-	if n < 0 {
-		n = len(set.exprs)
-	}
-
 	matchArr := alloc.newCStringArray(n)
 	defer matchArr.free()
 
