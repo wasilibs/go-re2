@@ -4,7 +4,7 @@ go 1.22.3
 
 require (
 	github.com/corazawaf/coraza-coreruleset/v4 v4.7.0
-	github.com/corazawaf/coraza/v3 v3.3.0
+	github.com/corazawaf/coraza/v3 v3.3.2
 	github.com/wasilibs/go-re2 v0.0.0-00010101000000-000000000000
 )
 
@@ -20,9 +20,9 @@ require (
 	github.com/valllabh/ocsf-schema-golang v1.0.3 // indirect
 	github.com/wasilibs/wazero-helpers v0.0.0-20240620070341-3dff1577cd52 // indirect
 	golang.org/x/mod v0.20.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	rsc.io/binaryregexp v0.2.0 // indirect
 )
