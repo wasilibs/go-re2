@@ -81,6 +81,14 @@ sudo apt install build-essential
 sudo apt-get install -y libre2-dev
 ```
 
+#### Alpine
+
+On Alpine install the gcc tool chain and the re2 library as follows:
+
+```bash
+apk add build-base pkgconfig re2-dev
+```
+
 #### Windows
 
 On Windows start by installing [MSYS2][8]. Then open the MINGW64 terminal and install the gcc toolchain and re2 via pacman:
