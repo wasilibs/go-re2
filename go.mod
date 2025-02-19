@@ -3,7 +3,7 @@ module github.com/wasilibs/go-re2
 go 1.22.0
 
 require (
-	github.com/tetratelabs/wazero v1.8.2
+	github.com/tetratelabs/wazero v1.9.0
 	github.com/wasilibs/wazero-helpers v0.0.0-20240620070341-3dff1577cd52
 )
 
