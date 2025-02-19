@@ -1,6 +1,6 @@
 module github.com/wasilibs/go-re2/wafbench
 
-go 1.22.3
+go 1.22.0
 
 require (
 	github.com/corazawaf/coraza-coreruleset/v4 v4.7.0
