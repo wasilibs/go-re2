@@ -1,13 +1,14 @@
 module build
 
 go 1.22.0
+toolchain go1.24.1
 
 require (
 	github.com/cli/go-gh/v2 v2.11.2
 	github.com/curioswitch/go-build v0.1.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/goyek/goyek/v2 v2.3.0
-	github.com/goyek/x v0.2.0
+	github.com/goyek/x v0.3.0
 )
 
 require (
@@ -15,7 +16,7 @@ require (
 	github.com/cli/safeexec v1.0.0 // indirect
 	github.com/cli/shurcooL-graphql v0.0.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/fatih/color v1.17.0 // indirect
+	github.com/fatih/color v1.18.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/henvic/httpretty v0.0.6 // indirect
@@ -32,7 +33,7 @@ require (
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/thlib/go-timezone-local v0.0.0-20210907160436-ef149e42d28e // indirect
 	golang.org/x/mod v0.20.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
