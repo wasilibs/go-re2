@@ -143,6 +143,9 @@ func createChildModule(rt wazero.Runtime, root api.Module) *childModule {
 
 func getChildModule() *childModule {
 	modPoolMu.Lock()
+	if modPool == nil {
+		initWASM()
+	}
 	e := modPool.Front()
 	if e == nil {
 		modPoolMu.Unlock()
@@ -159,7 +162,7 @@ func putChildModule(cm *childModule) {
 	modPoolMu.Unlock()
 }
 
-func init() {
+func initWASM() {
 	ctx := context.Background()
 	ctx = experimental.WithMemoryAllocator(ctx, allocator.NewNonMoving())
 
