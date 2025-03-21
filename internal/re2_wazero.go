@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -167,6 +168,13 @@ func initWASM() {
 	ctx = experimental.WithMemoryAllocator(ctx, allocator.NewNonMoving())
 
 	rtCfg := wazero.NewRuntimeConfig().WithCoreFeatures(api.CoreFeaturesV2 | experimental.CoreFeaturesThreads)
+	uc, err := os.UserCacheDir()
+	if err == nil {
+		cache, err := wazero.NewCompilationCacheWithDir(filepath.Join(uc, "com.github.wasilibs"))
+		if err == nil {
+			rtCfg = rtCfg.WithCompilationCache(cache)
+		}
+	}
 
 	maxPages := defaultMaxPages
 	if unsafe.Sizeof(uintptr(0)) < 8 {
