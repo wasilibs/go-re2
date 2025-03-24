@@ -1,6 +1,8 @@
 module build
 
-go 1.22.0
+go 1.23.0
+
+toolchain go1.23.7
 
 require (
 	github.com/cli/go-gh/v2 v2.11.2
@@ -32,9 +34,9 @@ require (
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/thlib/go-timezone-local v0.0.0-20210907160436-ef149e42d28e // indirect
 	golang.org/x/mod v0.20.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/term v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/term v0.30.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
