@@ -6,7 +6,7 @@ toolchain go1.24.1
 
 require (
 	github.com/cli/go-gh/v2 v2.12.0
-	github.com/curioswitch/go-build v0.1.0
+	github.com/curioswitch/go-build v0.2.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/goyek/goyek/v2 v2.3.0
 	github.com/goyek/x v0.3.0
