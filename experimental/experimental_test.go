@@ -101,15 +101,16 @@ var badSet = []stringError{
 	{strings.Repeat(`)\pL`, 27000), "error parsing regexp: unexpected ): " + strings.Repeat(`)\pL`, 27000)},
 }
 
-func compileSetTest(t *testing.T, exprs []string, error string) *Set {
+func compileSetTest(t *testing.T, exprs []string, expErr string) *Set {
+	t.Helper()
 	set, err := CompileSet(exprs)
-	if error == "" && err != nil {
+	if expErr == "" && err != nil {
 		t.Error("compiling `", exprs, "`; unexpected error: ", err.Error())
 	}
-	if error != "" && err == nil {
+	if expErr != "" && err == nil {
 		t.Error("compiling `", exprs, "`; missing error")
-	} else if error != "" && !strings.Contains(err.Error(), error) {
-		t.Error("compiling `", exprs, "`; wrong error: ", err.Error(), "; want ", error)
+	} else if expErr != "" && !strings.Contains(err.Error(), expErr) {
+		t.Error("compiling `", exprs, "`; wrong error: ", err.Error(), "; want ", expErr)
 	}
 	return set
 }
@@ -119,7 +120,7 @@ func TestGoodSetCompile(t *testing.T) {
 }
 
 func TestBadCompileSet(t *testing.T) {
-	for i := 0; i < len(badSet); i++ {
+	for i := range badSet {
 		compileSetTest(t, []string{badSet[i].re}, badSet[i].err)
 	}
 }
@@ -168,19 +169,21 @@ var setTests = []SetTest{
 	},
 }
 
-func setFindAllTest(t *testing.T, set *Set, matchStr string, matchNum int, matchedIds []int) {
+func setFindAllTest(t *testing.T, set *Set, matchStr string, matchNum int, matchedIDs []int) {
+	t.Helper()
 	m := set.FindAll([]byte(matchStr), matchNum)
 	sort.Ints(m)
-	if !reflect.DeepEqual(m, matchedIds) {
-		t.Errorf("Match failure on %s: %v should be %v", matchStr, m, matchedIds)
+	if !reflect.DeepEqual(m, matchedIDs) {
+		t.Errorf("Match failure on %s: %v should be %v", matchStr, m, matchedIDs)
 	}
 }
 
-func setFindAllStringTest(t *testing.T, set *Set, matchStr string, matchNum int, matchedIds []int) {
+func setFindAllStringTest(t *testing.T, set *Set, matchStr string, matchNum int, matchedIDs []int) {
+	t.Helper()
 	m := set.FindAllString(matchStr, matchNum)
 	sort.Ints(m)
-	if !reflect.DeepEqual(m, matchedIds) {
-		t.Errorf("Match failure on %s: %v should be %v", matchStr, m, matchedIds)
+	if !reflect.DeepEqual(m, matchedIDs) {
+		t.Errorf("Match failure on %s: %v should be %v", matchStr, m, matchedIDs)
 	}
 }
 
@@ -218,7 +221,7 @@ func BenchmarkSet(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			set.FindAll([]byte("abcdef123</html><!-- test -->13988889181demo@gmail.com"), 20)
 		}
 	})
@@ -230,7 +233,7 @@ func BenchmarkSetMatchWithFindSubmatch(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			set.FindAll([]byte("abcd123"), 20)
 		}
 	})
@@ -239,7 +242,7 @@ func BenchmarkSetMatchWithFindSubmatch(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			re.FindAllStringSubmatchIndex("abcd123", 20)
 		}
 	})

@@ -44,7 +44,9 @@ func CompileSet(exprs []string, opts CompileOptions) (*Set, error) {
 	setCompile(set)
 	// Use func(interface{}) form for nottinygc compatibility.
 	runtime.SetFinalizer(set, func(obj interface{}) {
-		obj.(*Set).release()
+		if s, ok := obj.(*Set); ok {
+			s.release()
+		}
 	})
 	return set, nil
 }

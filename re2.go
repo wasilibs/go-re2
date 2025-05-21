@@ -43,7 +43,7 @@ func Match(pattern string, b []byte) (matched bool, err error) {
 // package implements it without the expense of backtracking.
 // For POSIX leftmost-longest matching, see CompilePOSIX.
 func Compile(expr string) (*Regexp, error) {
-	return internal.Compile(expr, internal.CompileOptions{})
+	return internal.Compile(expr, internal.CompileOptions{}) //nolint:wrapcheck // just a method forwarder
 }
 
 // CompilePOSIX is like Compile but restricts the regular expression
@@ -66,7 +66,7 @@ func Compile(expr string) (*Regexp, error) {
 // The POSIX rule is computationally prohibitive and not even well-defined.
 // See https://swtch.com/~rsc/regexp/regexp2.html#posix for details.
 func CompilePOSIX(expr string) (*Regexp, error) {
-	return internal.Compile(expr, internal.CompileOptions{Longest: true, Posix: true})
+	return internal.Compile(expr, internal.CompileOptions{Longest: true, Posix: true}) //nolint:wrapcheck // just a method forwarder
 }
 
 // MustCompile is like Compile but panics if the expression cannot be parsed.

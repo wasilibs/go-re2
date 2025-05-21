@@ -9,7 +9,7 @@ import (
 // the input as arbitrary bytes rather than unicode strings. This is
 // similar behavior to the rsc.io/binaryregexp package.
 func CompileLatin1(expr string) (*re2.Regexp, error) {
-	return internal.Compile(expr, internal.CompileOptions{Latin1: true})
+	return internal.Compile(expr, internal.CompileOptions{Latin1: true}) //nolint:wrapcheck // just a method forwarder
 }
 
 // MustCompileLatin1 is like CompileLatin1 but panics if the expression cannot be parsed.
@@ -28,5 +28,5 @@ type Set = internal.Set
 
 // CompileSet compiles the set of regular expression in preparation for matching.
 func CompileSet(exprs []string) (*Set, error) {
-	return internal.CompileSet(exprs, internal.CompileOptions{})
+	return internal.CompileSet(exprs, internal.CompileOptions{}) //nolint:wrapcheck // just a method forwarder
 }

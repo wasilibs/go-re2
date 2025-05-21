@@ -21,7 +21,7 @@ func TestReplaceAllNoMatch(t *testing.T) {
 
 	startAlloc := ms.HeapInuse
 
-	for i := 0; i < 1000000; i++ {
+	for range 1000000 {
 		_ = animalRegex.ReplaceAllLiteralString(`The quick brown fox jumps over the lazy dog`, "animal")
 	}
 
@@ -54,11 +54,10 @@ func TestHighMem(t *testing.T) {
 
 // TestHeavyGC is a regression test for https://github.com/wasilibs/go-re2/issues/98
 func TestHeavyGC(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip()
 	}
-
-	t.Parallel()
 
 	go func() {
 		ticker := time.NewTicker(time.Millisecond * 100)
@@ -68,7 +67,7 @@ func TestHeavyGC(t *testing.T) {
 		}
 	}()
 	pat := MustCompile(`(?m)(?:^|\b)(?P<pattern>[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,4})(?:$|\b)`)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		t.Run(fmt.Sprintf("test-%d", i), func(t *testing.T) {
 			t.Parallel()
 
