@@ -61,13 +61,13 @@ func compileTest(t *testing.T, expr string, error string) *Regexp {
 }
 
 func TestGoodCompile(t *testing.T) {
-	for i := 0; i < len(goodRe); i++ {
+	for i := range goodRe {
 		compileTest(t, goodRe[i], "")
 	}
 }
 
 func TestBadCompile(t *testing.T) {
-	for i := 0; i < len(badRe); i++ {
+	for i := range badRe {
 		compileTest(t, badRe[i].re, badRe[i].err)
 	}
 }
@@ -429,7 +429,7 @@ func TestSubexp(t *testing.T) {
 			continue
 		}
 		if c.names != nil {
-			for i := 0; i < 1+n; i++ {
+			for i := range 1 + n {
 				if names[i] != c.names[i] {
 					t.Errorf("%q: SubexpNames[%d] = %q, want %q", c.input, i, names[i], c.names[i])
 				}
@@ -536,7 +536,7 @@ func TestSwitchBacktrack(t *testing.T) {
 
 // GAP: Because we just wrap pointers to C++ structs, Go reflection cannot compare
 // for equality correctly.
-//func TestDeepEqual(t *testing.T) {
+// func TestDeepEqual(t *testing.T) {
 //	re1 := MustCompile("a.*b.*c.*d")
 //	re2 := MustCompile("a.*b.*c.*d")
 //	if !reflect.DeepEqual(re1, re2) { // has always been true, since Go 1.

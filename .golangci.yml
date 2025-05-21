@@ -1,19 +1,169 @@
+version: "2"
 linters:
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    # - containedctx - there are enough legitimate cases
+    - contextcheck
+    - copyloopvar
+    # - cyclop - too opinionated on code structure
+    - decorder
+    # - depguard - must be explicitly configured
+    # - dogsled - some APIs just lend to it
+    # - dupl - duplicate code can be useful many times
+    - dupword
+    - durationcheck
+    # - err113 - good for avoiding errors.New but prevents fmt.Errorf which seems too strict
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    # - exhaustruct - tedious for non-controlled structs
+    - exptostd
+    - fatcontext
+    # - forbidigo - must be explicitly configured
+    - forcetypeassert
+    # - funcorder - TODO to consider this as it can be good, but huge blast radious
+    # - funlen - long functions can be clearer many times
+    # - ginkgolinter - don't use ginkgo
+    - gocheckcompilerdirectives
+    # - gochecknoglobals - globals are useful many times
+    # - gochecknoinits - inits are useful many times
+    - gochecksumtype
+    # - gocognit - too opinionated on code structure
+    # - goconst - repeated strings can be more readable
+    - gocritic
+    # - gocyclo - too opinionated on code structure
+    - godot
+    # - godox - sometimes we leave TODOs
+    # - goheader - must be explicitly configured
+    # - gomoddirectives - must be explicitly configured
+    # - gomodguard - must be explicitly configured
+    - goprintffuncname
+    - gosec
+    # - gosmopolitan - sometimes want to use Japanese text
+    # - grouper - requiring group for single item conflicts with gofumpt
+    - iface
+    # - importas - must be explicitly configured
+    - inamedparam
+    # - interfacebloat - no standard rule
+    - intrange
+    # - ireturn - not always valid
+    # - lll - too opinionated on code structure
+    - loggercheck
+    # - maintidx - too opinionated on code structure
+    - makezero
+    - mirror
+    # - mnd - can be more readable
+    - musttag
+    - nakedret
+    # - nestif - too opinionated on code structure
+    - nilerr
+    - nilnesserr
+    - nilnil
+    # nlreturn - too opinionated on style
+    - noctx
+    # - nolintlint - seems to just remove nolint directives
+    # nonamedreturns - too opinionated on style
+    - nosprintfhostport
+    # - paralleltest - not always possible
+    - perfsprint
+    - prealloc
+    # - predeclared - can be too tedious
+    # - promlinter - don't use prometheus
+    - protogetter
+    - reassign
+    - recvcheck
+    - revive
+    - rowserrcheck
+    - sloglint
+    - spancheck
+    - sqlclosecheck
+    - tagalign
+    - testifylint
+    # - testpackage - don't need it usually
+    - thelper
+    - tparallel
+    - unconvert
+    - usestdlibvars
+    - usetesting
+    # - varnamelen - too opinionated on style
+    - wastedassign
+    - whitespace
+    - wrapcheck
+    # - wsl - too opinionated on style
+    - zerologlint
+  settings:
+    gosec:
+      excludes:
+        # Due to 32-bit nature of wasm, it's very common to convert to 32-bit here
+        # and not worth too much checking.
+        - G115
+    grouper:
+      const-require-grouping: true
+      import-require-grouping: true
+      var-require-grouping: true
+    revive:
+      # Defaults from https://github.com/mgechev/revive/blob/master/defaults.toml
+      # Because we want to set preserveScope in one setting, we end up having to
+      # list them all out.
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: empty-block
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: exported
+          disabled: true
+        - name: increment-decrement
+        - name: indent-error-flow
+          arguments:
+            - preserve-scope
+        - name: package-comments
+          disabled: true
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        # TODO: Investigate why preserve-scope doesn't work
+        - name: superfluous-else
+          disabled: true
+          arguments:
+            - preserve-scope
+        - name: time-naming
+        - name: unexported-return
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: var-declaration
+        - name: var-naming
+  exclusions:
+    presets:
+      - comments
+    rules:
+      - linters:
+          - errcheck
+          - errchkjson
+          - gosec
+          - noctx
+        path: _test\.go
+    paths:
+      # Preserve code copied from upstream
+      - all_test.go
+      - benchmarks_test.go
+      - find_test.go
+formatters:
   enable:
     - gci
     - gofumpt
-linters-settings:
-  gci:
-    sections:
-      - standard
-      - default
-      - prefix(github.com/wasilibs/go-re2)
-issues:
-  exclude-rules:
-    - path: magefiles
-      linters:
-        - deadcode
-    - path: _test.go
-      linters:
-        # We have tests for deprecated methods
-        - staticcheck
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/wasilibs/go-re2)

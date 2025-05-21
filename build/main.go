@@ -31,7 +31,7 @@ func main() {
 			if mode == "" {
 				cmd.Exec(a, fmt.Sprintf("go build -o %s ./internal/e2e", filepath.Join("out", "test.wasm")), cmd.Env("GOOS", "wasip1"), cmd.Env("GOARCH", "wasm"))
 				// Could invoke wazero directly but the CLI has a simpler entry point.
-				cmd.Exec(a, fmt.Sprintf("go run github.com/tetratelabs/wazero/cmd/wazero@v1.8.2 run %s", filepath.Join("out", "test.wasm")))
+				cmd.Exec(a, "go run github.com/tetratelabs/wazero/cmd/wazero@v1.8.2 run "+filepath.Join("out", "test.wasm"))
 			}
 		},
 	}))
@@ -86,7 +86,7 @@ func main() {
 			}
 
 			fmt.Println("updating to", latest)
-			if err := os.WriteFile(filepath.Join("buildtools", "wasm", "version.txt"), []byte(latest), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join("buildtools", "wasm", "version.txt"), []byte(latest), 0o600); err != nil {
 				a.Error(err)
 			}
 
@@ -129,7 +129,7 @@ func buildWasm(a *goyek.A) {
 		a.Fatal(err)
 	}
 	wasmDir := filepath.Join(wd, "internal", "wasm")
-	if err := os.MkdirAll(wasmDir, 0o755); err != nil {
+	if err := os.MkdirAll(wasmDir, 0o750); err != nil {
 		a.Fatal(err)
 	}
 	cmd.Exec(a, fmt.Sprintf("docker run --rm -v %s:/out wasilibs-build", wasmDir))
@@ -153,6 +153,8 @@ func benchArgs(pkg string, count int, mode benchMode) string {
 		args = append(args, "-tags=re2_cgo")
 	case benchModeSTDLib:
 		args = append(args, "-tags=re2_bench_stdlib")
+	case benchModeWazero:
+		// no args
 	}
 	args = append(args, pkg)
 
@@ -188,25 +190,25 @@ func defineBenchTasks(name string, pkg string) {
 		Name:  name + "-all",
 		Usage: "Runs all benchmark types and outputs with benchstat. A C++ toolchain and libre2 must be installed to run.",
 		Action: func(a *goyek.A) {
-			if err := os.MkdirAll("out", 0o755); err != nil {
+			if err := os.MkdirAll("out", 0o750); err != nil {
 				a.Errorf("create out directory: %v", err)
 			}
 
 			var stdout bytes.Buffer
 			cmd.Exec(a, "go "+benchArgs(pkg, 5, benchModeWazero), cmd.Stdout(&stdout))
-			if err := os.WriteFile(filepath.Join("out", name+".txt"), stdout.Bytes(), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join("out", name+".txt"), stdout.Bytes(), 0o600); err != nil {
 				a.Errorf("write bench.txt: %v", err)
 			}
 
 			stdout.Reset()
 			cmd.Exec(a, "go "+benchArgs(pkg, 5, benchModeCGO), cmd.Stdout(&stdout))
-			if err := os.WriteFile(filepath.Join("out", name+"-cgo.txt"), stdout.Bytes(), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join("out", name+"-cgo.txt"), stdout.Bytes(), 0o600); err != nil {
 				a.Errorf("write bench-cgo.txt: %v", err)
 			}
 
 			stdout.Reset()
 			cmd.Exec(a, "go "+benchArgs(pkg, 5, benchModeSTDLib), cmd.Stdout(&stdout))
-			if err := os.WriteFile(filepath.Join("out", name+"-stdlib.txt"), stdout.Bytes(), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join("out", name+"-stdlib.txt"), stdout.Bytes(), 0o600); err != nil {
 				a.Errorf("write bench-stdlib.txt: %v", err)
 			}
 

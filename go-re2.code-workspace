@@ -13,7 +13,7 @@
     "editor.tabSize": 2,
     "eslint.workingDirectories": [{ "mode": "auto" }],
     "go.lintFlags": ["--fix"],
-    "go.lintTool": "golangci-lint",
+    "go.lintTool": "golangci-lint-v2",
     "gopls": {
       "formatting.gofumpt": true
     },

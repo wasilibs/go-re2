@@ -85,9 +85,7 @@ type childModule struct {
 	functions  map[string]api.Function
 }
 
-func createChildModule(rt wazero.Runtime, root api.Module) *childModule {
-	ctx := context.Background()
-
+func createChildModule(ctx context.Context, rt wazero.Runtime, root api.Module) *childModule {
 	// Not executing function so is at end of stack
 	stackPointer := root.ExportedGlobal("__stack_pointer").Get()
 	tlsBase := root.ExportedGlobal("__tls_base").Get()
@@ -120,7 +118,9 @@ func createChildModule(rt wazero.Runtime, root api.Module) *childModule {
 	tid := atomic.AddUint32(&prevTID, 1)
 	root.Memory().WriteUint32Le(ptr, ptr)
 	root.Memory().WriteUint32Le(ptr+20, tid)
-	child.ExportedGlobal("__stack_pointer").(api.MutableGlobal).Set(uint64(ptr) + size)
+	if mg, ok := child.ExportedGlobal("__stack_pointer").(api.MutableGlobal); ok {
+		mg.Set(uint64(ptr) + size)
+	}
 
 	ret := &childModule{
 		mod:        child,
@@ -128,12 +128,13 @@ func createChildModule(rt wazero.Runtime, root api.Module) *childModule {
 		functions:  map[string]api.Function{},
 	}
 	runtime.SetFinalizer(ret, func(obj interface{}) {
-		cm := obj.(*childModule)
-		free := cm.mod.ExportedFunction("free")
-		if _, err := free.Call(ctx, uint64(cm.tlsBasePtr)); err != nil {
-			panic(err)
+		if cm, ok := obj.(*childModule); ok {
+			free := cm.mod.ExportedFunction("free")
+			if _, err := free.Call(ctx, uint64(cm.tlsBasePtr)); err != nil {
+				panic(err)
+			}
+			_ = cm.mod.Close(context.Background()) //nolint:contextcheck // don't want to capture in a finalizer
 		}
-		_ = cm.mod.Close(context.Background())
 	})
 	return ret
 }
@@ -142,19 +143,19 @@ func createChildModule(rt wazero.Runtime, root api.Module) *childModule {
 // meaning have more than # of CPUs is mostly unnecessary. We can revisit in the future, but at least
 // for now, a lock here is no more than before we added threads support.
 
-func getChildModule() *childModule {
+func getChildModule(ctx context.Context) *childModule {
 	modPoolMu.Lock()
 	if modPool == nil {
-		initWASM()
+		initWASM(ctx)
 	}
 	e := modPool.Front()
 	if e == nil {
 		modPoolMu.Unlock()
-		return createChildModule(wasmRT, rootMod)
+		return createChildModule(ctx, wasmRT, rootMod)
 	}
 	modPool.Remove(e)
 	modPoolMu.Unlock()
-	return e.Value.(*childModule)
+	return e.Value.(*childModule) //nolint:forcetypeassert // fixed-type pooling
 }
 
 func putChildModule(cm *childModule) {
@@ -163,8 +164,7 @@ func putChildModule(cm *childModule) {
 	modPoolMu.Unlock()
 }
 
-func initWASM() {
-	ctx := context.Background()
+func initWASM(ctx context.Context) {
 	ctx = experimental.WithMemoryAllocator(ctx, allocator.NewNonMoving())
 
 	rtCfg := wazero.NewRuntimeConfig().WithCoreFeatures(api.CoreFeaturesV2 | experimental.CoreFeaturesThreads)
@@ -179,7 +179,7 @@ func initWASM() {
 	maxPages := defaultMaxPages
 	if unsafe.Sizeof(uintptr(0)) < 8 {
 		// On a 32-bit system. anything close to 4GB will fail (part of 4GB is already used by the rest of the process).
-		// We go ahead and cap to 1GB to to be extra conservative. It will be using interpreter mode anyways so either
+		// We go ahead and cap to 1GB to be extra conservative. It will be using interpreter mode anyways so either
 		// the memory limit or the performance will be an issue either way.
 		maxPagesLimit := uint32(65536 / 4)
 		if maxPages > maxPagesLimit {
@@ -375,8 +375,8 @@ func matchFrom(re *Regexp, s cString, startPos int, matchesPtr wasmPtr, nMatches
 
 func readMatch(alloc *allocation, cs cString, matchPtr wasmPtr, dstCap []int) []int {
 	matchBuf := alloc.read(matchPtr, 8)
-	subStrPtr := uint32(binary.LittleEndian.Uint32(matchBuf))
-	sLen := uint32(binary.LittleEndian.Uint32(matchBuf[4:]))
+	subStrPtr := binary.LittleEndian.Uint32(matchBuf)
+	sLen := binary.LittleEndian.Uint32(matchBuf[4:])
 	sIdx := subStrPtr - uint32(cs.ptr)
 
 	return append(dstCap, int(sIdx), int(sIdx+sLen))
@@ -386,15 +386,15 @@ func readMatches(alloc *allocation, cs cString, matchesPtr wasmPtr, n int, deliv
 	var dstCap [2]int
 
 	matchesBuf := alloc.read(matchesPtr, 8*n)
-	for i := 0; i < n; i++ {
-		subStrPtr := uint32(binary.LittleEndian.Uint32(matchesBuf[8*i:]))
+	for i := range n {
+		subStrPtr := binary.LittleEndian.Uint32(matchesBuf[8*i:])
 		if subStrPtr == 0 {
 			if !deliver(append(dstCap[:0], -1, -1)) {
 				break
 			}
 			continue
 		}
-		sLen := uint32(binary.LittleEndian.Uint32(matchesBuf[8*i+4:]))
+		sLen := binary.LittleEndian.Uint32(matchesBuf[8*i+4:])
 		sIdx := subStrPtr - uint32(cs.ptr)
 		if !deliver(append(dstCap[:0], int(sIdx), int(sIdx+sLen))) {
 			break
@@ -516,10 +516,10 @@ func setAdd(set *Set, s cString) string {
 		return unknownCompileError
 	}
 	msgPtr := wasmPtr(res)
-	msg := copyCString(wasmPtr(msgPtr))
+	msg := copyCString(msgPtr)
 	if msg != "ok" {
 		free(set.abi, msgPtr)
-		return fmt.Sprintf("error parsing regexp: %s", msg)
+		return "error parsing regexp: " + msg
 	}
 	return ""
 }
@@ -723,7 +723,7 @@ func (f *lazyFunction) Call8(ctx context.Context, arg1 uint64, arg2 uint64, arg3
 }
 
 func (f *lazyFunction) callWithStack(ctx context.Context, callStack []uint64) (uint64, error) {
-	modH := getChildModule()
+	modH := getChildModule(ctx)
 	defer putChildModule(modH)
 
 	fun := modH.functions[f.name]
@@ -733,7 +733,7 @@ func (f *lazyFunction) callWithStack(ctx context.Context, callStack []uint64) (u
 	}
 
 	if err := fun.CallWithStack(ctx, callStack); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("re2_wazero: calling function: %w", err)
 	}
 	return callStack[0], nil
 }
