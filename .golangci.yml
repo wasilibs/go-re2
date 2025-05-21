@@ -99,6 +99,8 @@ linters:
   settings:
     gosec:
       excludes:
+        # Use unsafe frequently for cgo performance and should be fine
+        - G103
         # Due to 32-bit nature of wasm, it's very common to convert to 32-bit here
         # and not worth too much checking.
         - G115

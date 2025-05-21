@@ -3,7 +3,6 @@
 package internal
 
 import (
-	"fmt"
 	"unsafe"
 
 	"github.com/wasilibs/go-re2/internal/cre2"
@@ -19,14 +18,14 @@ func newABI() *libre2ABI {
 	return &libre2ABI{}
 }
 
-func (abi *libre2ABI) startOperation(memorySize int) allocation {
+func (*libre2ABI) startOperation(int) allocation {
 	return allocation{}
 }
 
-func (abi *libre2ABI) endOperation(allocation) {
+func (*libre2ABI) endOperation(allocation) {
 }
 
-func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) wasmPtr {
+func newRE(_ *libre2ABI, pattern cString, opts CompileOptions) wasmPtr {
 	opt := cre2.NewOpt()
 	defer cre2.DeleteOpt(opt)
 	cre2.OptSetMaxMem(opt, maxSize)
@@ -46,7 +45,7 @@ func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) wasmPtr {
 	return wasmPtr(cre2.New(pattern.ptr, pattern.length, opt))
 }
 
-func reError(abi *libre2ABI, rePtr wasmPtr) (int, string) {
+func reError(_ *libre2ABI, rePtr wasmPtr) (int, string) {
 	code := cre2.ErrorCode(unsafe.Pointer(rePtr))
 	if code == 0 {
 		return 0, ""
@@ -56,7 +55,7 @@ func reError(abi *libre2ABI, rePtr wasmPtr) (int, string) {
 	return code, arg
 }
 
-func numCapturingGroups(abi *libre2ABI, rePtr wasmPtr) int {
+func numCapturingGroups(_ *libre2ABI, rePtr wasmPtr) int {
 	return cre2.NumCapturingGroups(unsafe.Pointer(rePtr))
 }
 
@@ -106,7 +105,7 @@ func (*allocation) newCStringFromBytes(s []byte) cString {
 func (a *allocation) newCStringArray(n int) cStringArray {
 	sz := int(unsafe.Sizeof(cString{})) * n
 	ptr := cre2.Malloc(sz)
-	for i := 0; i < sz; i++ {
+	for i := range sz {
 		*(*byte)(unsafe.Add(ptr, i)) = 0
 	}
 
@@ -162,7 +161,7 @@ func readMatch(_ *allocation, cs cString, matchPtr wasmPtr, dstCap []int) []int 
 func readMatches(alloc *allocation, cs cString, matchesPtr wasmPtr, n int, deliver func([]int) bool) {
 	var dstCap [2]int
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		dst := readMatch(alloc, cs, wasmPtr(unsafe.Add(unsafe.Pointer(matchesPtr), unsafe.Sizeof(cString{})*uintptr(i))), dstCap[:0])
 		if !deliver(dst) {
 			break
@@ -198,7 +197,7 @@ func setAdd(set *Set, s cString) string {
 	msg := cre2.CopyCString(msgPtr)
 	if msg != "ok" {
 		cre2.Free(msgPtr)
-		return fmt.Sprintf("error parsing regexp: %s", msg)
+		return "error parsing regexp: " + msg
 	}
 	return ""
 }
