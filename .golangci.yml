@@ -158,6 +158,7 @@ linters:
       # Preserve code copied from upstream
       - all_test.go
       - benchmarks_test.go
+      - exec_test.go
       - find_test.go
 formatters:
   enable:
