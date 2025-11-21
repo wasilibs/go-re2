@@ -18,10 +18,9 @@ jobs:
           - cgo
           - wazero
         os:
-          - macos-13
-          - macos-14
-          - ubuntu-22.04
-          - windows-2022
+          - macos-15
+          - ubuntu-24.04
+          - windows-2025
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5
