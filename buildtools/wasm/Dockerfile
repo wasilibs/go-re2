@@ -17,7 +17,7 @@ ENV CMAKE_TOOLCHAIN_FILE="/opt/wasi-sdk/share/cmake/wasi-sdk-pthread.cmake"
 ENV CFLAGS="-O3 -pthread --target=wasm32-wasip1-threads --sysroot=/opt/wasi-sdk/share/wasi-sysroot -DABSL_FORCE_THREAD_IDENTITY_MODE=1 -D_WASI_EMULATED_MMAN -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_SIGNAL -DABSL_HAVE_MMAP"
 ENV CXXFLAGS="-fno-exceptions $CFLAGS"
 
-RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS" -S . -B build
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS" -DRE2_INSTALL=OFF -S . -B build
 RUN cmake --build build --target re2 -j 2
 
 WORKDIR /cre2
