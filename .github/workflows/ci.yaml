@@ -18,8 +18,7 @@ jobs:
           - cgo
           - wazero
         os:
-          - macos-13
-          - macos-14
+          - macos-15
           - ubuntu-22.04
           - windows-2022
     steps:
