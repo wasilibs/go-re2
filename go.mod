@@ -1,11 +1,9 @@
 module github.com/wasilibs/go-re2
 
-go 1.23.0
-
-toolchain go1.23.7
+go 1.24.0
 
 require (
-	github.com/tetratelabs/wazero v1.9.0
+	github.com/tetratelabs/wazero v1.10.1
 	github.com/wasilibs/wazero-helpers v0.0.0-20240620070341-3dff1577cd52
 )
 
