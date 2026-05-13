@@ -187,9 +187,7 @@ func (w *HostWASI) Xenviron_sizes_get(v0, v1 int32) int32 {
 	return errnoSuccess
 }
 
-func (w *HostWASI) Xclock_time_get(v0 int32, v1 int64, v2 int32) int32 {
-	_ = v1 // precision hint is ignored in this minimal host.
-
+func (w *HostWASI) Xclock_time_get(v0 int32, _ int64, v2 int32) int32 {
 	var ns uint64
 	switch v0 {
 	case 0:
@@ -218,24 +216,15 @@ func (w *HostWASI) Xfd_close(v0 int32) int32 {
 	}
 }
 
-func (w *HostWASI) Xfd_prestat_get(v0, v1 int32) int32 {
-	_ = v0
-	_ = v1
+func (w *HostWASI) Xfd_prestat_get(int32, int32) int32 {
 	return errnoBadf
 }
 
-func (w *HostWASI) Xfd_prestat_dir_name(v0, v1, v2 int32) int32 {
-	_ = v0
-	_ = v1
-	_ = v2
+func (w *HostWASI) Xfd_prestat_dir_name(int32, int32, int32) int32 {
 	return errnoBadf
 }
 
-func (w *HostWASI) Xfd_seek(v0 int32, v1 int64, v2, v3 int32) int32 {
-	_ = v0
-	_ = v1
-	_ = v2
-	_ = v3
+func (w *HostWASI) Xfd_seek(int32, int64, int32, int32) int32 {
 	return errnoNosys
 }
 
@@ -279,10 +268,7 @@ func (w *HostWASI) Xfd_write(v0, v1, v2, v3 int32) int32 {
 	return errnoSuccess
 }
 
-func (w *HostWASI) Xpoll_oneoff(v0, v1, v2, v3 int32) int32 {
-	_ = v0
-	_ = v1
-	_ = v2
+func (w *HostWASI) Xpoll_oneoff(_, _, _, v3 int32) int32 {
 	if w.memory == nil {
 		return errnoFault
 	}
