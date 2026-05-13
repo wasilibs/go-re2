@@ -62,80 +62,56 @@ func (m *HostMemory) Waiters() *sync.Map {
 	return &m.waiters
 }
 
-func (m *HostMemory) Read(offset, byteCount uint32) ([]byte, bool) {
-	return m.slice(offset, byteCount)
+func (m *HostMemory) Read(offset, byteCount uint32) []byte {
+	start := int(offset)
+	end := start + int(byteCount)
+	return m.Buf[start:end]
 }
 
-func (m *HostMemory) ReadByte(offset uint32) (byte, bool) {
-	buf, ok := m.slice(offset, 1)
-	if !ok {
-		return 0, false
-	}
-	return buf[0], true
+func (m *HostMemory) ReadByte(offset uint32) byte {
+	return m.Buf[int(offset)]
 }
 
-func (m *HostMemory) ReadUint32Le(offset uint32) (uint32, bool) {
+func (m *HostMemory) ReadUint32Le(offset uint32) uint32 {
 	return m.loadU32(int32(offset))
 }
 
-func (m *HostMemory) Write(offset uint32, b []byte) bool {
-	buf, ok := m.slice(offset, uint32(len(b)))
-	if !ok {
-		return false
-	}
-	copy(buf, b)
-	return true
+func (m *HostMemory) Write(offset uint32, b []byte) {
+	start := int(offset)
+	end := start + len(b)
+	copy(m.Buf[start:end], b)
 }
 
-func (m *HostMemory) WriteString(offset uint32, s string) bool {
-	buf, ok := m.slice(offset, uint32(len(s)))
-	if !ok {
-		return false
-	}
-	copy(buf, s)
-	return true
+func (m *HostMemory) WriteString(offset uint32, s string) {
+	start := int(offset)
+	end := start + len(s)
+	copy(m.Buf[start:end], s)
 }
 
-func (m *HostMemory) WriteUint32Le(offset uint32, v uint32) bool {
-	return m.storeU32(int32(offset), v)
+func (m *HostMemory) WriteByte(offset uint32, b byte) {
+	m.Buf[int(offset)] = b
 }
 
-func (m *HostMemory) loadU32(ptr int32) (uint32, bool) {
+func (m *HostMemory) WriteUint32Le(offset uint32, v uint32) {
+	m.storeU32(int32(offset), v)
+}
+
+func (m *HostMemory) loadU32(ptr int32) uint32 {
 	start := int(ptr)
 	end := start + 4
-	if start < 0 || end < start || end > len(m.Buf) {
-		return 0, false
-	}
-	return load32(m.Buf[start:end]), true
+	return load32(m.Buf[start:end])
 }
 
-func (m *HostMemory) storeU32(ptr int32, v uint32) bool {
+func (m *HostMemory) storeU32(ptr int32, v uint32) {
 	start := int(ptr)
 	end := start + 4
-	if start < 0 || end < start || end > len(m.Buf) {
-		return false
-	}
 	store32(m.Buf[start:end], v)
-	return true
 }
 
-func (m *HostMemory) storeU64(ptr int32, v uint64) bool {
+func (m *HostMemory) storeU64(ptr int32, v uint64) {
 	start := int(ptr)
 	end := start + 8
-	if start < 0 || end < start || end > len(m.Buf) {
-		return false
-	}
 	store64(m.Buf[start:end], v)
-	return true
-}
-
-func (m *HostMemory) slice(ptr, n uint32) ([]byte, bool) {
-	start := int(ptr)
-	end := start + int(n)
-	if start < 0 || end < start || end > len(m.Buf) {
-		return nil, false
-	}
-	return m.Buf[start:end], true
 }
 
 // HostEnv provides the imported env.memory for wasm2go modules.
@@ -161,6 +137,7 @@ type HostWASI struct {
 
 	memory *HostMemory
 	start  time.Time
+	env    []string
 }
 
 func NewHostWASI() *HostWASI {
@@ -168,6 +145,7 @@ func NewHostWASI() *HostWASI {
 		stdout: os.Stdout,
 		stderr: os.Stderr,
 		start:  time.Now(),
+		env:    os.Environ(),
 	}
 }
 
@@ -182,7 +160,23 @@ func (w *HostWASI) Init(v any) {
 }
 
 func (w *HostWASI) Xenviron_get(v0, v1 int32) int32 {
-	// No environment variables are exposed.
+	if w.memory == nil {
+		return errnoFault
+	}
+
+	ptrs := uint32(v0)
+	buf := uint32(v1)
+	for _, e := range w.env {
+		w.memory.storeU32(int32(ptrs), buf)
+		ptrs += 4
+
+		w.memory.WriteString(buf, e)
+		buf += uint32(len(e))
+
+		w.memory.WriteByte(buf, 0)
+		buf++
+	}
+
 	return errnoSuccess
 }
 
@@ -190,9 +184,14 @@ func (w *HostWASI) Xenviron_sizes_get(v0, v1 int32) int32 {
 	if w.memory == nil {
 		return errnoFault
 	}
-	if !w.memory.storeU32(v0, 0) || !w.memory.storeU32(v1, 0) {
-		return errnoFault
+
+	var bufSize uint32
+	for _, e := range w.env {
+		bufSize += uint32(len(e) + 1)
 	}
+
+	w.memory.storeU32(v0, uint32(len(w.env)))
+	w.memory.storeU32(v1, bufSize)
 	return errnoSuccess
 }
 
@@ -214,9 +213,7 @@ func (w *HostWASI) Xclock_time_get(v0 int32, v1 int64, v2 int32) int32 {
 	if w.memory == nil {
 		return errnoFault
 	}
-	if !w.memory.storeU64(v2, ns) {
-		return errnoFault
-	}
+	w.memory.storeU64(v2, ns)
 	return errnoSuccess
 }
 
@@ -268,34 +265,25 @@ func (w *HostWASI) Xfd_write(v0, v1, v2, v3 int32) int32 {
 	var total uint32
 	for i := range v2 {
 		iovec := v1 + i*8
-		bufPtr, ok := w.memory.loadU32(iovec)
-		if !ok {
-			return errnoFault
-		}
-		bufLen, ok := w.memory.loadU32(iovec + 4)
-		if !ok {
-			return errnoFault
-		}
-		chunk, ok := w.memory.slice(bufPtr, bufLen)
-		if !ok {
-			return errnoFault
-		}
+		bufPtr := w.memory.loadU32(iovec)
+		bufLen := w.memory.loadU32(iovec + 4)
+		start := int(bufPtr)
+		end := start + int(bufLen)
+		chunk := w.memory.Buf[start:end]
 
 		n, err := out.Write(chunk)
 		total += uint32(n)
 		if err != nil {
-			_ = w.memory.storeU32(v3, total)
+			w.memory.storeU32(v3, total)
 			return errnoIo
 		}
 		if n != len(chunk) {
-			_ = w.memory.storeU32(v3, total)
+			w.memory.storeU32(v3, total)
 			return errnoIo
 		}
 	}
 
-	if !w.memory.storeU32(v3, total) {
-		return errnoFault
-	}
+	w.memory.storeU32(v3, total)
 	return errnoSuccess
 }
 
@@ -306,9 +294,7 @@ func (w *HostWASI) Xpoll_oneoff(v0, v1, v2, v3 int32) int32 {
 	if w.memory == nil {
 		return errnoFault
 	}
-	if !w.memory.storeU32(v3, 0) {
-		return errnoFault
-	}
+	w.memory.storeU32(v3, 0)
 	return errnoNosys
 }
 

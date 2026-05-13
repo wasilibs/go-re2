@@ -48,12 +48,8 @@ func createChildModule(root *wasm2go.Module) *childModule {
 	child.X__wasm_init_tls(int32(ptr))
 
 	tid := atomic.AddUint32(&prevTID, 1)
-	if ok := hostMemory.WriteUint32Le(ptr, ptr); !ok {
-		panic(errFailedRead)
-	}
-	if ok := hostMemory.WriteUint32Le(ptr+20, tid); !ok {
-		panic(errFailedRead)
-	}
+	hostMemory.WriteUint32Le(ptr, ptr)
+	hostMemory.WriteUint32Le(ptr+20, tid)
 	*child.X__stack_pointer() = int32(ptr + size)
 
 	ret := &childModule{mod: child, tlsBasePtr: ptr}
@@ -267,17 +263,11 @@ func namedGroupsIterNext(abi *libre2ABI, iterPtr wasmPtr) (string, int, bool) {
 		return "", 0, false
 	}
 
-	namePtr, ok := hostMemory.ReadUint32Le(uint32(namePtrPtr))
-	if !ok {
-		panic(errFailedRead)
-	}
+	namePtr := hostMemory.ReadUint32Le(uint32(namePtrPtr))
 
 	name := copyCString(wasmPtr(namePtr))
 
-	index, ok := hostMemory.ReadUint32Le(uint32(indexPtr))
-	if !ok {
-		panic(errFailedRead)
-	}
+	index := hostMemory.ReadUint32Le(uint32(indexPtr))
 
 	return name, int(index), true
 }
@@ -399,10 +389,7 @@ func free(abi *libre2ABI, ptr wasmPtr) {
 func copyCString(ptr wasmPtr) string {
 	res := strings.Builder{}
 	for {
-		b, ok := hostMemory.ReadByte(uint32(ptr))
-		if !ok {
-			panic(errFailedRead)
-		}
+		b := hostMemory.ReadByte(uint32(ptr))
 		if b == 0 {
 			break
 		}
@@ -444,26 +431,18 @@ func (a *allocation) allocate(size uint32) wasmPtr {
 }
 
 func (a *allocation) read(ptr wasmPtr, size int) []byte {
-	buf, ok := hostMemory.Read(uint32(ptr), uint32(size))
-	if !ok {
-		panic(errFailedRead)
-	}
-	return buf
+	return hostMemory.Read(uint32(ptr), uint32(size))
 }
 
 func (a *allocation) write(b []byte) wasmPtr {
 	ptr := a.allocate(uint32(len(b)))
-	if ok := hostMemory.Write(uint32(ptr), b); !ok {
-		panic(errFailedRead)
-	}
+	hostMemory.Write(uint32(ptr), b)
 	return ptr
 }
 
 func (a *allocation) writeString(s string) wasmPtr {
 	ptr := a.allocate(uint32(len(s)))
-	if ok := hostMemory.WriteString(uint32(ptr), s); !ok {
-		panic(errFailedRead)
-	}
+	hostMemory.WriteString(uint32(ptr), s)
 	return ptr
 }
 
