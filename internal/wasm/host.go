@@ -2,18 +2,18 @@ package wasm2go
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/wasilibs/go-re2/internal/wasm/memory"
 )
 
 const (
 	wasmPageSize     = 65536
-	hostMemoryBytes  = 512 * 1024 * 1024
-	hostMemoryPages  = hostMemoryBytes / wasmPageSize
+	hostMemoryPages  = 65536 // 4GiB / 64KiB pages
 	defaultInitPages = 3
 
 	errnoSuccess = 0
@@ -24,21 +24,11 @@ const (
 	errnoNosys   = 52
 )
 
-// ProcExitError is raised when the guest requests process termination via proc_exit.
-type ProcExitError struct {
-	Code int32
-}
-
-func (e ProcExitError) Error() string {
-	return fmt.Sprintf("wasi proc_exit(%d)", e.Code)
-}
-
 var ErrProcExit = errors.New("wasi proc_exit")
 
 // HostMemory is a simple growable shared memory implementation for wasm2go.
 type HostMemory struct {
-	backing []byte
-	mem     []byte
+	memory.Memory
 	waiters sync.Map
 }
 
@@ -49,39 +39,23 @@ func NewHostMemory(initialPages int64) *HostMemory {
 	if initialPages > hostMemoryPages {
 		initialPages = hostMemoryPages
 	}
-
-	backing := make([]byte, hostMemoryBytes)
-	mem := backing[:initialPages*wasmPageSize]
-	return &HostMemory{backing: backing, mem: mem}
+	hm := &HostMemory{}
+	hm.Max = hostMemoryPages
+	if hm.Memory.Grow(initialPages, hostMemoryPages) == -1 {
+		panic("failed to initialize host memory")
+	}
+	return hm
 }
 
-func (m *HostMemory) Slice() *[]byte {
-	return &m.mem
-}
-
-func (m *HostMemory) CapacityBytes() uint32 {
-	return uint32(len(m.backing))
+func (m *HostMemory) CapacityBytes() uint64 {
+	return uint64(m.Max) * wasmPageSize
 }
 
 func (m *HostMemory) Grow(delta, max int64) int64 {
-	currentPages := int64(len(m.mem) / wasmPageSize)
-	if delta == 0 {
-		return currentPages
+	if max > 0 && max < m.Max {
+		m.Max = max
 	}
-	if delta < 0 {
-		return -1
-	}
-
-	newPages := currentPages + delta
-	if max > 0 && newPages > max {
-		return -1
-	}
-	if newPages > hostMemoryPages {
-		return -1
-	}
-
-	m.mem = m.backing[:newPages*wasmPageSize]
-	return currentPages
+	return m.Memory.Grow(delta, m.Max)
 }
 
 func (m *HostMemory) Waiters() *sync.Map {
@@ -129,39 +103,39 @@ func (m *HostMemory) WriteUint32Le(offset uint32, v uint32) bool {
 func (m *HostMemory) loadU32(ptr int32) (uint32, bool) {
 	start := int(ptr)
 	end := start + 4
-	if start < 0 || end < start || end > len(m.mem) {
+	if start < 0 || end < start || end > len(m.Buf) {
 		return 0, false
 	}
-	return load32(m.mem[start:end]), true
+	return load32(m.Buf[start:end]), true
 }
 
 func (m *HostMemory) storeU32(ptr int32, v uint32) bool {
 	start := int(ptr)
 	end := start + 4
-	if start < 0 || end < start || end > len(m.mem) {
+	if start < 0 || end < start || end > len(m.Buf) {
 		return false
 	}
-	store32(m.mem[start:end], v)
+	store32(m.Buf[start:end], v)
 	return true
 }
 
 func (m *HostMemory) storeU64(ptr int32, v uint64) bool {
 	start := int(ptr)
 	end := start + 8
-	if start < 0 || end < start || end > len(m.mem) {
+	if start < 0 || end < start || end > len(m.Buf) {
 		return false
 	}
-	store64(m.mem[start:end], v)
+	store64(m.Buf[start:end], v)
 	return true
 }
 
 func (m *HostMemory) slice(ptr, n uint32) ([]byte, bool) {
 	start := int(ptr)
 	end := start + int(n)
-	if start < 0 || end < start || end > len(m.mem) {
+	if start < 0 || end < start || end > len(m.Buf) {
 		return nil, false
 	}
-	return m.mem[start:end], true
+	return m.Buf[start:end], true
 }
 
 // HostEnv provides the imported env.memory for wasm2go modules.
@@ -339,7 +313,7 @@ func (w *HostWASI) Xpoll_oneoff(v0, v1, v2, v3 int32) int32 {
 }
 
 func (w *HostWASI) Xproc_exit(v0 int32) {
-	panic(ProcExitError{Code: v0})
+	os.Exit(int(v0))
 }
 
 func (w *HostWASI) Xsched_yield() int32 {
