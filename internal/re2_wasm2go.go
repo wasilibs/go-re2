@@ -4,7 +4,6 @@ package internal
 
 import (
 	"container/list"
-	"context"
 	"encoding/binary"
 	"errors"
 	"runtime"
@@ -38,9 +37,7 @@ type childModule struct {
 	tlsBasePtr uint32
 }
 
-func createChildModule(ctx context.Context, root *wasm2go.Module) *childModule {
-	_ = ctx
-
+func createChildModule(root *wasm2go.Module) *childModule {
 	stackPointer := uint32(*root.X__stack_pointer())
 	tlsBase := uint32(*root.X__tls_base())
 	size := stackPointer - tlsBase
@@ -68,15 +65,15 @@ func createChildModule(ctx context.Context, root *wasm2go.Module) *childModule {
 	return ret
 }
 
-func getChildModule(ctx context.Context) *childModule {
+func getChildModule() *childModule {
 	modPoolMu.Lock()
 	if modPool == nil {
-		initWASM(ctx)
+		initWASM()
 	}
 	e := modPool.Front()
 	if e == nil {
 		modPoolMu.Unlock()
-		return createChildModule(ctx, rootMod)
+		return createChildModule(rootMod)
 	}
 	modPool.Remove(e)
 	modPoolMu.Unlock()
@@ -89,8 +86,7 @@ func putChildModule(cm *childModule) {
 	modPoolMu.Unlock()
 }
 
-func initWASM(ctx context.Context) {
-	_ = ctx
+func initWASM() {
 	hostMemory = wasm2go.NewHostMemory(3)
 	rootMod = wasm2go.New(wasm2go.NewHostWASI(), wasm2go.NewHostEnv(hostMemory))
 	rootMod.X_initialize()
@@ -109,57 +105,56 @@ func (abi *libre2ABI) endOperation(a allocation) {
 	a.free()
 }
 
-func withModule(ctx context.Context, fn func(*wasm2go.Module) uint64) uint64 {
-	modH := getChildModule(ctx)
+func withModule(fn func(*wasm2go.Module) uint64) uint64 {
+	modH := getChildModule()
 	defer putChildModule(modH)
 	return fn(modH.mod)
 }
 
-func withModuleNoResult(ctx context.Context, fn func(*wasm2go.Module)) {
-	modH := getChildModule(ctx)
+func withModuleNoResult(fn func(*wasm2go.Module)) {
+	modH := getChildModule()
 	defer putChildModule(modH)
 	fn(modH.mod)
 }
 
 func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) wasmPtr {
 	_ = abi
-	ctx := context.Background()
-	optPtr := uint32(withModule(ctx, func(m *wasm2go.Module) uint64 {
+	optPtr := uint32(withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xcre2_opt_new())
 	}))
 
 	defer func() {
-		withModuleNoResult(ctx, func(m *wasm2go.Module) {
+		withModuleNoResult(func(m *wasm2go.Module) {
 			m.Xcre2_opt_delete(int32(optPtr))
 		})
 	}()
 
-	withModuleNoResult(ctx, func(m *wasm2go.Module) {
+	withModuleNoResult(func(m *wasm2go.Module) {
 		m.Xcre2_opt_set_max_mem(int32(optPtr), int64(maxSize))
 	})
 
 	if opts.Longest {
-		withModuleNoResult(ctx, func(m *wasm2go.Module) {
+		withModuleNoResult(func(m *wasm2go.Module) {
 			m.Xcre2_opt_set_longest_match(int32(optPtr), 1)
 		})
 	}
 	if opts.Posix {
-		withModuleNoResult(ctx, func(m *wasm2go.Module) {
+		withModuleNoResult(func(m *wasm2go.Module) {
 			m.Xcre2_opt_set_posix_syntax(int32(optPtr), 1)
 		})
 	}
 	if opts.CaseInsensitive {
-		withModuleNoResult(ctx, func(m *wasm2go.Module) {
+		withModuleNoResult(func(m *wasm2go.Module) {
 			m.Xcre2_opt_set_case_sensitive(int32(optPtr), 0)
 		})
 	}
 	if opts.Latin1 {
-		withModuleNoResult(ctx, func(m *wasm2go.Module) {
+		withModuleNoResult(func(m *wasm2go.Module) {
 			m.Xcre2_opt_set_latin1_encoding(int32(optPtr))
 		})
 	}
 
-	res := withModule(ctx, func(m *wasm2go.Module) uint64 {
+	res := withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xcre2_new(int32(pattern.ptr), int32(pattern.length), int32(optPtr)))
 	})
 	return wasmPtr(res)
@@ -167,8 +162,7 @@ func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) wasmPtr {
 
 func reError(abi *libre2ABI, rePtr wasmPtr) (int, string) {
 	_ = abi
-	ctx := context.Background()
-	res := withModule(ctx, func(m *wasm2go.Module) uint64 {
+	res := withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xcre2_error_code(int32(rePtr)))
 	})
 	code := int(res)
@@ -176,7 +170,7 @@ func reError(abi *libre2ABI, rePtr wasmPtr) (int, string) {
 		return 0, ""
 	}
 
-	res = withModule(ctx, func(m *wasm2go.Module) uint64 {
+	res = withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xcre2_error_arg(int32(rePtr)))
 	})
 	msg := copyCString(wasmPtr(res))
@@ -185,8 +179,7 @@ func reError(abi *libre2ABI, rePtr wasmPtr) (int, string) {
 
 func numCapturingGroups(abi *libre2ABI, rePtr wasmPtr) int {
 	_ = abi
-	ctx := context.Background()
-	res := withModule(ctx, func(m *wasm2go.Module) uint64 {
+	res := withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xcre2_num_capturing_groups(int32(rePtr)))
 	})
 	return int(res)
@@ -194,8 +187,7 @@ func numCapturingGroups(abi *libre2ABI, rePtr wasmPtr) int {
 
 func deleteRE(abi *libre2ABI, rePtr wasmPtr) {
 	_ = abi
-	ctx := context.Background()
-	withModuleNoResult(ctx, func(m *wasm2go.Module) {
+	withModuleNoResult(func(m *wasm2go.Module) {
 		m.Xcre2_delete(int32(rePtr))
 	})
 }
@@ -205,8 +197,7 @@ func release(re *Regexp) {
 }
 
 func match(re *Regexp, s cString, matchesPtr wasmPtr, nMatches uint32) bool {
-	ctx := context.Background()
-	res := withModule(ctx, func(m *wasm2go.Module) uint64 {
+	res := withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xcre2_match(int32(re.ptr), int32(s.ptr), int32(s.length), 0, int32(s.length), 0, int32(matchesPtr), int32(nMatches)))
 	})
 
@@ -214,8 +205,7 @@ func match(re *Regexp, s cString, matchesPtr wasmPtr, nMatches uint32) bool {
 }
 
 func matchFrom(re *Regexp, s cString, startPos int, matchesPtr wasmPtr, nMatches uint32) bool {
-	ctx := context.Background()
-	res := withModule(ctx, func(m *wasm2go.Module) uint64 {
+	res := withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xcre2_match(int32(re.ptr), int32(s.ptr), int32(s.length), int32(startPos), int32(s.length), 0, int32(matchesPtr), int32(nMatches)))
 	})
 
@@ -253,8 +243,7 @@ func readMatches(alloc *allocation, cs cString, matchesPtr wasmPtr, n int, deliv
 
 func namedGroupsIter(abi *libre2ABI, rePtr wasmPtr) wasmPtr {
 	_ = abi
-	ctx := context.Background()
-	res := withModule(ctx, func(m *wasm2go.Module) uint64 {
+	res := withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xcre2_named_groups_iter_new(int32(rePtr)))
 	})
 
@@ -263,7 +252,6 @@ func namedGroupsIter(abi *libre2ABI, rePtr wasmPtr) wasmPtr {
 
 func namedGroupsIterNext(abi *libre2ABI, iterPtr wasmPtr) (string, int, bool) {
 	_ = abi
-	ctx := context.Background()
 
 	// Not on the hot path so don't bother optimizing this yet.
 	ptrs := malloc(abi, 8)
@@ -271,7 +259,7 @@ func namedGroupsIterNext(abi *libre2ABI, iterPtr wasmPtr) (string, int, bool) {
 	namePtrPtr := ptrs
 	indexPtr := namePtrPtr + 4
 
-	res := withModule(ctx, func(m *wasm2go.Module) uint64 {
+	res := withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xcre2_named_groups_iter_next(int32(iterPtr), int32(namePtrPtr), int32(indexPtr)))
 	})
 
@@ -296,58 +284,55 @@ func namedGroupsIterNext(abi *libre2ABI, iterPtr wasmPtr) (string, int, bool) {
 
 func namedGroupsIterDelete(abi *libre2ABI, iterPtr wasmPtr) {
 	_ = abi
-	ctx := context.Background()
-	withModuleNoResult(ctx, func(m *wasm2go.Module) {
+	withModuleNoResult(func(m *wasm2go.Module) {
 		m.Xcre2_named_groups_iter_delete(int32(iterPtr))
 	})
 }
 
 func newSet(abi *libre2ABI, opts CompileOptions) wasmPtr {
 	_ = abi
-	ctx := context.Background()
-	optPtr := uint32(withModule(ctx, func(m *wasm2go.Module) uint64 {
+	optPtr := uint32(withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xcre2_opt_new())
 	}))
 	defer func() {
-		withModuleNoResult(ctx, func(m *wasm2go.Module) {
+		withModuleNoResult(func(m *wasm2go.Module) {
 			m.Xcre2_opt_delete(int32(optPtr))
 		})
 	}()
 
-	withModuleNoResult(ctx, func(m *wasm2go.Module) {
+	withModuleNoResult(func(m *wasm2go.Module) {
 		m.Xcre2_opt_set_max_mem(int32(optPtr), int64(maxSize))
 	})
 
 	if opts.Longest {
-		withModuleNoResult(ctx, func(m *wasm2go.Module) {
+		withModuleNoResult(func(m *wasm2go.Module) {
 			m.Xcre2_opt_set_longest_match(int32(optPtr), 1)
 		})
 	}
 	if opts.Posix {
-		withModuleNoResult(ctx, func(m *wasm2go.Module) {
+		withModuleNoResult(func(m *wasm2go.Module) {
 			m.Xcre2_opt_set_posix_syntax(int32(optPtr), 1)
 		})
 	}
 	if opts.CaseInsensitive {
-		withModuleNoResult(ctx, func(m *wasm2go.Module) {
+		withModuleNoResult(func(m *wasm2go.Module) {
 			m.Xcre2_opt_set_case_sensitive(int32(optPtr), 0)
 		})
 	}
 	if opts.Latin1 {
-		withModuleNoResult(ctx, func(m *wasm2go.Module) {
+		withModuleNoResult(func(m *wasm2go.Module) {
 			m.Xcre2_opt_set_latin1_encoding(int32(optPtr))
 		})
 	}
 
-	res := withModule(ctx, func(m *wasm2go.Module) uint64 {
+	res := withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xcre2_set_new(int32(optPtr), 0))
 	})
 	return wasmPtr(res)
 }
 
 func setAdd(set *Set, s cString) string {
-	ctx := context.Background()
-	res := withModule(ctx, func(m *wasm2go.Module) uint64 {
+	res := withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xcre2_set_add(int32(set.ptr), int32(s.ptr), int32(s.length)))
 	})
 	if res == 0 {
@@ -363,16 +348,14 @@ func setAdd(set *Set, s cString) string {
 }
 
 func setCompile(set *Set) int32 {
-	ctx := context.Background()
-	res := withModule(ctx, func(m *wasm2go.Module) uint64 {
+	res := withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xcre2_set_compile(int32(set.ptr)))
 	})
 	return int32(res)
 }
 
 func setMatch(set *Set, cs cString, matchedPtr wasmPtr, nMatch int) int {
-	ctx := context.Background()
-	res := withModule(ctx, func(m *wasm2go.Module) uint64 {
+	res := withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xcre2_set_match(int32(set.ptr), int32(cs.ptr), int32(cs.length), int32(matchedPtr), int32(nMatch)))
 	})
 	return int(res)
@@ -380,8 +363,7 @@ func setMatch(set *Set, cs cString, matchedPtr wasmPtr, nMatch int) int {
 
 func deleteSet(abi *libre2ABI, setPtr wasmPtr) {
 	_ = abi
-	ctx := context.Background()
-	withModuleNoResult(ctx, func(m *wasm2go.Module) {
+	withModuleNoResult(func(m *wasm2go.Module) {
 		m.Xcre2_set_delete(int32(setPtr))
 	})
 }
@@ -401,7 +383,7 @@ func (a cStringArray) free() {
 
 func malloc(abi *libre2ABI, size uint32) wasmPtr {
 	_ = abi
-	res := withModule(context.Background(), func(m *wasm2go.Module) uint64 {
+	res := withModule(func(m *wasm2go.Module) uint64 {
 		return uint64(m.Xmalloc(int32(size)))
 	})
 	return wasmPtr(res)
@@ -409,7 +391,7 @@ func malloc(abi *libre2ABI, size uint32) wasmPtr {
 
 func free(abi *libre2ABI, ptr wasmPtr) {
 	_ = abi
-	withModuleNoResult(context.Background(), func(m *wasm2go.Module) {
+	withModuleNoResult(func(m *wasm2go.Module) {
 		m.Xfree(int32(ptr))
 	})
 }
