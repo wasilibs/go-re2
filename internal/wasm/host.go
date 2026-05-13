@@ -73,7 +73,9 @@ func (m *HostMemory) ReadByte(offset uint32) byte {
 }
 
 func (m *HostMemory) ReadUint32Le(offset uint32) uint32 {
-	return m.loadU32(int32(offset))
+	start := int(offset)
+	end := start + 4
+	return load32(m.Buf[start:end])
 }
 
 func (m *HostMemory) Write(offset uint32, b []byte) {
@@ -93,23 +95,13 @@ func (m *HostMemory) WriteByte(offset uint32, b byte) {
 }
 
 func (m *HostMemory) WriteUint32Le(offset uint32, v uint32) {
-	m.storeU32(int32(offset), v)
-}
-
-func (m *HostMemory) loadU32(ptr int32) uint32 {
-	start := int(ptr)
-	end := start + 4
-	return load32(m.Buf[start:end])
-}
-
-func (m *HostMemory) storeU32(ptr int32, v uint32) {
-	start := int(ptr)
+	start := int(offset)
 	end := start + 4
 	store32(m.Buf[start:end], v)
 }
 
-func (m *HostMemory) storeU64(ptr int32, v uint64) {
-	start := int(ptr)
+func (m *HostMemory) WriteUint64Le(offset uint32, v uint64) {
+	start := int(offset)
 	end := start + 8
 	store64(m.Buf[start:end], v)
 }
@@ -167,7 +159,7 @@ func (w *HostWASI) Xenviron_get(v0, v1 int32) int32 {
 	ptrs := uint32(v0)
 	buf := uint32(v1)
 	for _, e := range w.env {
-		w.memory.storeU32(int32(ptrs), buf)
+		w.memory.WriteUint32Le(ptrs, buf)
 		ptrs += 4
 
 		w.memory.WriteString(buf, e)
@@ -190,8 +182,8 @@ func (w *HostWASI) Xenviron_sizes_get(v0, v1 int32) int32 {
 		bufSize += uint32(len(e) + 1)
 	}
 
-	w.memory.storeU32(v0, uint32(len(w.env)))
-	w.memory.storeU32(v1, bufSize)
+	w.memory.WriteUint32Le(uint32(v0), uint32(len(w.env)))
+	w.memory.WriteUint32Le(uint32(v1), bufSize)
 	return errnoSuccess
 }
 
@@ -213,7 +205,7 @@ func (w *HostWASI) Xclock_time_get(v0 int32, v1 int64, v2 int32) int32 {
 	if w.memory == nil {
 		return errnoFault
 	}
-	w.memory.storeU64(v2, ns)
+	w.memory.WriteUint64Le(uint32(v2), ns)
 	return errnoSuccess
 }
 
@@ -265,8 +257,8 @@ func (w *HostWASI) Xfd_write(v0, v1, v2, v3 int32) int32 {
 	var total uint32
 	for i := range v2 {
 		iovec := v1 + i*8
-		bufPtr := w.memory.loadU32(iovec)
-		bufLen := w.memory.loadU32(iovec + 4)
+		bufPtr := w.memory.ReadUint32Le(uint32(iovec))
+		bufLen := w.memory.ReadUint32Le(uint32(iovec + 4))
 		start := int(bufPtr)
 		end := start + int(bufLen)
 		chunk := w.memory.Buf[start:end]
@@ -274,16 +266,16 @@ func (w *HostWASI) Xfd_write(v0, v1, v2, v3 int32) int32 {
 		n, err := out.Write(chunk)
 		total += uint32(n)
 		if err != nil {
-			w.memory.storeU32(v3, total)
+			w.memory.WriteUint32Le(uint32(v3), total)
 			return errnoIo
 		}
 		if n != len(chunk) {
-			w.memory.storeU32(v3, total)
+			w.memory.WriteUint32Le(uint32(v3), total)
 			return errnoIo
 		}
 	}
 
-	w.memory.storeU32(v3, total)
+	w.memory.WriteUint32Le(uint32(v3), total)
 	return errnoSuccess
 }
 
@@ -294,7 +286,7 @@ func (w *HostWASI) Xpoll_oneoff(v0, v1, v2, v3 int32) int32 {
 	if w.memory == nil {
 		return errnoFault
 	}
-	w.memory.storeU32(v3, 0)
+	w.memory.WriteUint32Le(uint32(v3), 0)
 	return errnoNosys
 }
 
