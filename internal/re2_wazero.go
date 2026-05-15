@@ -3,7 +3,6 @@
 package internal
 
 import (
-	"container/list"
 	"context"
 	_ "embed"
 	"encoding/binary"
@@ -41,9 +40,47 @@ var (
 	wasmMemory   api.Memory
 	rootMod      api.Module
 
-	modPool   *list.List
-	modPoolMu sync.Mutex
+	wasmInitOnce sync.Once
+	modPool      modStack   // lock-free pool of reusable child modules
+	modPoolMu    sync.Mutex // serializes child-module construction
 )
+
+// modStack is a Treiber stack: a lock-free LIFO of *childModule. Push and
+// pop use CAS on head, with a fresh node allocated per push so the popped
+// node is never reused while another goroutine still observes it (avoiding
+// ABA). Items remain reachable while in the stack, so the *childModule
+// finalizer cannot fire concurrently with wasm work on other modules.
+type modStack struct {
+	head atomic.Pointer[modStackNode]
+}
+
+type modStackNode struct {
+	cm   *childModule
+	next *modStackNode
+}
+
+func (s *modStack) push(cm *childModule) {
+	n := &modStackNode{cm: cm}
+	for {
+		head := s.head.Load()
+		n.next = head
+		if s.head.CompareAndSwap(head, n) {
+			return
+		}
+	}
+}
+
+func (s *modStack) pop() *childModule {
+	for {
+		head := s.head.Load()
+		if head == nil {
+			return nil
+		}
+		if s.head.CompareAndSwap(head, head.next) {
+			return head.cm
+		}
+	}
+}
 
 type libre2ABI struct {
 	cre2New                   lazyFunction
@@ -139,29 +176,20 @@ func createChildModule(ctx context.Context, rt wazero.Runtime, root api.Module) 
 	return ret
 }
 
-// We currently avoid sync.Pool as it tends to overallocate and Wasm functions can't be preempted,
-// meaning have more than # of CPUs is mostly unnecessary. We can revisit in the future, but at least
-// for now, a lock here is no more than before we added threads support.
-
 func getChildModule(ctx context.Context) *childModule {
-	modPoolMu.Lock()
-	if modPool == nil {
+	wasmInitOnce.Do(func() {
 		initWASM(ctx)
+	})
+	if cm := modPool.pop(); cm != nil {
+		return cm
 	}
-	e := modPool.Front()
-	if e == nil {
-		modPoolMu.Unlock()
-		return createChildModule(ctx, wasmRT, rootMod)
-	}
-	modPool.Remove(e)
-	modPoolMu.Unlock()
-	return e.Value.(*childModule) //nolint:forcetypeassert // fixed-type pooling
+	modPoolMu.Lock()
+	defer modPoolMu.Unlock()
+	return createChildModule(ctx, wasmRT, rootMod)
 }
 
 func putChildModule(cm *childModule) {
-	modPoolMu.Lock()
-	modPool.PushBack(cm)
-	modPoolMu.Unlock()
+	modPool.push(cm)
 }
 
 func initWASM(ctx context.Context) {
@@ -221,8 +249,6 @@ func initWASM(ctx context.Context) {
 	}
 	wasmMemory = root.Memory()
 	rootMod = root
-
-	modPool = list.New()
 }
 
 func newABI() *libre2ABI {
