@@ -59,13 +59,14 @@ func TestHeavyGC(t *testing.T) {
 		t.Skip()
 	}
 
+	ctx := t.Context()
 	go func() {
 		ticker := time.NewTicker(time.Millisecond * 100)
 		for {
 			select {
 			case <-ticker.C:
 				runtime.GC()
-			case <-t.Context().Done():
+			case <-ctx.Done():
 				return
 			}
 		}
