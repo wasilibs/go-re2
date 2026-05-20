@@ -95,7 +95,6 @@ func main() {
 	})
 
 	defineBenchTasks("bench", "./...")
-	defineBenchTasks("wafbench", "./wafbench")
 
 	build.DefineTasks(
 		build.Tags(tags...),

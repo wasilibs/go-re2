@@ -4,5 +4,4 @@ use (
 	.
 	./build
 	./internal/e2e
-	./wafbench
 )
