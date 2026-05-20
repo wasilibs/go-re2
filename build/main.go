@@ -109,8 +109,11 @@ func buildTags() []string {
 	exhaustive := os.Getenv("RE2_TEST_EXHAUSTIVE") == "1"
 
 	var tags []string
-	if mode == "cgo" {
+	switch mode {
+	case "cgo":
 		tags = append(tags, "re2_cgo")
+	case "wasm2go":
+		tags = append(tags, "re2_wasm2go")
 	}
 	if exhaustive {
 		tags = append(tags, "re2_test_exhaustive")

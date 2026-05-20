@@ -19,6 +19,7 @@ jobs:
       matrix:
         mode:
           - cgo
+          - wasm2go
           - wazero
         os:
           - macos-15

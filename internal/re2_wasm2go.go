@@ -3,7 +3,6 @@
 package internal
 
 import (
-	"container/list"
 	"encoding/binary"
 	"errors"
 	"runtime"
@@ -20,8 +19,8 @@ var (
 	hostMemory *wasm2go.HostMemory
 	rootMod    *wasm2go.Module
 
-	modPool   *list.List
-	modPoolMu sync.Mutex
+	modPoolOnce sync.Once
+	modPool     sync.Pool
 )
 
 type libre2ABI struct{}
@@ -62,31 +61,25 @@ func createChildModule(root *wasm2go.Module) *childModule {
 }
 
 func getChildModule() *childModule {
-	modPoolMu.Lock()
-	if modPool == nil {
+	modPoolOnce.Do(func() {
 		initWASM()
-	}
-	e := modPool.Front()
-	if e == nil {
-		modPoolMu.Unlock()
-		return createChildModule(rootMod)
-	}
-	modPool.Remove(e)
-	modPoolMu.Unlock()
-	return e.Value.(*childModule) //nolint:forcetypeassert // fixed-type pooling
+	})
+	return modPool.Get().(*childModule) //nolint:forcetypeassert // fixed-type pooling
 }
 
 func putChildModule(cm *childModule) {
-	modPoolMu.Lock()
-	modPool.PushBack(cm)
-	modPoolMu.Unlock()
+	modPool.Put(cm)
 }
 
 func initWASM() {
 	hostMemory = wasm2go.NewHostMemory(3)
 	rootMod = wasm2go.New(wasm2go.NewHostWASI(), wasm2go.NewHostEnv(hostMemory))
 	rootMod.X_initialize()
-	modPool = list.New()
+	modPool = sync.Pool{
+		New: func() any {
+			return createChildModule(rootMod)
+		},
+	}
 }
 
 func newABI() *libre2ABI {
