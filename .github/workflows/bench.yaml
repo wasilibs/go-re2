@@ -24,7 +24,7 @@ jobs:
 
       - run: go run ./build bench-all
 
-      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v3
+      - uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
         with:
           name: results
           path: build/*bench*.txt
