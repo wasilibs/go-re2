@@ -8,6 +8,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -22,14 +25,8 @@ jobs:
           - ubuntu-24.04
           - windows-2025
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5
-        with:
-          # TODO: Split lint step to allow it to have a higher minimum Go requirement.
-          go-version: "^1.22"
-          cache-dependency-path: |
-            **/go.sum
-            build/versions.go
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: curioswitch/go-build/.github/actions/setup-go@338fc9f50df6cb664134b5c600630dcbc483d81f # v0.7.3
 
       - name: setup re2 for cgo (linux)
         if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.mode == 'cgo' }}
@@ -72,16 +69,11 @@ jobs:
           GOMEMLIMIT: ${{ github.event_name != 'pull_request' && '1GiB' || '' }}
 
   test-bsd:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5
-        with:
-          go-version-file: go.work
-          cache-dependency-path: |
-            **/go.sum
-            build/versions.go
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: curioswitch/go-build/.github/actions/setup-go@338fc9f50df6cb664134b5c600630dcbc483d81f # v0.7.3
 
       - name: Build
         run: go test -c .
@@ -102,11 +94,11 @@ jobs:
   # but not build without a C toolchain available, e.g. if C source files are checked into the repo
   # without a build tag to exclude them from pure-Go builds.
   docker-build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     container:
       image: golang:alpine
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 2; fi
 
