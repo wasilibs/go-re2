@@ -55,6 +55,7 @@ jobs:
           GOMEMLIMIT: ${{ github.event_name != 'pull_request' && '1GiB' || '' }}
           # Race detector currently fails with Windows
           TEST_NORACE: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'wazero' && 'true' || '' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: run tests (windows cgo)
         run: go run ./build test
