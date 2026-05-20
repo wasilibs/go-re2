@@ -4,7 +4,6 @@ package internal
 
 import (
 	"encoding/binary"
-	"errors"
 	"runtime"
 	"strings"
 	"sync"
@@ -12,8 +11,6 @@ import (
 
 	wasm2go "github.com/wasilibs/go-re2/internal/wasm"
 )
-
-var errFailedRead = errors.New("failed to read from wasm memory")
 
 var (
 	hostMemory *wasm2go.HostMemory
