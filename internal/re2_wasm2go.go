@@ -18,6 +18,7 @@ var (
 
 	modPoolOnce sync.Once
 	modPool     sync.Pool
+	modCreateMu sync.Mutex
 )
 
 type libre2ABI struct{}
@@ -74,6 +75,8 @@ func initWASM() {
 	rootMod.X_initialize()
 	modPool = sync.Pool{
 		New: func() any {
+			modCreateMu.Lock()
+			defer modCreateMu.Unlock()
 			return createChildModule(rootMod)
 		},
 	}
