@@ -3,6 +3,7 @@ package memory
 import (
 	"math"
 	"reflect"
+	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -13,6 +14,7 @@ type Memory struct {
 	Max int64
 	com int
 	ptr uintptr
+	mu  sync.Mutex
 }
 
 func (m *Memory) Slice() *[]byte {
@@ -20,6 +22,9 @@ func (m *Memory) Slice() *[]byte {
 }
 
 func (m *Memory) Grow(delta, _ int64) int64 {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if m.Buf == nil {
 		m.allocate(uint64(m.Max) << 16)
 	}

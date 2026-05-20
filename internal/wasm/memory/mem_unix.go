@@ -5,6 +5,7 @@ package memory
 import (
 	"fmt"
 	"math"
+	"sync"
 
 	"golang.org/x/sys/unix"
 )
@@ -13,6 +14,7 @@ type Memory struct {
 	Buf []byte
 	Max int64
 	com int
+	mu  sync.Mutex
 }
 
 func (m *Memory) Slice() *[]byte {
@@ -20,6 +22,9 @@ func (m *Memory) Slice() *[]byte {
 }
 
 func (m *Memory) Grow(delta, _ int64) int64 {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if m.Buf == nil {
 		m.allocate(uint64(m.Max) << 16)
 	}
@@ -78,6 +83,9 @@ func (m *Memory) reallocate(size uint64) {
 }
 
 func (m *Memory) Close() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	err := unix.Munmap(m.Buf[:cap(m.Buf)])
 	m.Buf = nil
 	m.com = 0
