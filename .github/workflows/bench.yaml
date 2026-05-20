@@ -24,8 +24,6 @@ jobs:
 
       - run: go run ./build bench-all
 
-      - run: go run ./build wafbench-all
-
       - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v3
         with:
           name: results
