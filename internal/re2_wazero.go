@@ -41,46 +41,10 @@ var (
 	rootMod      api.Module
 
 	wasmInitOnce sync.Once
-	modPool      modStack   // lock-free pool of reusable child modules
-	modPoolMu    sync.Mutex // serializes child-module construction
+	modPool      []*childModule // LIFO pool of reusable child modules
+	modPoolMu    sync.Mutex
+	modCreateMu  sync.Mutex
 )
-
-// modStack is a Treiber stack: a lock-free LIFO of *childModule. Push and
-// pop use CAS on head, with a fresh node allocated per push so the popped
-// node is never reused while another goroutine still observes it (avoiding
-// ABA). Items remain reachable while in the stack, so the *childModule
-// finalizer cannot fire concurrently with wasm work on other modules.
-type modStack struct {
-	head atomic.Pointer[modStackNode]
-}
-
-type modStackNode struct {
-	cm   *childModule
-	next *modStackNode
-}
-
-func (s *modStack) push(cm *childModule) {
-	n := &modStackNode{cm: cm}
-	for {
-		head := s.head.Load()
-		n.next = head
-		if s.head.CompareAndSwap(head, n) {
-			return
-		}
-	}
-}
-
-func (s *modStack) pop() *childModule {
-	for {
-		head := s.head.Load()
-		if head == nil {
-			return nil
-		}
-		if s.head.CompareAndSwap(head, head.next) {
-			return head.cm
-		}
-	}
-}
 
 type libre2ABI struct {
 	cre2New                   lazyFunction
@@ -180,16 +144,35 @@ func getChildModule(ctx context.Context) *childModule {
 	wasmInitOnce.Do(func() {
 		initWASM(ctx)
 	})
-	if cm := modPool.pop(); cm != nil {
+	if cm := popChildModule(); cm != nil {
 		return cm
 	}
-	modPoolMu.Lock()
-	defer modPoolMu.Unlock()
+
+	modCreateMu.Lock()
+	defer modCreateMu.Unlock()
+	if cm := popChildModule(); cm != nil {
+		return cm
+	}
 	return createChildModule(ctx, wasmRT, rootMod)
 }
 
 func putChildModule(cm *childModule) {
-	modPool.push(cm)
+	modPoolMu.Lock()
+	modPool = append(modPool, cm)
+	modPoolMu.Unlock()
+}
+
+func popChildModule() *childModule {
+	modPoolMu.Lock()
+	defer modPoolMu.Unlock()
+	n := len(modPool)
+	if n == 0 {
+		return nil
+	}
+	cm := modPool[n-1]
+	modPool[n-1] = nil
+	modPool = modPool[:n-1]
+	return cm
 }
 
 func initWASM(ctx context.Context) {
