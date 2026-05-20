@@ -3,6 +3,7 @@
 package memory
 
 import (
+	"fmt"
 	"math"
 
 	"golang.org/x/sys/unix"
@@ -23,23 +24,23 @@ func (m *Memory) Grow(delta, _ int64) int64 {
 		m.allocate(uint64(m.Max) << 16)
 	}
 
-	len := len(m.Buf)
-	old := int64(len >> 16)
+	sz := len(m.Buf)
+	old := int64(sz >> 16)
 	if delta == 0 {
 		return old
 	}
-	new := old + delta
-	if new > m.Max {
+	newPages := old + delta
+	if newPages > m.Max {
 		return -1
 	}
-	m.reallocate(uint64(new) << 16)
+	m.reallocate(uint64(newPages) << 16)
 	return old
 }
 
-func (m *Memory) allocate(max uint64) {
+func (m *Memory) allocate(maxSz uint64) {
 	// Round up to the page size.
 	rnd := uint64(unix.Getpagesize() - 1)
-	res := (max + rnd) &^ rnd
+	res := (maxSz + rnd) &^ rnd
 
 	if res > math.MaxInt {
 		// This ensures int(res) overflows to a negative value,
@@ -62,16 +63,16 @@ func (m *Memory) reallocate(size uint64) {
 	if com < size && size <= res {
 		// Grow geometrically, round up to the page size.
 		rnd := uint64(unix.Getpagesize() - 1)
-		new := com + com>>3
-		new = min(max(size, new), res)
-		new = (new + rnd) &^ rnd
+		newSz := com + com>>3
+		newSz = min(max(size, newSz), res)
+		newSz = (newSz + rnd) &^ rnd
 
 		// Commit additional memory up to new bytes.
-		err := unix.Mprotect(m.Buf[m.com:new], unix.PROT_READ|unix.PROT_WRITE)
+		err := unix.Mprotect(m.Buf[m.com:newSz], unix.PROT_READ|unix.PROT_WRITE)
 		if err != nil {
 			panic(err)
 		}
-		m.com = int(new)
+		m.com = int(newSz)
 	}
 	m.Buf = m.Buf[:size]
 }
@@ -80,5 +81,5 @@ func (m *Memory) Close() error {
 	err := unix.Munmap(m.Buf[:cap(m.Buf)])
 	m.Buf = nil
 	m.com = 0
-	return err
+	return fmt.Errorf("memory: unmap failed: %w", err)
 }

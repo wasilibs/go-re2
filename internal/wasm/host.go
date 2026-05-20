@@ -1,3 +1,4 @@
+//nolint:revive
 package wasm2go
 
 import (
@@ -51,9 +52,9 @@ func (m *HostMemory) CapacityBytes() uint64 {
 	return uint64(m.Max) * wasmPageSize
 }
 
-func (m *HostMemory) Grow(delta, max int64) int64 {
-	if max > 0 && max < m.Max {
-		m.Max = max
+func (m *HostMemory) Grow(delta, maxPages int64) int64 {
+	if maxPages > 0 && maxPages < m.Max {
+		m.Max = maxPages
 	}
 	return m.Memory.Grow(delta, m.Max)
 }
@@ -68,7 +69,7 @@ func (m *HostMemory) Read(offset, byteCount uint32) []byte {
 	return m.Buf[start:end]
 }
 
-func (m *HostMemory) ReadByte(offset uint32) byte {
+func (m *HostMemory) ReadByte(offset uint32) byte { //nolint:govet
 	return m.Buf[int(offset)]
 }
 
@@ -90,7 +91,7 @@ func (m *HostMemory) WriteString(offset uint32, s string) {
 	copy(m.Buf[start:end], s)
 }
 
-func (m *HostMemory) WriteByte(offset uint32, b byte) {
+func (m *HostMemory) WriteByte(offset uint32, b byte) { //nolint:govet
 	m.Buf[int(offset)] = b
 }
 
@@ -143,10 +144,7 @@ func NewHostWASI() *HostWASI {
 
 // Init is discovered by generated code and called once after module creation.
 func (w *HostWASI) Init(v any) {
-	type memoryProvider interface {
-		Xmemory() Memory
-	}
-	if p, ok := v.(memoryProvider); ok {
+	if p, ok := v.(Xenv); ok {
 		w.memory, _ = p.Xmemory().(*HostMemory)
 	}
 }
