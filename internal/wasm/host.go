@@ -283,12 +283,6 @@ func (w *HostWASI) Xsched_yield() int32 {
 	return errnoSuccess
 }
 
-func NewHostModule() *Module {
-	env := NewHostEnv(nil)
-	wasi := NewHostWASI()
-	return New(wasi, env)
-}
-
 var (
 	_ Xwasi_snapshot_preview1 = (*HostWASI)(nil)
 	_ Xenv                    = (*HostEnv)(nil)

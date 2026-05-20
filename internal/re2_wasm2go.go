@@ -14,6 +14,8 @@ import (
 
 var (
 	hostMemory *wasm2go.HostMemory
+	hostWASI   *wasm2go.HostWASI
+	hostEnv    *wasm2go.HostEnv
 	rootMod    *wasm2go.Module
 
 	modPoolOnce sync.Once
@@ -41,7 +43,7 @@ func createChildModule(root *wasm2go.Module) *childModule {
 
 	ptr := uint32(root.Xmalloc(int32(size)))
 
-	child := wasm2go.New(wasm2go.NewHostWASI(), wasm2go.NewHostEnv(hostMemory))
+	child := wasm2go.New(hostWASI, hostEnv)
 	child.X__wasm_init_tls(int32(ptr))
 
 	tid := atomic.AddUint32(&prevTID, 1)
@@ -71,7 +73,9 @@ func putChildModule(cm *childModule) {
 
 func initWASM() {
 	hostMemory = wasm2go.NewHostMemory(3)
-	rootMod = wasm2go.New(wasm2go.NewHostWASI(), wasm2go.NewHostEnv(hostMemory))
+	hostWASI = wasm2go.NewHostWASI()
+	hostEnv = wasm2go.NewHostEnv(hostMemory)
+	rootMod = wasm2go.New(hostWASI, hostEnv)
 	rootMod.X_initialize()
 	modPool = sync.Pool{
 		New: func() any {
