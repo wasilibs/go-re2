@@ -1,0 +1,28 @@
+name: Refresh Go Cache
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - go.work
+      - "**/go.mod"
+      - "**/versions.go"
+      - .github/workflows/refresh-go-cache.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-15
+          - ubuntu-24.04
+          - windows-2025
+    uses: curioswitch/go-build/.github/workflows/export-refresh-go-cache.yaml@338fc9f50df6cb664134b5c600630dcbc483d81f # v0.7.3
+    with:
+      runner: ${{ matrix.os }}

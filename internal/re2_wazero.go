@@ -3,7 +3,6 @@
 package internal
 
 import (
-	"container/list"
 	"context"
 	_ "embed"
 	"encoding/binary"
@@ -41,8 +40,10 @@ var (
 	wasmMemory   api.Memory
 	rootMod      api.Module
 
-	modPool   *list.List
-	modPoolMu sync.Mutex
+	wasmInitOnce sync.Once
+	modPool      []*childModule // LIFO pool of reusable child modules
+	modPoolMu    sync.Mutex
+	modCreateMu  sync.Mutex
 )
 
 type libre2ABI struct {
@@ -139,29 +140,39 @@ func createChildModule(ctx context.Context, rt wazero.Runtime, root api.Module) 
 	return ret
 }
 
-// We currently avoid sync.Pool as it tends to overallocate and Wasm functions can't be preempted,
-// meaning have more than # of CPUs is mostly unnecessary. We can revisit in the future, but at least
-// for now, a lock here is no more than before we added threads support.
-
 func getChildModule(ctx context.Context) *childModule {
-	modPoolMu.Lock()
-	if modPool == nil {
+	wasmInitOnce.Do(func() {
 		initWASM(ctx)
+	})
+	if cm := popChildModule(); cm != nil {
+		return cm
 	}
-	e := modPool.Front()
-	if e == nil {
-		modPoolMu.Unlock()
-		return createChildModule(ctx, wasmRT, rootMod)
+
+	modCreateMu.Lock()
+	defer modCreateMu.Unlock()
+	if cm := popChildModule(); cm != nil {
+		return cm
 	}
-	modPool.Remove(e)
-	modPoolMu.Unlock()
-	return e.Value.(*childModule) //nolint:forcetypeassert // fixed-type pooling
+	return createChildModule(ctx, wasmRT, rootMod)
 }
 
 func putChildModule(cm *childModule) {
 	modPoolMu.Lock()
-	modPool.PushBack(cm)
+	modPool = append(modPool, cm)
 	modPoolMu.Unlock()
+}
+
+func popChildModule() *childModule {
+	modPoolMu.Lock()
+	defer modPoolMu.Unlock()
+	n := len(modPool)
+	if n == 0 {
+		return nil
+	}
+	cm := modPool[n-1]
+	modPool[n-1] = nil
+	modPool = modPool[:n-1]
+	return cm
 }
 
 func initWASM(ctx context.Context) {
@@ -221,8 +232,6 @@ func initWASM(ctx context.Context) {
 	}
 	wasmMemory = root.Memory()
 	rootMod = root
-
-	modPool = list.New()
 }
 
 func newABI() *libre2ABI {
