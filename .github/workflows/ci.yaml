@@ -19,6 +19,7 @@ jobs:
       matrix:
         mode:
           - cgo
+          - wasm2go
           - wazero
         os:
           - macos-15
@@ -53,7 +54,8 @@ jobs:
           # Windows runner seems to not have enough CPU performance to keep up without a memory limit
           GOMEMLIMIT: ${{ github.event_name != 'pull_request' && '1GiB' || '' }}
           # Race detector currently fails with Windows
-          TEST_NORACE: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'wazero' && 'true' || '' }}
+          TEST_NORACE: ${{ startsWith(matrix.os, 'windows-') && (matrix.mode == 'wazero' || matrix.mode == 'wasm2go') && 'true' || '' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: run tests (windows cgo)
         run: go run ./build test
