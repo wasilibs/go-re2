@@ -79,7 +79,8 @@ func (m *Memory) reallocate(size uint64) {
 		}
 		m.com = int(newSz)
 	}
-	m.Buf = m.Buf[:size]
+	buf := m.Buf[:size]
+	atomicStoreSliceLen(&m.Buf, len(buf))
 }
 
 func (m *Memory) Close() error {
