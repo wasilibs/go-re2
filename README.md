@@ -19,7 +19,6 @@ best to confirm them before proceeding.
 - Invalid utf-8 strings are treated differently. The standard library silently replaces invalid utf-8
   with the unicode replacement character. This library will stop consuming strings when encountering
   invalid utf-8.
-
   - `experimental.CompileLatin1` can be used to match against non-utf8 strings
 
 - `reflect.DeepEqual` cannot compare `Regexp` objects.
