@@ -62,8 +62,12 @@ func TestHeavyGC(t *testing.T) {
 	go func() {
 		ticker := time.NewTicker(time.Millisecond * 100)
 		for {
-			<-ticker.C
-			runtime.GC()
+			select {
+			case <-ticker.C:
+				runtime.GC()
+			case <-t.Context().Done():
+				return
+			}
 		}
 	}()
 	pat := MustCompile(`(?m)(?:^|\b)(?P<pattern>[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,4})(?:$|\b)`)
