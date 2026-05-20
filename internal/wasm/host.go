@@ -133,19 +133,13 @@ type HostWASI struct {
 	env    []string
 }
 
-func NewHostWASI() *HostWASI {
+func NewHostWASI(m *HostMemory) *HostWASI {
 	return &HostWASI{
 		stdout: os.Stdout,
 		stderr: os.Stderr,
 		start:  time.Now(),
 		env:    os.Environ(),
-	}
-}
-
-// Init is discovered by generated code and called once after module creation.
-func (w *HostWASI) Init(v any) {
-	if p, ok := v.(Xenv); ok {
-		w.memory, _ = p.Xmemory().(*HostMemory)
+		memory: m,
 	}
 }
 

@@ -73,7 +73,7 @@ func putChildModule(cm *childModule) {
 
 func initWASM() {
 	hostMemory = wasm2go.NewHostMemory(3)
-	hostWASI = wasm2go.NewHostWASI()
+	hostWASI = wasm2go.NewHostWASI(hostMemory)
 	hostEnv = wasm2go.NewHostEnv(hostMemory)
 	rootMod = wasm2go.New(hostWASI, hostEnv)
 	rootMod.X_initialize()
