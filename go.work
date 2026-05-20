@@ -3,5 +3,4 @@ go 1.26.3
 use (
 	.
 	./build
-	./internal/e2e
 )
