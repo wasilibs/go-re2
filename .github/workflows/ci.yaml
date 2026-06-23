@@ -26,8 +26,8 @@ jobs:
           - ubuntu-24.04
           - windows-2025
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: curioswitch/go-build/.github/actions/setup-go@338fc9f50df6cb664134b5c600630dcbc483d81f # v0.7.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: curioswitch/go-build/.github/actions/setup-go@6534a812de759839af8aae5643bcd5a3c181e436 # v0.7.4
 
       - name: setup re2 for cgo (linux)
         if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.mode == 'cgo' }}
@@ -37,7 +37,7 @@ jobs:
         run: brew install re2
       - name: setup msys2 for cgo (windows)
         if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'cgo' }}
-        uses: msys2/setup-msys2@e9898307ac31d1a803454791be09ab9973336e1c # v2.31.1
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
         with:
           update: true
           # This version of go is not sync with setup-go, but this is probably the best we can do
@@ -74,8 +74,8 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: curioswitch/go-build/.github/actions/setup-go@338fc9f50df6cb664134b5c600630dcbc483d81f # v0.7.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: curioswitch/go-build/.github/actions/setup-go@6534a812de759839af8aae5643bcd5a3c181e436 # v0.7.4
 
       - name: Build
         run: go test -c .
@@ -83,7 +83,7 @@ jobs:
           GOOS: freebsd
 
       - name: Test
-        uses: cross-platform-actions/action@0c165ad7eb2d6a7e8552d6af5aad2bbedfc646b0 # v1.1.0
+        uses: cross-platform-actions/action@be3d7e9ff5c8770b9c51b1a8c8c5446e1cad7cf9 # v1.2.0
         with:
           operating_system: freebsd
           version: "14.0"
@@ -100,7 +100,7 @@ jobs:
     container:
       image: golang:alpine
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 2; fi
 
