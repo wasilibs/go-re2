@@ -150,7 +150,7 @@ var setTests = []SetTest{
 		exprs:   []string{`(d)(e){0}(f)`, `[a-c]+`, `abc`, `\d+`},
 		matches: "df123abc",
 		matched: [4][]int{
-			nil, {0}, {0, 1}, {0, 1, 2, 3},
+			nil, {0}, {0, 3}, {0, 1, 2, 3},
 		},
 	},
 	{
@@ -164,7 +164,7 @@ var setTests = []SetTest{
 		exprs:   []string{`(d)(e){0}(f)`, `[a-c]+`, `abc`, `\d+`, `d{4}-\d{2}-\d{2}$`, `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`, `1[3-9]\d{9}`, `\.[a-zA-Z0-9]+$`, `<!--[\s\S]*?-->`},
 		matches: "df12313988889181demo@gmail.com",
 		matched: [4][]int{
-			nil, {0}, {0, 1}, {0, 1, 3, 5, 6, 7},
+			nil, {0}, {0, 3}, {0, 1, 3, 5, 6, 7},
 		},
 	},
 }
