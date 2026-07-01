@@ -27,7 +27,18 @@ func main() {
 			if os.Getenv("TEST_NORACE") != "" {
 				race = ""
 			}
-			cmd.Exec(a, fmt.Sprintf(`go test -v -timeout=60m %s -tags "%s" ./...`, race, strings.Join(tags, ",")))
+
+			// The exhaustive tests are too slow with the race detector, so we run it
+			// separately when both it and race detection are requested.
+			splitExhaustive := race != "" && os.Getenv("RE2_TEST_EXHAUSTIVE") == "1"
+			suiteTags := tags
+			if splitExhaustive {
+				suiteTags = modeTags()
+			}
+			cmd.Exec(a, fmt.Sprintf(`go test -v -timeout=20m %s -tags "%s" ./...`, race, strings.Join(suiteTags, ",")))
+			if splitExhaustive {
+				cmd.Exec(a, fmt.Sprintf(`go test -v -timeout=10m -tags "%s" -run "TestRE2Exhaustive|TestRE2Search|TestFowler" .`, strings.Join(tags, ",")))
+			}
 			if mode == "" {
 				cmd.Exec(a, fmt.Sprintf("go build -o %s ./internal/e2e", filepath.Join("out", "test.wasm")), cmd.Env("GOOS", "wasip1"), cmd.Env("GOARCH", "wasm"))
 				// Could invoke wazero directly but the CLI has a simpler entry point.
@@ -105,8 +116,15 @@ func main() {
 }
 
 func buildTags() []string {
+	tags := modeTags()
+	if os.Getenv("RE2_TEST_EXHAUSTIVE") == "1" {
+		tags = append(tags, "re2_test_exhaustive")
+	}
+	return tags
+}
+
+func modeTags() []string {
 	mode := strings.ToLower(os.Getenv("RE2_TEST_MODE"))
-	exhaustive := os.Getenv("RE2_TEST_EXHAUSTIVE") == "1"
 
 	var tags []string
 	switch mode {
@@ -114,9 +132,6 @@ func buildTags() []string {
 		tags = append(tags, "re2_cgo")
 	case "wasm2go":
 		tags = append(tags, "re2_wasm2go")
-	}
-	if exhaustive {
-		tags = append(tags, "re2_test_exhaustive")
 	}
 
 	return tags
