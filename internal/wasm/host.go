@@ -34,15 +34,22 @@ type HostMemory struct {
 }
 
 func NewHostMemory(initialPages int64) *HostMemory {
+	return NewHostMemoryWithMax(initialPages, hostMemoryPages)
+}
+
+func NewHostMemoryWithMax(initialPages, maxPages int64) *HostMemory {
 	if initialPages <= 0 {
 		initialPages = defaultInitPages
 	}
-	if initialPages > hostMemoryPages {
-		initialPages = hostMemoryPages
+	if maxPages <= 0 || maxPages > hostMemoryPages {
+		maxPages = hostMemoryPages
+	}
+	if initialPages > maxPages {
+		initialPages = maxPages
 	}
 	hm := &HostMemory{}
-	hm.Max = hostMemoryPages
-	if hm.Memory.Grow(initialPages, hostMemoryPages) == -1 {
+	hm.Max = maxPages
+	if hm.Memory.Grow(initialPages, maxPages) == -1 {
 		panic("failed to initialize host memory")
 	}
 	return hm

@@ -5,6 +5,7 @@ package cre2
 /*
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 
 void* cre2_new(void* pattern, int pattern_len, void* opts);
 void cre2_delete(void* re);
@@ -27,9 +28,9 @@ void cre2_opt_set_case_sensitive(void* opt, int flag);
 void cre2_opt_set_latin1_encoding(void* opt);
 void cre2_opt_set_max_mem(void* opt, int64_t size);
 void* cre2_set_new(void* opt, int anchor);
-void* cre2_set_add(void* set, void* pattern, int pattern_len);
+void* cre2_set_add(void* set, void* pattern, size_t pattern_len);
 int cre2_set_compile(void* set);
-int cre2_set_match(void* set, void* text, int text_len, void* match, int nmatch);
+size_t cre2_set_match(void* set, void* text, size_t text_len, void* match, size_t nmatch);
 void cre2_set_delete(void* set);
 
 void* malloc(size_t size);
@@ -125,7 +126,7 @@ func NewSet(opt unsafe.Pointer, anchor int) unsafe.Pointer {
 }
 
 func SetAdd(set unsafe.Pointer, patternPtr unsafe.Pointer, patternLen int) unsafe.Pointer {
-	return C.cre2_set_add(set, patternPtr, C.int(patternLen))
+	return C.cre2_set_add(set, patternPtr, C.size_t(patternLen))
 }
 
 func SetCompile(set unsafe.Pointer) int {
@@ -133,7 +134,7 @@ func SetCompile(set unsafe.Pointer) int {
 }
 
 func SetMatch(set unsafe.Pointer, textPtr unsafe.Pointer, textLen int, match unsafe.Pointer, nMatch int) int {
-	return int(C.cre2_set_match(set, textPtr, C.int(textLen), match, C.int(nMatch)))
+	return int(C.cre2_set_match(set, textPtr, C.size_t(textLen), match, C.size_t(nMatch)))
 }
 
 func SetDelete(ptr unsafe.Pointer) {
