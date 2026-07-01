@@ -4,13 +4,25 @@ package internal
 
 import (
 	"encoding/binary"
+	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"unsafe"
 
 	wasm2go "github.com/wasilibs/go-re2/internal/wasm"
 )
+
+// defaultChildStackBytes is the size of the stack region reserved in linear
+// memory for each child module. RE2 compiles and matches using
+// heap memory and uses very little stack (we have measured no more than 3.25KB
+// in testing). So we reserve a fixed, conservative value.
+// Can be overridden with RE2_MAX_STACK_BYTES environment variable if needed.
+const defaultChildStackBytes = 16 * 1024
+
+var childRegionBytes uint32 = defaultChildStackBytes
 
 var (
 	hostMemory *wasm2go.HostMemory
@@ -37,9 +49,7 @@ type childModule struct {
 }
 
 func createChildModule(root *wasm2go.Module) *childModule {
-	stackPointer := uint32(*root.X__stack_pointer())
-	tlsBase := uint32(*root.X__tls_base())
-	size := stackPointer - tlsBase
+	size := childRegionBytes
 
 	ptr := uint32(root.Xmalloc(int32(size)))
 
@@ -72,7 +82,23 @@ func putChildModule(cm *childModule) {
 }
 
 func initWASM() {
-	hostMemory = wasm2go.NewHostMemory(3)
+	if v := os.Getenv("RE2_MAX_STACK_BYTES"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			childRegionBytes = uint32(n)
+		}
+	}
+
+	maxPages := defaultMaxPages
+	if unsafe.Sizeof(uintptr(0)) < 8 {
+		// On a 32-bit system. anything close to 4GB will fail (part of 4GB is already used by the rest of the process).
+		// We go ahead and cap to 1GB to be extra conservative. It will be using interpreter mode anyways so either
+		// the memory limit or the performance will be an issue either way.
+		if maxPagesLimit := uint32(65536 / 4); maxPages > maxPagesLimit {
+			maxPages = maxPagesLimit
+		}
+	}
+
+	hostMemory = wasm2go.NewHostMemoryWithMax(3, int64(maxPages))
 	hostWASI = wasm2go.NewHostWASI(hostMemory)
 	hostEnv = wasm2go.NewHostEnv(hostMemory)
 	rootMod = wasm2go.New(hostWASI, hostEnv)
