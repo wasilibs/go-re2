@@ -91,8 +91,7 @@ func initWASM() {
 	maxPages := defaultMaxPages
 	if unsafe.Sizeof(uintptr(0)) < 8 {
 		// On a 32-bit system. anything close to 4GB will fail (part of 4GB is already used by the rest of the process).
-		// We go ahead and cap to 1GB to be extra conservative. It will be using interpreter mode anyways so either
-		// the memory limit or the performance will be an issue either way.
+		// We go ahead and cap to 1GB to be extra conservative.
 		if maxPagesLimit := uint32(65536 / 4); maxPages > maxPagesLimit {
 			maxPages = maxPagesLimit
 		}
