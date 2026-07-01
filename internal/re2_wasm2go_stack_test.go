@@ -54,10 +54,10 @@ func run(m *wasm2go.Module, pattern, input string) bool {
 	opt := int32(m.Xcre2_opt_new())
 	defer m.Xcre2_opt_delete(opt)
 	m.Xcre2_opt_set_max_mem(opt, int64(maxSize))
-	pp := int32(m.Xmalloc(int32(len(pattern))))
+	pp := m.Xmalloc(int32(len(pattern)))
 	defer m.Xfree(pp)
 	hostMemory.WriteString(uint32(pp), pattern)
-	re := int32(m.Xcre2_new(pp, int32(len(pattern)), opt))
+	re := m.Xcre2_new(pp, int32(len(pattern)), opt)
 	defer m.Xcre2_delete(re)
 	if m.Xcre2_error_code(re) != 0 {
 		return false
@@ -67,7 +67,7 @@ func run(m *wasm2go.Module, pattern, input string) bool {
 		defer m.Xfree(ip)
 		hostMemory.WriteString(uint32(ip), input)
 		ng := m.Xcre2_num_capturing_groups(re) + 1
-		ma := int32(m.Xmalloc(ng * 8))
+		ma := m.Xmalloc(ng * 8)
 		defer m.Xfree(ma)
 		m.Xcre2_match(re, ip, int32(len(input)), 0, int32(len(input)), 0, ma, ng)
 	}
