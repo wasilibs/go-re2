@@ -1,0 +1,5 @@
+version: 3
+ignore_actions:
+  # Doesn't publish version tags
+  - name: wasilibs/actions/.*
+    ref: .*
