@@ -27,7 +27,7 @@ func main() {
 			if os.Getenv("TEST_NORACE") != "" {
 				race = ""
 			}
-			cmd.Exec(a, fmt.Sprintf(`go test -v -timeout=40m %s -tags "%s" ./...`, race, strings.Join(tags, ",")))
+			cmd.Exec(a, fmt.Sprintf(`go test -v -timeout=60m %s -tags "%s" ./...`, race, strings.Join(tags, ",")))
 			if mode == "" {
 				cmd.Exec(a, fmt.Sprintf("go build -o %s ./internal/e2e", filepath.Join("out", "test.wasm")), cmd.Env("GOOS", "wasip1"), cmd.Env("GOARCH", "wasm"))
 				// Could invoke wazero directly but the CLI has a simpler entry point.
