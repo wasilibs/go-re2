@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"runtime"
+	"sort"
 	"sync/atomic"
 )
 
@@ -67,7 +68,7 @@ func (set *Set) FindAllString(s string, n int) []int {
 	if n < 0 {
 		n = len(set.exprs)
 	}
-	alloc := set.abi.startOperation(len(s) + 8 + n*8)
+	alloc := set.abi.startOperation(len(s) + 8 + len(set.exprs)*8)
 	defer set.abi.endOperation(alloc)
 
 	cs := alloc.newCString(s)
@@ -90,7 +91,7 @@ func (set *Set) FindAll(b []byte, n int) []int {
 	if n < 0 {
 		n = len(set.exprs)
 	}
-	alloc := set.abi.startOperation(len(b) + 8 + n*8)
+	alloc := set.abi.startOperation(len(b) + 8 + len(set.exprs)*8)
 	defer set.abi.endOperation(alloc)
 
 	cs := alloc.newCStringFromBytes(b)
@@ -105,13 +106,30 @@ func (set *Set) FindAll(b []byte, n int) []int {
 }
 
 func (set *Set) findAll(alloc *allocation, cs cString, n int, deliver func(match int)) {
-	matchArr := alloc.newCStringArray(n)
+	// RE2's set match returns the matched pattern indices in an unspecified
+	// order (not sorted), so we must retrieve them all and sort before applying
+	// the limit; otherwise which n we keep depends on RE2-internal ordering,
+	// which is not stable across platforms/builds.
+	numPatterns := len(set.exprs)
+	matchArr := alloc.newCStringArray(numPatterns)
 	defer matchArr.free()
 
-	matchedCount := setMatch(set, cs, matchArr.ptr, n)
-	matches := alloc.read(matchArr.ptr, n*4)
-	for i := 0; i < matchedCount && i < n; i++ {
-		deliver(int(binary.LittleEndian.Uint32(matches[i*4:])))
+	matchedCount := setMatch(set, cs, matchArr.ptr, numPatterns)
+	if matchedCount > numPatterns {
+		matchedCount = numPatterns
+	}
+	matches := alloc.read(matchArr.ptr, numPatterns*4)
+
+	ids := make([]int, 0, matchedCount)
+	for i := range matchedCount {
+		ids = append(ids, int(binary.LittleEndian.Uint32(matches[i*4:])))
+	}
+	sort.Ints(ids)
+	if n < len(ids) {
+		ids = ids[:n]
+	}
+	for _, id := range ids {
+		deliver(id)
 	}
 
 	runtime.KeepAlive(matchArr)

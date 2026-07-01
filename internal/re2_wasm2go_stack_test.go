@@ -51,7 +51,7 @@ func childStackHighWater(base uint32) (peak uint32, exhausted bool) {
 //		re.FindStringSubmatchIndex(input)
 //	}
 func run(m *wasm2go.Module, pattern, input string) bool {
-	opt := int32(m.Xcre2_opt_new())
+	opt := m.Xcre2_opt_new()
 	defer m.Xcre2_opt_delete(opt)
 	m.Xcre2_opt_set_max_mem(opt, int64(maxSize))
 	pp := m.Xmalloc(int32(len(pattern)))
@@ -63,7 +63,7 @@ func run(m *wasm2go.Module, pattern, input string) bool {
 		return false
 	}
 	if input != "" {
-		ip := int32(m.Xmalloc(int32(len(input))))
+		ip := m.Xmalloc(int32(len(input)))
 		defer m.Xfree(ip)
 		hostMemory.WriteString(uint32(ip), input)
 		ng := m.Xcre2_num_capturing_groups(re) + 1
