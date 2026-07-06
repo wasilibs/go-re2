@@ -27,7 +27,7 @@ jobs:
           - windows-2025
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: curioswitch/go-build/.github/actions/setup-go@6534a812de759839af8aae5643bcd5a3c181e436 # v0.7.4
+      - uses: curioswitch/go-build/.github/actions/setup-go@a2e54f5c6b6cff10d3b5ac6fcba4de7a411c6736 # v0.8.1
 
       - name: setup re2 for cgo (linux)
         if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.mode == 'cgo' }}
@@ -75,7 +75,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: curioswitch/go-build/.github/actions/setup-go@6534a812de759839af8aae5643bcd5a3c181e436 # v0.7.4
+      - uses: curioswitch/go-build/.github/actions/setup-go@a2e54f5c6b6cff10d3b5ac6fcba4de7a411c6736 # v0.8.1
 
       - name: Build
         run: go test -c .
