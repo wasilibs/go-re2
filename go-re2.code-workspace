@@ -2,11 +2,11 @@
   "folders": [
     {
       "name": "/",
-      "path": "."
-    }
+      "path": ".",
+    },
   ],
   "extensions": {
-    "recommendations": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+    "recommendations": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],
   },
   "settings": {
     "editor.formatOnSave": true,
@@ -15,10 +15,10 @@
     "go.lintFlags": ["--fix"],
     "go.lintTool": "golangci-lint-v2",
     "gopls": {
-      "formatting.gofumpt": true
+      "formatting.gofumpt": true,
     },
     "[yaml]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    }
-  }
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+  },
 }

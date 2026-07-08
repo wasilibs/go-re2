@@ -61,7 +61,7 @@ jobs:
         run: go run ./build test
         if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'cgo' }}
         # Shell does not support conditional expressions using matrix, so for now we duplicate the steps
-        shell: "msys2 {0}"
+        shell: msys2 {0}
         env:
           RE2_TEST_MODE: ${{ matrix.mode }}
           # General coverage should be good enough to not need to slow down development

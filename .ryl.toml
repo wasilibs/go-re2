@@ -1,0 +1,44 @@
+[files]
+yaml = [
+  "*.yaml",
+  "*.yml",
+]
+
+[rules]
+anchors = "enable"
+block-scalar-chomping = "enable"
+braces = "enable"
+brackets = "enable"
+colons = "enable"
+commas = "enable"
+comments-indentation = "enable"
+document-end = "disable"
+document-start = "disable"
+empty-lines = "enable"
+empty-values = "disable"
+float-values = "enable"
+hyphens = "enable"
+indentation = "enable"
+key-duplicates = "enable"
+key-ordering = "disable"
+line-length = "disable"
+merge-keys = "enable"
+new-line-at-end-of-file = "enable"
+new-lines = "enable"
+octal-values = "enable"
+tags = "enable"
+trailing-spaces = "enable"
+unicode-line-breaks = "enable"
+
+[rules.comments]
+level = "error"
+min-spaces-from-content = 1
+
+[rules.quoted-strings]
+level = "error"
+quote-type = "double"
+required = "only-when-needed"
+
+[rules.truthy]
+level = "error"
+check-keys = false
