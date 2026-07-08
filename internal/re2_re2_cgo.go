@@ -80,6 +80,12 @@ func matchFrom(re *Regexp, s cString, startPos int, matchesPtr wasmPtr, nMatches
 type allocation struct{}
 
 func (*allocation) newCString(s string) cString {
+	if len(s) == 0 {
+		// unsafe.StringData may return nil for an empty string, but CRE2 uses
+		// nil StringPiece data to report unmatched subexpressions. Use an
+		// empty string with non-nil data so empty matches remain distinguishable.
+		s = "a"[0:0]
+	}
 	res := cString{
 		ptr:    unsafe.Pointer(unsafe.StringData(s)),
 		length: len(s),
