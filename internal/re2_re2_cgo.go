@@ -80,13 +80,6 @@ func matchFrom(re *Regexp, s cString, startPos int, matchesPtr wasmPtr, nMatches
 type allocation struct{}
 
 func (*allocation) newCString(s string) cString {
-	if len(s) == 0 {
-		// TinyGo uses a null pointer to represent an empty string, but this
-		// prevents us from distinguishing a match on the empty string vs no
-		// match for subexpressions. So we replace with an empty-length slice
-		// to a string that isn't null.
-		s = "a"[0:0]
-	}
 	res := cString{
 		ptr:    unsafe.Pointer(unsafe.StringData(s)),
 		length: len(s),

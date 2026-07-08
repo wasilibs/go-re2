@@ -12,7 +12,7 @@ the above limitation is not true. Because WASM itself allocates the memory used 
 module, all the memory allocated in C++ code is actually allocated by the Go GC. This means the GC
 does know exactly how much memory is used by `Regexp` and acts correctly.
 
-However, for cgo or TinyGo, this is not the case. We still go ahead and leave out `Close` for now
+However, for cgo, this is not the case. We still go ahead and leave out `Close` for now
 for the less concrete reason that closing would generally only be needed with short-lived regular
 expressions. Compilation time with this library takes much longer than the standard library - it is
 not appropriate for use with short-lived expressions. In the case that it is acceptable and the
@@ -22,7 +22,7 @@ If code decides to use this library and has short-lived compiled expressions, ra
 
 This leaves medium-lived expressions as a use case for `Close` - for example there may be some
 business logic that is dynamically loaded and unloaded that gets compiled as regex. For now, we
-will leave it as future work to add `Close` for this use case, under cgo or TinyGo, if it gets
+will leave it as future work to add `Close` for this use case, under cgo, if it gets
 asked for. All other use cases are expected to work fine without it.
 
 ## No implementation of Reader methods
