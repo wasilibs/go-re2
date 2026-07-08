@@ -67,8 +67,8 @@ RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 $LDFLAGS \
   -Wl,--export=__tls_base
 
 RUN wasm-opt -o libcre2.wasm --low-memory-unused --flatten --rereloop --converge -O3 libcre2-noopt.so
-RUN pages=$(wasm-objdump -x libcre2.wasm | grep -oE 'initial=[0-9]+' | head -1 | grep -oE '[0-9]+'); \
-  printf '// Code generated from libcre2.wasm. DO NOT EDIT.\n\npackage wasm2go\n\nconst initialPages = %s\n' "$pages" > "libcre2.memory.go"
+RUN pages=$(wasm-objdump -x libcre2.wasm | grep -oE 'initial=[0-9]+' | head -1 | grep -oE '[0-9]+')
+printf '// Code generated from libcre2.wasm. DO NOT EDIT.\n\npackage wasm2go\n\nconst initialPages = %s\n' "$pages" > "libcre2.memory.go"
 
 FROM golang:1.26-trixie
 
