@@ -7,8 +7,8 @@ typical with libraries that wrap C++ in Go. A finalizer is set to allow release 
 the object. In many other cases of native wrappers, this is not sufficient - the GC will not be aware
 of the real memory usage on the native side and not perform correctly.
 
-In this library, we have chosen not to add it because in the default mode for Go apps using wazero,
-the above limitation is not true. Because wazero itself allocates the memory used by the WebAssembly
+In this library, we have chosen not to add it because in the default mode for Go apps using WASM,
+the above limitation is not true. Because WASM itself allocates the memory used by the WebAssembly
 module, all the memory allocated in C++ code is actually allocated by the Go GC. This means the GC
 does know exactly how much memory is used by `Regexp` and acts correctly.
 
