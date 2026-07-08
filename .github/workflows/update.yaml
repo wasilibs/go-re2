@@ -1,4 +1,4 @@
-name: "Update Upstream"
+name: Update Upstream
 
 on:
   schedule:

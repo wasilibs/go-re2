@@ -1,0 +1,47 @@
+[MD003]
+style = "atx"
+
+[MD004]
+style = "asterisk"
+
+[MD007]
+indent = 4
+
+[MD009]
+strict = true
+
+[MD013]
+code_blocks = false
+line_length = 100
+
+[MD029]
+style = "one_or_ordered"
+
+[MD030]
+ul_single = 3
+ul_multi = 3
+ol_single = 2
+ol_multi = 2
+
+[MD046]
+style = "fenced"
+
+[code-block-tools]
+enabled = true
+normalize-language = "linguist"
+
+[code-block-tools.language-aliases]
+bash = "shell"
+shellsession = "shell"
+
+[code-block-tools.languages.go]
+format = ["gofmt"]
+lint = ["gofmt"]
+
+[code-block-tools.languages.shell]
+format = ["shfmt"]
+lint = ["shellcheck", "shfmt"]
+
+[code-block-tools.languages.yaml]
+format = ["prettier:yaml"]
+lint = ["prettier:yaml"]
