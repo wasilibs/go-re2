@@ -2,7 +2,7 @@
 
 go-re2 is a drop-in replacement for the standard library [regexp][1] package which uses the C++
 [re2][2] library for improved performance with large inputs or complex expressions. By default,
-re2 is packaged as a WebAssembly module and accessed with the pure Go runtime, [wazero][3].
+re2 is packaged as a WebAssembly module, then compiled to Go using [wasm2go][3].
 This means that it is compatible with any Go application, regardless of availability of cgo.
 
 Note that if your regular expressions or input are small, this library is slower than the
@@ -259,7 +259,7 @@ good performance in real world use cases.
 
 [1]: https://pkg.go.dev/regexp
 [2]: https://github.com/google/re2
-[3]: https://wazero.io
+[3]: https://github.com/ncruces/wasm2go
 [4]: https://github.com/wasilibs/go-re2/actions/workflows/bench.yaml
 [5]: https://github.com/coreruleset/coreruleset
 [6]: https://github.com/corazawaf/coraza
