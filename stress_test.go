@@ -17,17 +17,19 @@ func TestReplaceAllNoMatch(t *testing.T) {
 	animalRegex := MustCompile(`cat`)
 
 	var ms runtime.MemStats
+	runtime.GC()
 	runtime.ReadMemStats(&ms)
 
-	startAlloc := ms.HeapInuse
+	startAlloc := ms.HeapAlloc
 
 	for range 1000000 {
 		_ = animalRegex.ReplaceAllLiteralString(`The quick brown fox jumps over the lazy dog`, "animal")
 	}
 
 	runtime.GC()
+	runtime.GC() // Ensure sync.Pool victim cache is drained
 	runtime.ReadMemStats(&ms)
-	endAlloc := ms.HeapInuse
+	endAlloc := ms.HeapAlloc
 
 	if endAlloc > startAlloc && endAlloc-startAlloc > 1000000 {
 		t.Errorf("memory usage increased by %d", endAlloc-startAlloc)
