@@ -13,9 +13,8 @@ import (
 )
 
 const (
-	wasmPageSize     = 65536
-	hostMemoryPages  = 65536 // 4GiB / 64KiB pages
-	defaultInitPages = 3
+	wasmPageSize    = 65536
+	hostMemoryPages = 65536 // 4GiB / 64KiB pages
 
 	errnoSuccess = 0
 	errnoBadf    = 8
@@ -33,19 +32,13 @@ type HostMemory struct {
 	waiters sync.Map
 }
 
-func NewHostMemory(initialPages int64) *HostMemory {
-	return NewHostMemoryWithMax(initialPages, hostMemoryPages)
+func NewHostMemory() *HostMemory {
+	return NewHostMemoryWithMax(hostMemoryPages)
 }
 
-func NewHostMemoryWithMax(initialPages, maxPages int64) *HostMemory {
-	if initialPages <= 0 {
-		initialPages = defaultInitPages
-	}
+func NewHostMemoryWithMax(maxPages int64) *HostMemory {
 	if maxPages <= 0 || maxPages > hostMemoryPages {
 		maxPages = hostMemoryPages
-	}
-	if initialPages > maxPages {
-		initialPages = maxPages
 	}
 	hm := &HostMemory{}
 	hm.Max = maxPages
@@ -121,7 +114,7 @@ type HostEnv struct {
 
 func NewHostEnv(memory Memory) *HostEnv {
 	if memory == nil {
-		memory = NewHostMemory(defaultInitPages)
+		memory = NewHostMemory()
 	}
 	return &HostEnv{memory: memory}
 }

@@ -130,8 +130,8 @@ func modeTags() []string {
 	switch mode {
 	case "cgo":
 		tags = append(tags, "re2_cgo")
-	case "wasm2go":
-		tags = append(tags, "re2_wasm2go")
+	case "wazero":
+		tags = append(tags, "re2_wazero")
 	}
 
 	return tags
@@ -170,11 +170,11 @@ func benchArgs(pkg string, count int, mode benchMode) string {
 	case benchModeCGO:
 		args = append(args, "-tags=re2_cgo")
 	case benchModeWasm2go:
-		args = append(args, "-tags=re2_wasm2go")
+		// no args
 	case benchModeSTDLib:
 		args = append(args, "-tags=re2_bench_stdlib")
 	case benchModeWazero:
-		// no args
+		args = append(args, "-tags=re2_wazero")
 	}
 	args = append(args, pkg)
 

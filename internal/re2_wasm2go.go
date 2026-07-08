@@ -1,4 +1,4 @@
-//go:build !tinygo.wasm && !re2_cgo && re2_wasm2go
+//go:build !re2_cgo && !re2_wazero
 
 package internal
 
@@ -97,7 +97,7 @@ func initWASM() {
 		}
 	}
 
-	hostMemory = wasm2go.NewHostMemoryWithMax(3, int64(maxPages))
+	hostMemory = wasm2go.NewHostMemoryWithMax(int64(maxPages))
 	hostWASI = wasm2go.NewHostWASI(hostMemory)
 	hostEnv = wasm2go.NewHostEnv(hostMemory)
 	rootMod = wasm2go.New(hostWASI, hostEnv)

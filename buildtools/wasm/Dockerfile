@@ -1,6 +1,6 @@
-FROM ghcr.io/webassembly/wasi-sdk:wasi-sdk-25 AS base
+FROM ghcr.io/webassembly/wasi-sdk:wasi-sdk-25 AS wasm
 
-RUN apt-get update && apt-get install -y binaryen curl patch
+RUN apt-get update && apt-get install -y binaryen curl patch wabt
 
 WORKDIR /re2
 COPY buildtools/wasm/version.txt .
@@ -67,5 +67,15 @@ RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 $LDFLAGS \
   -Wl,--export=__tls_base
 
 RUN wasm-opt -o libcre2.wasm --low-memory-unused --flatten --rereloop --converge -O3 libcre2-noopt.so
+RUN pages=$(wasm-objdump -x libcre2.wasm | grep -oE 'initial=[0-9]+' | head -1 | grep -oE '[0-9]+'); \
+  printf '// Code generated from libcre2.wasm. DO NOT EDIT.\n\npackage wasm2go\n\nconst initialPages = %s\n' "$pages" > "libcre2.memory.go"
 
-CMD ["cp", "libcre2.wasm", "/out/"]
+FROM golang:1.26-trixie
+
+COPY --from=wasm /cre2/libcre2.wasm /build/
+COPY --from=wasm /cre2/libcre2.memory.go /build/
+WORKDIR /build
+SHELL ["/bin/bash", "-c"]
+RUN go run github.com/ncruces/wasm2go@v0.4.11 -unsafe -pkg=wasm2go < libcre2.wasm > libcre2.wasm.go
+
+CMD ["bash", "-c", "cp /build/*.go /out/"]
