@@ -30,5 +30,5 @@ asked for. All other use cases are expected to work fine without it.
 The standard library gives leeway to read an arbitrary amount of input from a `Reader` when processing.
 This means that we could implement the API surface by reading the entire string and passing to re2.
 This defeats the purpose of the `Reader` methods though, and we choose to keep it a compilation failure.
-For applications where buffering the entire string is acceptable, they can be rewritten to do so in their
-logic, while when not acceptable it is fine to continue to use the standard library.
+For applications where buffering the entire string is acceptable, they can be rewritten to do so in
+their logic, while when not acceptable it is fine to continue to use the standard library.
