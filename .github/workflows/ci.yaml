@@ -27,7 +27,7 @@ jobs:
           - windows-2025
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: curioswitch/go-build/.github/actions/setup-go@8cee71a440fb70ec08525081efdf8088d2b3618e # v0.8.3
+      - uses: curioswitch/go-build/.github/actions/setup-go@7d855da299ce7a10188c909a58328fc21ed89c40 # v0.9.0
 
       - name: setup re2 for cgo (linux)
         if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.mode == 'cgo' }}
@@ -75,7 +75,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: curioswitch/go-build/.github/actions/setup-go@8cee71a440fb70ec08525081efdf8088d2b3618e # v0.8.3
+      - uses: curioswitch/go-build/.github/actions/setup-go@7d855da299ce7a10188c909a58328fc21ed89c40 # v0.9.0
 
       - name: Build
         run: go test -c .
@@ -83,7 +83,7 @@ jobs:
           GOOS: freebsd
 
       - name: Test
-        uses: cross-platform-actions/action@24ef01df165c76df1ed2b9f9e9212e78dc2fc963 # v1.4.0
+        uses: cross-platform-actions/action@faa0c6197e94aacf1c5956460152c8380d3560a5 # v1.5.0
         with:
           operating_system: freebsd
           version: "14.0"

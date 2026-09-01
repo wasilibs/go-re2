@@ -23,6 +23,6 @@ jobs:
           - macos-15
           - ubuntu-24.04
           - windows-2025
-    uses: curioswitch/go-build/.github/workflows/export-refresh-go-cache.yaml@8cee71a440fb70ec08525081efdf8088d2b3618e # v0.8.3
+    uses: curioswitch/go-build/.github/workflows/export-refresh-go-cache.yaml@7d855da299ce7a10188c909a58328fc21ed89c40 # v0.9.0
     with:
       runner: ${{ matrix.os }}
