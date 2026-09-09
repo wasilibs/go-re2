@@ -60,6 +60,7 @@ RUN $CXX -o libcre2-noopt.so -Wl,--global-base=1024 $LDFLAGS \
   -Wl,--export=cre2_set_new \
   -Wl,--export=cre2_set_add \
   -Wl,--export=cre2_set_match \
+  -Wl,--export=cre2_set_match_with_error \
   -Wl,--export=cre2_set_delete \
   -Wl,--export=cre2_set_compile \
   -Wl,--export=__wasm_init_tls \

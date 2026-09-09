@@ -700,21 +700,52 @@ cre2_set_compile(cre2_set *set)
   return static_cast<int>(s->Compile());
 }
 
+static int
+to_cre2_set_match_error(RE2::Set::ErrorKind kind)
+{
+  switch (kind) {
+  case RE2::Set::kNotCompiled:
+    return CRE2_SET_MATCH_NOT_COMPILED;
+  case RE2::Set::kOutOfMemory:
+    return CRE2_SET_MATCH_OUT_OF_MEMORY;
+  case RE2::Set::kInconsistent:
+    return CRE2_SET_MATCH_INCONSISTENT;
+  case RE2::Set::kNoError:
+    break;
+  }
+  return CRE2_SET_MATCH_NO_ERROR;
+}
+
+// Match the set of regex against text and store indices of matching regexes in match array.
+// Returns the number of regexes which match, or the negation of a
+// cre2_set_match_error_t value if the match could not run to completion.
+int
+cre2_set_match_with_error(cre2_set *set, const char *text, size_t text_len, int *match, size_t match_len)
+{
+  RE2::Set *s = TO_RE2_SET(set);
+  re2::StringPiece data(text, static_cast<int>(text_len));
+  std::vector<int> v;
+  RE2::Set::ErrorInfo info;
+  info.kind = RE2::Set::kNoError;
+  bool does_match = s->Match(data, &v, &info);
+  if (!does_match) {
+    return -to_cre2_set_match_error(info.kind);
+  }
+  size_t min = v.size() < match_len ? v.size() : match_len;
+  std::copy(v.begin(), v.begin() + min, match);
+  return static_cast<int>(v.size());
+}
+
 // Match the set of regex against text and store indices of matching regexes in match array.
 // Returns the number of regexes which match.
 size_t
 cre2_set_match(cre2_set *set, const char *text, size_t text_len, int *match, size_t match_len)
 {
-  RE2::Set *s = TO_RE2_SET(set);
-  re2::StringPiece data(text, static_cast<int>(text_len));
-  std::vector<int> v;
-  bool does_match = s->Match(data, &v);
-  if (!does_match) {
+  int res = cre2_set_match_with_error(set, text, text_len, match, match_len);
+  if (res < 0) {
     return 0;
   }
-  size_t min = v.size() < match_len ? v.size() : match_len;
-  std::copy(v.begin(), v.begin() + min, match);
-  return v.size();
+  return static_cast<size_t>(res);
 }
 
 /* end of file */
