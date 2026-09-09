@@ -367,8 +367,9 @@ func setCompile(set *Set) int32 {
 }
 
 func setMatch(set *Set, cs cString, matchedPtr wasmPtr, nMatch int) int {
-	res := withModule(func(m *wasm2go.Module) uint64 {
-		return uint64(m.Xcre2_set_match(int32(set.ptr), int32(cs.ptr), int32(cs.length), int32(matchedPtr), int32(nMatch)))
+	var res int32
+	withModuleNoResult(func(m *wasm2go.Module) {
+		res = m.Xcre2_set_match_with_error(int32(set.ptr), int32(cs.ptr), int32(cs.length), int32(matchedPtr), int32(nMatch))
 	})
 	return int(res)
 }

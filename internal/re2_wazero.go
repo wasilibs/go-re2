@@ -64,11 +64,12 @@ type libre2ABI struct {
 	cre2OptSetLatin1Encoding  lazyFunction
 	cre2OptSetMaxMem          lazyFunction
 
-	cre2SetNew     lazyFunction
-	cre2SetAdd     lazyFunction
-	cre2SetCompile lazyFunction
-	cre2SetMatch   lazyFunction
-	cre2SetDelete  lazyFunction
+	cre2SetNew            lazyFunction
+	cre2SetAdd            lazyFunction
+	cre2SetCompile        lazyFunction
+	cre2SetMatch          lazyFunction
+	cre2SetMatchWithError lazyFunction
+	cre2SetDelete         lazyFunction
 
 	malloc lazyFunction
 	free   lazyFunction
@@ -255,6 +256,7 @@ func newABI() *libre2ABI {
 		cre2SetAdd:                newLazyFunction("cre2_set_add"),
 		cre2SetCompile:            newLazyFunction("cre2_set_compile"),
 		cre2SetMatch:              newLazyFunction("cre2_set_match"),
+		cre2SetMatchWithError:     newLazyFunction("cre2_set_match_with_error"),
 		cre2SetDelete:             newLazyFunction("cre2_set_delete"),
 		malloc:                    newLazyFunction("malloc"),
 		free:                      newLazyFunction("free"),
@@ -543,11 +545,11 @@ func setCompile(set *Set) int32 {
 
 func setMatch(set *Set, cs cString, matchedPtr wasmPtr, nMatch int) int {
 	ctx := context.Background()
-	res, err := set.abi.cre2SetMatch.Call5(ctx, uint64(set.ptr), uint64(cs.ptr), uint64(cs.length), uint64(matchedPtr), uint64(nMatch))
+	res, err := set.abi.cre2SetMatchWithError.Call5(ctx, uint64(set.ptr), uint64(cs.ptr), uint64(cs.length), uint64(matchedPtr), uint64(nMatch))
 	if err != nil {
 		panic(err)
 	}
-	return int(res)
+	return int(int32(uint32(res)))
 }
 
 func deleteSet(abi *libre2ABI, setPtr wasmPtr) {

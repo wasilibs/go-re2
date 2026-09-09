@@ -31,6 +31,7 @@ void* cre2_set_new(void* opt, int anchor);
 void* cre2_set_add(void* set, void* pattern, size_t pattern_len);
 int cre2_set_compile(void* set);
 size_t cre2_set_match(void* set, void* text, size_t text_len, void* match, size_t nmatch);
+int cre2_set_match_with_error(void* set, void* text, size_t text_len, void* match, size_t nmatch);
 void cre2_set_delete(void* set);
 
 void* malloc(size_t size);
@@ -135,6 +136,10 @@ func SetCompile(set unsafe.Pointer) int {
 
 func SetMatch(set unsafe.Pointer, textPtr unsafe.Pointer, textLen int, match unsafe.Pointer, nMatch int) int {
 	return int(C.cre2_set_match(set, textPtr, C.size_t(textLen), match, C.size_t(nMatch)))
+}
+
+func SetMatchWithError(set unsafe.Pointer, textPtr unsafe.Pointer, textLen int, match unsafe.Pointer, nMatch int) int {
+	return int(C.cre2_set_match_with_error(set, textPtr, C.size_t(textLen), match, C.size_t(nMatch)))
 }
 
 func SetDelete(ptr unsafe.Pointer) {

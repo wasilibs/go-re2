@@ -219,6 +219,56 @@ func TestSetFindAllString(t *testing.T) {
 	}
 }
 
+func TestSetFindAllWithError(t *testing.T) {
+	set := compileSetTest(t, []string{`^a`, `b$`}, "")
+	if set == nil {
+		return
+	}
+
+	tests := []struct {
+		name  string
+		input string
+		want  []int
+	}{
+		{name: "both", input: "ab", want: []int{0, 1}},
+		{name: "one", input: "ax", want: []int{0}},
+		{name: "none", input: "xx", want: nil},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			matches, err := set.FindAllWithError([]byte(tc.input), -1)
+			if err != nil {
+				t.Fatalf("FindAllWithError(%q): unexpected error: %v", tc.input, err)
+			}
+			sort.Ints(matches)
+			if !reflect.DeepEqual(matches, tc.want) {
+				t.Errorf("FindAllWithError(%q) = %v, want %v", tc.input, matches, tc.want)
+			}
+			if plain := set.FindAll([]byte(tc.input), -1); !reflect.DeepEqual(sorted(plain), tc.want) {
+				t.Errorf("FindAll(%q) = %v, want %v", tc.input, plain, tc.want)
+			}
+
+			strMatches, err := set.FindAllStringWithError(tc.input, -1)
+			if err != nil {
+				t.Fatalf("FindAllStringWithError(%q): unexpected error: %v", tc.input, err)
+			}
+			sort.Ints(strMatches)
+			if !reflect.DeepEqual(strMatches, tc.want) {
+				t.Errorf("FindAllStringWithError(%q) = %v, want %v", tc.input, strMatches, tc.want)
+			}
+			if plain := set.FindAllString(tc.input, -1); !reflect.DeepEqual(sorted(plain), tc.want) {
+				t.Errorf("FindAllString(%q) = %v, want %v", tc.input, plain, tc.want)
+			}
+		})
+	}
+}
+
+func sorted(v []int) []int {
+	sort.Ints(v)
+	return v
+}
+
 func BenchmarkSet(b *testing.B) {
 	b.Run("findAll", func(b *testing.B) {
 		set, err := CompileSet(goodRe)
