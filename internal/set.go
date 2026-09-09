@@ -2,6 +2,7 @@ package internal
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"runtime"
 	"sync/atomic"
@@ -41,7 +42,10 @@ func CompileSet(exprs []string, opts CompileOptions) (*Set, error) {
 			return nil, fmt.Errorf("%s", errMsg)
 		}
 	}
-	setCompile(set)
+	if setCompile(set) == 0 {
+		set.release()
+		return nil, errors.New("error compiling regexp set: patterns too large")
+	}
 	// Use func(interface{}) form for nottinygc compatibility.
 	runtime.SetFinalizer(set, func(obj interface{}) {
 		if s, ok := obj.(*Set); ok {
