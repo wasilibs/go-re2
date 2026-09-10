@@ -125,9 +125,7 @@ func TestBadCompileSet(t *testing.T) {
 	}
 }
 
-func TestCompileSetTooLarge(t *testing.T) {
-	// RE2::Set cannot fall back to the NFA, so ignoring the compile failure would
-	// silently return a set that never matches.
+func TestCompileSetError(t *testing.T) {
 	compileSetTest(t, []string{`(?i)\pL{1000}\pN{1000}\pL{1000}`}, "error compiling regexp set")
 }
 
