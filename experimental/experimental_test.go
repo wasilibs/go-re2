@@ -125,6 +125,10 @@ func TestBadCompileSet(t *testing.T) {
 	}
 }
 
+func TestCompileSetError(t *testing.T) {
+	compileSetTest(t, []string{`(?i)\pL{1000}\pN{1000}\pL{1000}`}, "error compiling regexp set")
+}
+
 type SetTest struct {
 	exprs   []string
 	matches string
