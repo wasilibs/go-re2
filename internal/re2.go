@@ -56,6 +56,20 @@ type CompileOptions struct {
 	Longest         bool
 	CaseInsensitive bool
 	Latin1          bool
+
+	// MaxMem is the approximate maximum memory in bytes RE2 may use for a
+	// compiled pattern and its DFA cache. It is an upper bound rather than
+	// an allocation.
+	//
+	// If zero, 128MiB is used.
+	MaxMem int
+}
+
+func (o CompileOptions) maxMem() int {
+	if o.MaxMem > 0 {
+		return o.MaxMem
+	}
+	return maxSize
 }
 
 func Compile(expr string, opts CompileOptions) (*Regexp, error) {

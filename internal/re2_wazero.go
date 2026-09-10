@@ -285,7 +285,7 @@ func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) wasmPtr {
 		}
 	}()
 
-	_, err = abi.cre2OptSetMaxMem.Call2(ctx, uint64(optPtr), uint64(maxSize))
+	_, err = abi.cre2OptSetMaxMem.Call2(ctx, uint64(optPtr), uint64(opts.maxMem()))
 	if err != nil {
 		panic(err)
 	}
@@ -477,7 +477,7 @@ func newSet(abi *libre2ABI, opts CompileOptions) wasmPtr {
 		}
 	}()
 
-	_, err = abi.cre2OptSetMaxMem.Call2(ctx, uint64(optPtr), uint64(maxSize))
+	_, err = abi.cre2OptSetMaxMem.Call2(ctx, uint64(optPtr), uint64(opts.maxMem()))
 	if err != nil {
 		panic(err)
 	}

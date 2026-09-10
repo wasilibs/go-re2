@@ -30,3 +30,12 @@ type Set = internal.Set
 func CompileSet(exprs []string) (*Set, error) {
 	return internal.CompileSet(exprs, internal.CompileOptions{}) //nolint:wrapcheck // just a method forwarder
 }
+
+// CompileOptions are options for compiling regular expressions. The zero value
+// selects the same behavior as the standard library regexp package.
+type CompileOptions = internal.CompileOptions
+
+// CompileSetWithOptions is like CompileSet but applies opts when compiling the set.
+func CompileSetWithOptions(exprs []string, opts CompileOptions) (*Set, error) {
+	return internal.CompileSet(exprs, opts) //nolint:wrapcheck // just a method forwarder
+}
