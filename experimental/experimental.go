@@ -26,6 +26,12 @@ func MustCompileLatin1(str string) *re2.Regexp {
 // Set is a compiled collection of regular expressions that can be searched for simultaneously.
 type Set = internal.Set
 
+// ErrSetEvaluation indicates an error preventing evaluation of the Set from completing.
+// This can happen for example if the memory limit is too low to evaluate.
+// As the set failed to evaluate, it does not indicate whether any expressions would or would
+// not have matched the input.
+var ErrSetEvaluation = internal.ErrSetEvaluation
+
 // CompileSet compiles the set of regular expression in preparation for matching.
 func CompileSet(exprs []string) (*Set, error) {
 	return internal.CompileSet(exprs, internal.CompileOptions{}) //nolint:wrapcheck // just a method forwarder

@@ -325,8 +325,25 @@ cre2_decl int cre2_set_add_simple(cre2_set *set, const char *pattern);
 cre2_decl int cre2_set_compile(cre2_set *set);
 
 /* Match the set of regex against text and store indices of matching regexes in match array.
- * Returns the number of regexes which match. */
+ * Returns the number of regexes which match. A match that could not run to
+ * completion is indistinguishable from one that found nothing; use
+ * cre2_set_match_with_error() to tell them apart. */
 cre2_decl size_t cre2_set_match(cre2_set *set, const char *text, size_t text_len,
+					 int *match, size_t match_len);
+
+/* Reason a set match failed to run to completion. Mirrors RE2::Set::ErrorKind. */
+typedef enum cre2_set_match_error_t {
+  CRE2_SET_MATCH_NO_ERROR	= 0,
+  CRE2_SET_MATCH_NOT_COMPILED	= 1,
+  CRE2_SET_MATCH_OUT_OF_MEMORY	= 2,
+  CRE2_SET_MATCH_INCONSISTENT	= 3
+} cre2_set_match_error_t;
+
+/* Match the set of regex against text like cre2_set_match(), but report an
+ * error if the set itself could not be evaluated rather than no matches.
+ * Returns the number of regexes which match, or the negation of
+ * a cre2_set_match_error_t value if the match could not run to completion. */
+cre2_decl int cre2_set_match_with_error(cre2_set *set, const char *text, size_t text_len,
 					 int *match, size_t match_len);
 
 

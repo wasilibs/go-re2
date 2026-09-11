@@ -10,6 +10,32 @@ import (
 
 const unknownCompileError = "unknown error compiling pattern"
 
+// Negated return values of cre2_set_match_with_error, mirroring RE2::Set::ErrorKind.
+const (
+	setMatchNotCompiled  = 1
+	setMatchOutOfMemory  = 2
+	setMatchInconsistent = 3
+)
+
+// ErrSetEvaluation indicates an error preventing evaluation of the Set from completing.
+// This can happen for example if the memory limit is too low to evaluate.
+// As the set failed to evaluate, it does not indicate whether any expressions would or would
+// not have matched the input.
+var ErrSetEvaluation = errors.New("re2: set evaluation did not run to completion")
+
+func setEvaluationError(kind int) error {
+	switch kind {
+	case setMatchNotCompiled:
+		return fmt.Errorf("%w: set is not compiled", ErrSetEvaluation)
+	case setMatchOutOfMemory:
+		return fmt.Errorf("%w: DFA out of memory", ErrSetEvaluation)
+	case setMatchInconsistent:
+		return fmt.Errorf("%w: inconsistent result", ErrSetEvaluation)
+	default:
+		return fmt.Errorf("%w: unknown error %d", ErrSetEvaluation, kind)
+	}
+}
+
 type Set struct {
 	ptr      wasmPtr
 	abi      *libre2ABI
@@ -64,9 +90,19 @@ func (set *Set) release() {
 
 // FindAllString finds all matches of the regular expressions in the Set against the input string.
 // It returns a slice of indices of the matched patterns. If n >= 0, it returns at most n matches; otherwise, it returns all of them.
+//
+// Deprecated: Use FindAllStringWithError instead to distinguish between no matches and evaluation error.
 func (set *Set) FindAllString(s string, n int) []int {
+	matches, _ := set.FindAllStringWithError(s, n)
+	return matches
+}
+
+// FindAllStringWithError finds all matches of the regular expressions in the Set against the input string.
+// It returns a slice of indices of the matched patterns. If n >= 0, it returns at most n matches; otherwise, it returns all of them.
+// If evaluation fails completely, it returns an error wrapping ErrSetEvaluation.
+func (set *Set) FindAllStringWithError(s string, n int) ([]int, error) {
 	if n == 0 {
-		return nil
+		return nil, nil
 	}
 	if n < 0 {
 		n = len(set.exprs)
@@ -78,18 +114,32 @@ func (set *Set) FindAllString(s string, n int) []int {
 
 	var matches []int
 
-	set.findAll(&alloc, cs, n, func(match int) {
+	if err := set.findAll(&alloc, cs, n, func(match int) {
 		matches = append(matches, match)
-	})
+	}); err != nil {
+		return nil, err
+	}
+	return matches, nil
+}
+
+// FindAll executes the Set against the input bytes. It returns a slice
+// with the indices of the matched patterns. If n >= 0, it returns at most
+// n matches; otherwise, it returns all of them.
+//
+// Deprecated: Use FindAllWithError instead to distinguish between no matches and
+// evaluation errors.
+func (set *Set) FindAll(b []byte, n int) []int {
+	matches, _ := set.FindAllWithError(b, n)
 	return matches
 }
 
 // FindAll executes the Set against the input bytes. It returns a slice
 // with the indices of the matched patterns. If n >= 0, it returns at most
 // n matches; otherwise, it returns all of them.
-func (set *Set) FindAll(b []byte, n int) []int {
+// If evaluation fails completely, it returns an error wrapping ErrSetEvaluation.
+func (set *Set) FindAllWithError(b []byte, n int) ([]int, error) {
 	if n == 0 {
-		return nil
+		return nil, nil
 	}
 	if n < 0 {
 		n = len(set.exprs)
@@ -101,23 +151,29 @@ func (set *Set) FindAll(b []byte, n int) []int {
 
 	var matches []int
 
-	set.findAll(&alloc, cs, n, func(match int) {
+	if err := set.findAll(&alloc, cs, n, func(match int) {
 		matches = append(matches, match)
-	})
+	}); err != nil {
+		return nil, err
+	}
 
-	return matches
+	return matches, nil
 }
 
-func (set *Set) findAll(alloc *allocation, cs cString, n int, deliver func(match int)) {
+func (set *Set) findAll(alloc *allocation, cs cString, n int, deliver func(match int)) error {
 	matchArr := alloc.newCStringArray(n)
 	defer matchArr.free()
+	defer runtime.KeepAlive(matchArr)
+	defer runtime.KeepAlive(set) // don't allow finalizer to run during method
 
 	matchedCount := setMatch(set, cs, matchArr.ptr, n)
+	if matchedCount < 0 {
+		return setEvaluationError(-matchedCount)
+	}
 	matches := alloc.read(matchArr.ptr, n*4)
 	for i := 0; i < matchedCount && i < n; i++ {
 		deliver(int(binary.LittleEndian.Uint32(matches[i*4:])))
 	}
 
-	runtime.KeepAlive(matchArr)
-	runtime.KeepAlive(set) // don't allow finalizer to run during method
+	return nil
 }

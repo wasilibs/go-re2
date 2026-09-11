@@ -206,7 +206,7 @@ func setCompile(set *Set) int32 {
 }
 
 func setMatch(set *Set, cs cString, matchedPtr wasmPtr, nMatch int) int {
-	return cre2.SetMatch(unsafe.Pointer(set.ptr), cs.ptr, cs.length, unsafe.Pointer(matchedPtr), nMatch)
+	return cre2.SetMatchWithError(unsafe.Pointer(set.ptr), cs.ptr, cs.length, unsafe.Pointer(matchedPtr), nMatch)
 }
 
 func deleteSet(_ *libre2ABI, setPtr wasmPtr) {
