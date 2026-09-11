@@ -1,3 +1,4 @@
+//nolint:staticcheck // SA1019: Tests deprecated APIs
 package experimental
 
 import (
