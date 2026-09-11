@@ -148,7 +148,7 @@ func newRE(abi *libre2ABI, pattern cString, opts CompileOptions) wasmPtr {
 	}()
 
 	withModuleNoResult(func(m *wasm2go.Module) {
-		m.Xcre2_opt_set_max_mem(int32(optPtr), int64(maxSize))
+		m.Xcre2_opt_set_max_mem(int32(optPtr), int64(opts.maxMem()))
 	})
 
 	if opts.Longest {
@@ -313,7 +313,7 @@ func newSet(abi *libre2ABI, opts CompileOptions) wasmPtr {
 	}()
 
 	withModuleNoResult(func(m *wasm2go.Module) {
-		m.Xcre2_opt_set_max_mem(int32(optPtr), int64(maxSize))
+		m.Xcre2_opt_set_max_mem(int32(optPtr), int64(opts.maxMem()))
 	})
 
 	if opts.Longest {

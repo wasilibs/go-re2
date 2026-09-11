@@ -319,3 +319,13 @@ func ExampleCompileSet() {
 	// [0 1]
 	// []
 }
+
+func TestCompileSetWithOptions(t *testing.T) {
+	set, err := CompileSetWithOptions([]string{`abc`, `\d+`}, CompileOptions{CaseInsensitive: true, MaxMem: 512 << 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := set.FindAllString("ABC", -1), []int{0}; !reflect.DeepEqual(got, want) {
+		t.Errorf("FindAllString: got %v, want %v", got, want)
+	}
+}

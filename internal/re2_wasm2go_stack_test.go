@@ -74,6 +74,14 @@ func run(m *wasm2go.Module, pattern, input string) bool {
 	return true
 }
 
+// createChildModule mutates the root module's shadow stack pointer, which the
+// module pool serializes with modCreateMu.
+func newChildModule() *childModule {
+	modCreateMu.Lock()
+	defer modCreateMu.Unlock()
+	return createChildModule(rootMod)
+}
+
 // TestChildStackWithinBudget guards the assumption behind the reduced per-child
 // stack reservation, if upstream RE2 somehow changes to use much more stack than
 // currently, this should find it.
@@ -100,7 +108,7 @@ func TestChildStackWithinBudget(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		child := createChildModule(rootMod)
+		child := newChildModule()
 		paintChildStack(child.tlsBasePtr)
 		if !run(child.mod, tc.pattern, tc.input) && !strings.HasPrefix(tc.name, "nest") {
 			t.Errorf("%s: expected pattern to compile", tc.name)
