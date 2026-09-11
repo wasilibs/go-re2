@@ -91,14 +91,15 @@ func (set *Set) release() {
 // FindAllString finds all matches of the regular expressions in the Set against the input string.
 // It returns a slice of indices of the matched patterns. If n >= 0, it returns at most n matches; otherwise, it returns all of them.
 //
-// Deprecated: Use FindAllStringWithError instead to distinguish between no matches and.
+// Deprecated: Use FindAllStringWithError instead to distinguish between no matches and evaluation error.
 func (set *Set) FindAllString(s string, n int) []int {
 	matches, _ := set.FindAllStringWithError(s, n)
 	return matches
 }
 
-// FindAllStringWithError is like FindAllString but returns an error wrapping
-// ErrSetEvaluation if the evaluation did not run to completion.
+// FindAllStringWithError finds all matches of the regular expressions in the Set against the input string.
+// It returns a slice of indices of the matched patterns. If n >= 0, it returns at most n matches; otherwise, it returns all of them.
+// If evaluation fails completely, it returns an error wrapping ErrSetEvaluation.
 func (set *Set) FindAllStringWithError(s string, n int) ([]int, error) {
 	if n == 0 {
 		return nil, nil
@@ -132,8 +133,10 @@ func (set *Set) FindAll(b []byte, n int) []int {
 	return matches
 }
 
-// FindAllWithError is like FindAll but returns an error wrapping
-// ErrSetEvaluation if the evaluation did not run to completion.
+// FindAll executes the Set against the input bytes. It returns a slice
+// with the indices of the matched patterns. If n >= 0, it returns at most
+// n matches; otherwise, it returns all of them.
+// If evaluation fails completely, it returns an error wrapping ErrSetEvaluation.
 func (set *Set) FindAllWithError(b []byte, n int) ([]int, error) {
 	if n == 0 {
 		return nil, nil
