@@ -90,6 +90,8 @@ func (set *Set) release() {
 
 // FindAllString finds all matches of the regular expressions in the Set against the input string.
 // It returns a slice of indices of the matched patterns. If n >= 0, it returns at most n matches; otherwise, it returns all of them.
+//
+// Deprecated: Use FindAllStringWithError instead to distinguish between no matches and.
 func (set *Set) FindAllString(s string, n int) []int {
 	matches, _ := set.FindAllStringWithError(s, n)
 	return matches
@@ -122,6 +124,9 @@ func (set *Set) FindAllStringWithError(s string, n int) ([]int, error) {
 // FindAll executes the Set against the input bytes. It returns a slice
 // with the indices of the matched patterns. If n >= 0, it returns at most
 // n matches; otherwise, it returns all of them.
+//
+// Deprecated: Use FindAllWithError instead to distinguish between no matches and
+// evaluation errors.
 func (set *Set) FindAll(b []byte, n int) []int {
 	matches, _ := set.FindAllWithError(b, n)
 	return matches
