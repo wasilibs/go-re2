@@ -17,9 +17,10 @@ const (
 	setMatchInconsistent = 3
 )
 
-// ErrSetEvaluation is wrapped by the errors FindAllWithError and
-// FindAllStringWithError return. RE2::Set has no NFA fallback, so an evaluation
-// that fails reports no matches even when patterns would have matched.
+// ErrSetEvaluation indicates an error preventing evaluation of the Set from completing.
+// This can happen for example if the memory limit is too low to evaluate.
+// As the set failed to evaluate, it does not indicate whether any expressions would or would
+// not have matched the input.
 var ErrSetEvaluation = errors.New("re2: set evaluation did not run to completion")
 
 func setEvaluationError(kind int) error {
@@ -89,9 +90,6 @@ func (set *Set) release() {
 
 // FindAllString finds all matches of the regular expressions in the Set against the input string.
 // It returns a slice of indices of the matched patterns. If n >= 0, it returns at most n matches; otherwise, it returns all of them.
-//
-// A failed evaluation is reported as no matches; use FindAllStringWithError to
-// tell the two apart.
 func (set *Set) FindAllString(s string, n int) []int {
 	matches, _ := set.FindAllStringWithError(s, n)
 	return matches
@@ -124,9 +122,6 @@ func (set *Set) FindAllStringWithError(s string, n int) ([]int, error) {
 // FindAll executes the Set against the input bytes. It returns a slice
 // with the indices of the matched patterns. If n >= 0, it returns at most
 // n matches; otherwise, it returns all of them.
-//
-// A failed evaluation is reported as no matches; use FindAllWithError to tell
-// the two apart.
 func (set *Set) FindAll(b []byte, n int) []int {
 	matches, _ := set.FindAllWithError(b, n)
 	return matches

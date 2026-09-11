@@ -339,11 +339,10 @@ typedef enum cre2_set_match_error_t {
   CRE2_SET_MATCH_INCONSISTENT	= 3
 } cre2_set_match_error_t;
 
-/* Match the set of regex against text like cre2_set_match(), but report why no
- * regex matched. Returns the number of regexes which match, or the negation of
- * a cre2_set_match_error_t value if the match could not run to completion.
- * RE2::Set has no NFA fallback, so a failed match reports no matches even
- * though patterns may have matched. */
+/* Match the set of regex against text like cre2_set_match(), but report an
+ * error if the set itself could not be evaluated rather than no matches.
+ * Returns the number of regexes which match, or the negation of
+ * a cre2_set_match_error_t value if the match could not run to completion. */
 cre2_decl int cre2_set_match_with_error(cre2_set *set, const char *text, size_t text_len,
 					 int *match, size_t match_len);
 
