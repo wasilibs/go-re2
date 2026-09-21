@@ -3,7 +3,7 @@ module build
 go 1.26.0
 
 require (
-	github.com/cli/go-gh/v2 v2.16.0
+	github.com/cli/go-gh/v2 v2.16.1
 	github.com/curioswitch/go-build v0.9.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/goyek/goyek/v3 v3.0.1
