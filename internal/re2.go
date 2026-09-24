@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"regexp/syntax"
 	"runtime"
 	"strconv"
 	"strings"
@@ -57,6 +58,11 @@ type CompileOptions struct {
 	CaseInsensitive bool
 	Latin1          bool
 
+	// ClassNL allows negated character classes like [^a] to match newline
+	// when Posix is set, as syntax.ClassNL does. regexp.CompilePOSIX does not
+	// set it, but the POSIX conformance tests expect it.
+	ClassNL bool
+
 	// MaxMem is the approximate maximum memory in bytes RE2 may use for a
 	// compiled pattern and its DFA cache. It is an upper bound rather than
 	// an allocation.
@@ -73,13 +79,32 @@ func (o CompileOptions) maxMem() int {
 }
 
 func Compile(expr string, opts CompileOptions) (*Regexp, error) {
+	re2Expr, re2Opts := expr, opts
+	if opts.Posix {
+		// RE2's POSIX syntax always allows negated classes to match newline,
+		// unlike regexp. Parse with regexp/syntax and pass RE2 the rendered
+		// pattern, which spells out the classes and flags explicitly. If
+		// parsing fails, let RE2 report the error for the original pattern.
+		flags := syntax.POSIX
+		if opts.CaseInsensitive {
+			flags |= syntax.FoldCase
+		}
+		if opts.ClassNL {
+			flags |= syntax.ClassNL
+		}
+		if tree, err := syntax.Parse(expr, flags); err == nil {
+			re2Expr = tree.String()
+			re2Opts.Posix = false
+		}
+	}
+
 	abi := newABI()
-	alloc := abi.startOperation(len(expr) + 2)
+	alloc := abi.startOperation(len(re2Expr) + 2)
 	defer abi.endOperation(alloc)
 
-	cs := alloc.newCString(expr)
+	cs := alloc.newCString(re2Expr)
 
-	rePtr := newRE(abi, cs, opts)
+	rePtr := newRE(abi, cs, re2Opts)
 	errCode, errArg := reError(abi, rePtr)
 	switch errCode {
 	case 0:
@@ -547,8 +572,8 @@ func (re *Regexp) findAllSubmatch(alloc *allocation, bsrc []byte, src string, cs
 		})
 		if accept {
 			deliver(matches)
+			count++
 		}
-		count++
 
 		if count == n {
 			break
