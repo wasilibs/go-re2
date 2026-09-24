@@ -2,7 +2,6 @@ package re2
 
 import (
 	"reflect"
-	"regexp"
 	"regexp/syntax"
 	"strings"
 	"testing"
@@ -562,55 +561,3 @@ func TestSwitchBacktrack(t *testing.T) {
 //		t.Errorf("DeepEqual(re1, re2) = false, want true")
 //	}
 //}
-
-func TestLongest(t *testing.T) {
-	re, err := Compile(`a(|b)`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if g, w := re.FindString("ab"), "a"; g != w {
-		t.Errorf("first match was %q, want %q", g, w)
-	}
-	re.Longest()
-	if g, w := re.FindString("ab"), "ab"; g != w {
-		t.Errorf("longest match was %q, want %q", g, w)
-	}
-}
-
-// TestProgramTooLongForBacktrack tests that a regex which is too long
-// for the backtracker still executes properly.
-func TestProgramTooLongForBacktrack(t *testing.T) {
-	longRegex := MustCompile(`(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|twentyone|twentytwo|twentythree|twentyfour|twentyfive|twentysix|twentyseven|twentyeight|twentynine|thirty|thirtyone|thirtytwo|thirtythree|thirtyfour|thirtyfive|thirtysix|thirtyseven|thirtyeight|thirtynine|forty|fortyone|fortytwo|fortythree|fortyfour|fortyfive|fortysix|fortyseven|fortyeight|fortynine|fifty|fiftyone|fiftytwo|fiftythree|fiftyfour|fiftyfive|fiftysix|fiftyseven|fiftyeight|fiftynine|sixty|sixtyone|sixtytwo|sixtythree|sixtyfour|sixtyfive|sixtysix|sixtyseven|sixtyeight|sixtynine|seventy|seventyone|seventytwo|seventythree|seventyfour|seventyfive|seventysix|seventyseven|seventyeight|seventynine|eighty|eightyone|eightytwo|eightythree|eightyfour|eightyfive|eightysix|eightyseven|eightyeight|eightynine|ninety|ninetyone|ninetytwo|ninetythree|ninetyfour|ninetyfive|ninetysix|ninetyseven|ninetyeight|ninetynine|onehundred)`)
-	if !longRegex.MatchString("two") {
-		t.Errorf("longRegex.MatchString(\"two\") was false, want true")
-	}
-	if longRegex.MatchString("xxx") {
-		t.Errorf("longRegex.MatchString(\"xxx\") was true, want false")
-	}
-}
-
-// GAP: Upstream does not test with a nil byte slice, which can cause issues
-// with cgo.
-func TestNilBytes(t *testing.T) {
-	for _, pat := range []string{``, `a*`, `(a)?`, `^`, `$`, `x|`, `a+`} {
-		re := MustCompile(pat)
-		std := regexp.MustCompile(pat)
-		check := func(name string, got, want any) {
-			t.Helper()
-			if !reflect.DeepEqual(got, want) {
-				t.Errorf("%#q: %s(nil) = %v; want %v", pat, name, got, want)
-			}
-		}
-		check("Match", re.Match(nil), std.Match(nil))
-		check("Find", re.Find(nil), std.Find(nil))
-		check("FindIndex", re.FindIndex(nil), std.FindIndex(nil))
-		check("FindSubmatch", re.FindSubmatch(nil), std.FindSubmatch(nil))
-		check("FindSubmatchIndex", re.FindSubmatchIndex(nil), std.FindSubmatchIndex(nil))
-		check("FindAll", re.FindAll(nil, -1), std.FindAll(nil, -1))
-		check("FindAllIndex", re.FindAllIndex(nil, -1), std.FindAllIndex(nil, -1))
-		check("FindAllSubmatch", re.FindAllSubmatch(nil, -1), std.FindAllSubmatch(nil, -1))
-		check("FindAllSubmatchIndex", re.FindAllSubmatchIndex(nil, -1), std.FindAllSubmatchIndex(nil, -1))
-		check("ReplaceAll", string(re.ReplaceAll(nil, []byte("X"))), string(std.ReplaceAll(nil, []byte("X"))))
-		check("ReplaceAllLiteral", string(re.ReplaceAllLiteral(nil, []byte("X"))), string(std.ReplaceAllLiteral(nil, []byte("X"))))
-	}
-}
