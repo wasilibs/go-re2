@@ -94,6 +94,12 @@ func (*allocation) newCString(s string) cString {
 }
 
 func (*allocation) newCStringFromBytes(s []byte) cString {
+	if s == nil {
+		// unsafe.SliceData returns nil for a nil slice, but CRE2 uses nil
+		// StringPiece data to report unmatched subexpressions. Use an empty
+		// slice with non-nil data so empty matches remain distinguishable.
+		s = []byte{}
+	}
 	res := cString{
 		ptr:    unsafe.Pointer(unsafe.SliceData(s)),
 		length: len(s),

@@ -374,6 +374,9 @@ func (re *Regexp) FindAllStringIndex(s string, n int) [][]int {
 func (re *Regexp) findAll(alloc *allocation, bsrc []byte, src string, cs cString, n int, deliver func(match []int)) {
 	var dstCap [2]int
 
+	if n == 0 {
+		return
+	}
 	if n < 0 {
 		n = cs.length + 1
 	}
@@ -506,6 +509,9 @@ func (re *Regexp) FindAllStringSubmatchIndex(s string, n int) [][]int {
 }
 
 func (re *Regexp) findAllSubmatch(alloc *allocation, bsrc []byte, src string, cs cString, nmatch, n int, deliver func(match []int)) {
+	if n == 0 {
+		return
+	}
 	if n < 0 {
 		n = cs.length + 1
 	}
