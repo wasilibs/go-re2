@@ -124,14 +124,9 @@ func buildTags() []string {
 }
 
 func modeTags() []string {
-	mode := strings.ToLower(os.Getenv("RE2_TEST_MODE"))
-
 	var tags []string
-	switch mode {
-	case "cgo":
+	if strings.ToLower(os.Getenv("RE2_TEST_MODE")) == "cgo" {
 		tags = append(tags, "re2_cgo")
-	case "wazero":
-		tags = append(tags, "re2_wazero")
 	}
 
 	return tags
@@ -155,8 +150,7 @@ func buildWasm(a *goyek.A) {
 type benchMode int
 
 const (
-	benchModeWazero benchMode = iota
-	benchModeWasm2go
+	benchModeWasm2go benchMode = iota
 	benchModeCGO
 	benchModeSTDLib
 )
@@ -173,8 +167,6 @@ func benchArgs(pkg string, count int, mode benchMode) string {
 		// no args
 	case benchModeSTDLib:
 		args = append(args, "-tags=re2_bench_stdlib")
-	case benchModeWazero:
-		args = append(args, "-tags=re2_wazero")
 	}
 	args = append(args, pkg)
 
@@ -184,9 +176,9 @@ func benchArgs(pkg string, count int, mode benchMode) string {
 func defineBenchTasks(name string, pkg string) {
 	goyek.Define(goyek.Task{
 		Name:  name,
-		Usage: "Runs benchmarks in the default configuration for a Go app, using wazero.",
+		Usage: "Runs benchmarks in the default configuration for a Go app, using wasm2go.",
 		Action: func(a *goyek.A) {
-			cmd.Exec(a, "go "+benchArgs(pkg, 1, benchModeWazero))
+			cmd.Exec(a, "go "+benchArgs(pkg, 1, benchModeWasm2go))
 		},
 	})
 
@@ -215,15 +207,9 @@ func defineBenchTasks(name string, pkg string) {
 			}
 
 			var stdout bytes.Buffer
-			cmd.Exec(a, "go "+benchArgs(pkg, 5, benchModeWazero), cmd.Stdout(&stdout))
+			cmd.Exec(a, "go "+benchArgs(pkg, 5, benchModeWasm2go), cmd.Stdout(&stdout))
 			if err := os.WriteFile(filepath.Join("out", name+".txt"), stdout.Bytes(), 0o600); err != nil {
 				a.Errorf("write bench.txt: %v", err)
-			}
-
-			stdout.Reset()
-			cmd.Exec(a, "go "+benchArgs(pkg, 5, benchModeWasm2go), cmd.Stdout(&stdout))
-			if err := os.WriteFile(filepath.Join("out", name+"-wasm2go.txt"), stdout.Bytes(), 0o600); err != nil {
-				a.Errorf("write bench-wasm2go.txt: %v", err)
 			}
 
 			stdout.Reset()
@@ -238,8 +224,8 @@ func defineBenchTasks(name string, pkg string) {
 				a.Errorf("write bench-stdlib.txt: %v", err)
 			}
 
-			cmd.Exec(a, fmt.Sprintf("go run golang.org/x/perf/cmd/benchstat@%s %s %s %s %s", verBenchstat,
-				filepath.Join("out", name+"-stdlib.txt"), filepath.Join("out", name+"-wasm2go.txt"), filepath.Join("out", name+".txt"), filepath.Join("out", name+"-cgo.txt")))
+			cmd.Exec(a, fmt.Sprintf("go run golang.org/x/perf/cmd/benchstat@%s %s %s %s", verBenchstat,
+				filepath.Join("out", name+"-stdlib.txt"), filepath.Join("out", name+".txt"), filepath.Join("out", name+"-cgo.txt")))
 		},
 	})
 }

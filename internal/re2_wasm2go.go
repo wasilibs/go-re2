@@ -1,4 +1,4 @@
-//go:build !re2_cgo && !re2_wazero
+//go:build !re2_cgo
 
 package internal
 
