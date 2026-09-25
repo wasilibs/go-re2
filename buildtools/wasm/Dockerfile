@@ -77,6 +77,6 @@ COPY --from=wasm /cre2/libcre2.wasm /build/
 COPY --from=wasm /cre2/libcre2.memory.go /build/
 WORKDIR /build
 SHELL ["/bin/bash", "-c"]
-RUN go run github.com/ncruces/wasm2go@v0.4.11 -unsafe -pkg=wasm2go < libcre2.wasm > libcre2.wasm.go
+RUN go run github.com/ncruces/wasm2go@v0.4.15 -unsafe -pkg=wasm2go < libcre2.wasm > libcre2.wasm.go
 
 CMD ["bash", "-c", "cp /build/*.go /out/"]
