@@ -74,9 +74,7 @@ func (m *HostMemory) ReadByte(offset uint32) byte { //nolint:govet
 }
 
 func (m *HostMemory) ReadUint32Le(offset uint32) uint32 {
-	start := int(offset)
-	end := start + 4
-	return load32(m.Buf[start:end])
+	return load32(m.Buf, offset)
 }
 
 func (m *HostMemory) Write(offset uint32, b []byte) {
@@ -96,15 +94,11 @@ func (m *HostMemory) WriteByte(offset uint32, b byte) { //nolint:govet
 }
 
 func (m *HostMemory) WriteUint32Le(offset uint32, v uint32) {
-	start := int(offset)
-	end := start + 4
-	store32(m.Buf[start:end], v)
+	store32(m.Buf, offset, v)
 }
 
 func (m *HostMemory) WriteUint64Le(offset uint32, v uint64) {
-	start := int(offset)
-	end := start + 8
-	store64(m.Buf[start:end], v)
+	store64(m.Buf, offset, v)
 }
 
 // HostEnv provides the imported env.memory for wasm2go modules.
