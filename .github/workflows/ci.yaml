@@ -40,7 +40,7 @@ jobs:
         with:
           update: true
           # This version of go is not sync with setup-go, but this is probably the best we can do
-          pacboy: gcc:p re2:p go:p pkg-config:p diffutils:p
+          pacboy: gcc:p re2:p go:p pkg-config:p
 
       - name: run checks
         run: go run ./build ${{ startsWith(matrix.os, 'ubuntu-') && 'check' || 'test' }}
