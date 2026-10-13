@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/cli/go-gh/v2 v2.16.2
-	github.com/curioswitch/go-build v0.9.0
+	github.com/curioswitch/go-build v0.10.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/goyek/goyek/v3 v3.0.1
 	github.com/goyek/x v0.4.0
