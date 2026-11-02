@@ -256,7 +256,7 @@ cre2_match (const cre2_regexp_t *re , const char *text,
 	    cre2_string_t *match, int nmatch)
 {
   re2::StringPiece	text_re2(text, textlen);
-  absl::FixedArray<re2::StringPiece>	match_re2(nmatch); // no malloc per match
+  absl::FixedArray<re2::StringPiece>	match_re2(nmatch); // no malloc up to 32 matches on wasm32
   RE2::Anchor		anchor_re2 = to_cre2_anchor(anchor);
   bool			retval; // 0 for no match
 				// 1 for successful matching
