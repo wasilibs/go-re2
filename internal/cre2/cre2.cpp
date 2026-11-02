@@ -15,8 +15,8 @@
 #  include <config.h>
 #endif
 #include <re2/re2.h>
-#include <absl/container/fixed_array.h>
 #include <re2/set.h>
+#include <absl/container/fixed_array.h>
 #include "cre2.h"
 
 #include <cstdlib>
