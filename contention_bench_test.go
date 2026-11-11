@@ -15,9 +15,14 @@ import (
 func BenchmarkParallelSearch(b *testing.B) {
 	re := MustCompileBenchmark("[XYZ]ABCDEFGHIJKLMNOPQRSTUVWXYZ$")
 	input := makeText(1 << 10)
+	// The engines that extract submatches allocate memory inside the module.
+	// This case measures the module's allocator in addition to the operation
+	// buffer.
+	submatchRE := MustCompileBenchmark(`(\w+)@(\w+)\.com`)
+	submatchInput := append(append([]byte{}, input...), " gopher@example.com"...)
 
 	nproc := runtime.GOMAXPROCS(0)
-	for _, op := range []string{"FindIndex", "Match"} {
+	for _, op := range []string{"FindIndex", "Match", "FindSubmatchIndex"} {
 		for _, workers := range []int{1, nproc, nproc * 4, nproc * 16, nproc * 64} {
 			b.Run(op+"/workers="+strconv.Itoa(workers), func(b *testing.B) {
 				var counter atomic.Int64
@@ -29,10 +34,13 @@ func BenchmarkParallelSearch(b *testing.B) {
 					go func() {
 						defer wg.Done()
 						for counter.Add(1) <= target {
-							if op == "FindIndex" {
+							switch op {
+							case "FindIndex":
 								re.FindIndex(input)
-							} else {
+							case "Match":
 								re.Match(input)
+							default:
+								submatchRE.FindSubmatchIndex(submatchInput)
 							}
 						}
 					}()

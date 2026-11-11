@@ -166,7 +166,7 @@ func (set *Set) findAll(alloc *allocation, cs cString, n int, deliver func(match
 	defer runtime.KeepAlive(matchArr)
 	defer runtime.KeepAlive(set) // don't allow finalizer to run during method
 
-	matchedCount := setMatch(set, cs, matchArr.ptr, n)
+	matchedCount := setMatch(alloc, set, cs, matchArr.ptr, n)
 	if matchedCount < 0 {
 		return setEvaluationError(-matchedCount)
 	}
