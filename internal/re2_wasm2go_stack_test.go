@@ -89,7 +89,7 @@ func TestChildStackWithinBudget(t *testing.T) {
 	modPoolOnce.Do(func() { initWASM() })
 
 	stackBudget := childRegionBytes - tlsSkip
-	limit := stackBudget / 2 // Fail if use more than 50%
+	limit := uint32(re2StackBytes / 2) // Fail if use more than 50% of what RE2 has below an operation buffer
 
 	bigInput := strings.Repeat("abc12345 ", 100000)
 	nest := func(n int) string { return strings.Repeat("(", n) + `\w` + strings.Repeat(")", n) }
