@@ -214,19 +214,13 @@ func release(re *Regexp) {
 	deleteRE(re.abi, re.ptr)
 }
 
-func match(re *Regexp, s cString, matchesPtr wasmPtr, nMatches uint32) bool {
-	res := withModule(func(m *wasm2go.Module) uint64 {
-		return uint64(m.Xcre2_match(int32(re.ptr), int32(s.ptr), int32(s.length), 0, int32(s.length), 0, int32(matchesPtr), int32(nMatches)))
-	})
-
+func match(alloc *allocation, re *Regexp, s cString, matchesPtr wasmPtr, nMatches uint32) bool {
+	res := alloc.cm.mod.Xcre2_match(int32(re.ptr), int32(s.ptr), int32(s.length), 0, int32(s.length), 0, int32(matchesPtr), int32(nMatches))
 	return res == 1
 }
 
-func matchFrom(re *Regexp, s cString, startPos int, matchesPtr wasmPtr, nMatches uint32) bool {
-	res := withModule(func(m *wasm2go.Module) uint64 {
-		return uint64(m.Xcre2_match(int32(re.ptr), int32(s.ptr), int32(s.length), int32(startPos), int32(s.length), 0, int32(matchesPtr), int32(nMatches)))
-	})
-
+func matchFrom(alloc *allocation, re *Regexp, s cString, startPos int, matchesPtr wasmPtr, nMatches uint32) bool {
+	res := alloc.cm.mod.Xcre2_match(int32(re.ptr), int32(s.ptr), int32(s.length), int32(startPos), int32(s.length), 0, int32(matchesPtr), int32(nMatches))
 	return res == 1
 }
 
@@ -366,12 +360,8 @@ func setCompile(set *Set) int32 {
 	return int32(res)
 }
 
-func setMatch(set *Set, cs cString, matchedPtr wasmPtr, nMatch int) int {
-	var res int32
-	withModuleNoResult(func(m *wasm2go.Module) {
-		res = m.Xcre2_set_match_with_error(int32(set.ptr), int32(cs.ptr), int32(cs.length), int32(matchedPtr), int32(nMatch))
-	})
-	return int(res)
+func setMatch(alloc *allocation, set *Set, cs cString, matchedPtr wasmPtr, nMatch int) int {
+	return int(alloc.cm.mod.Xcre2_set_match_with_error(int32(set.ptr), int32(cs.ptr), int32(cs.length), int32(matchedPtr), int32(nMatch)))
 }
 
 func deleteSet(abi *libre2ABI, setPtr wasmPtr) {
@@ -422,25 +412,47 @@ func copyCString(ptr wasmPtr) string {
 	return res.String()
 }
 
+// re2StackBytes is the part of a child module's stack left to RE2 when an
+// operation's buffer is on it. TestChildStackWithinBudget checks RE2 needs
+// less than half of it.
+const re2StackBytes = 8 * 1024
+
+// allocation is an operation's buffer in linear memory. The operation holds a
+// child module for its whole duration and runs RE2 on it.
 type allocation struct {
 	size    uint32
 	bufPtr  wasmPtr
 	nextIdx uint32
-	abi     *libre2ABI
+	cm      *childModule
+	// prevSP is the module's stack pointer to restore when the buffer is on
+	// its stack, or 0 when the buffer came from malloc.
+	prevSP int32
 }
 
 func (abi *libre2ABI) reserve(size uint32) allocation {
-	ptr := malloc(abi, size)
-	return allocation{
-		size:    size,
-		bufPtr:  ptr,
-		nextIdx: 0,
-		abi:     abi,
+	cm := getChildModule()
+	a := allocation{size: size, cm: cm}
+	if size+re2StackBytes <= childRegionBytes {
+		// Take the buffer off the top of the module's stack, like alloca would,
+		// rather than malloc it: malloc takes a lock that every goroutine
+		// calling into RE2 contends on.
+		sp := a.cm.mod.X__stack_pointer()
+		a.prevSP = *sp
+		*sp = (*sp - int32(size)) &^ 15
+		a.bufPtr = wasmPtr(*sp)
+	} else {
+		a.bufPtr = wasmPtr(a.cm.mod.Xmalloc(int32(size)))
 	}
+	return a
 }
 
 func (a *allocation) free() {
-	free(a.abi, a.bufPtr)
+	if a.prevSP != 0 {
+		*a.cm.mod.X__stack_pointer() = a.prevSP
+	} else {
+		a.cm.mod.Xfree(int32(a.bufPtr))
+	}
+	putChildModule(a.cm)
 }
 
 func (a *allocation) allocate(size uint32) wasmPtr {
