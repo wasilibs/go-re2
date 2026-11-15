@@ -106,6 +106,10 @@ func Compile(expr string, opts CompileOptions) (*Regexp, error) {
 
 	rePtr := newRE(abi, cs, re2Opts)
 	errCode, errArg := reError(abi, rePtr)
+	if errCode != 0 {
+		// A refused pattern never reaches a Regexp, so nothing else would free it.
+		deleteRE(abi, rePtr)
+	}
 	switch errCode {
 	case 0:
 	// No error.
