@@ -47,9 +47,8 @@ type childModule struct {
 	mod        *wasm2go.Module
 	tlsBasePtr uint32
 
-	// scratchPtr is an operation buffer owned by this child. Operations reuse
-	// it so that typical calls don't call malloc and free in the module, whose
-	// allocator guards its heap with one lock.
+	// scratchPtr is an operation buffer owned by this child. We reuse it to
+	// reduce calls to malloc which don't scale well in wasm.
 	scratchPtr  wasmPtr
 	scratchSize uint32
 }
