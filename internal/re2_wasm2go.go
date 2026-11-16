@@ -46,7 +46,16 @@ var prevTID uint32
 type childModule struct {
 	mod        *wasm2go.Module
 	tlsBasePtr uint32
+
+	// scratchPtr is an operation buffer owned by this child. We reuse it to
+	// reduce calls to malloc which don't scale well in wasm.
+	scratchPtr  wasmPtr
+	scratchSize uint32
 }
+
+// maxScratchBytes caps the operation buffer kept by each child module, so a
+// few large inputs don't pin their memory.
+const maxScratchBytes = 64 * 1024
 
 func createChildModule(root *wasm2go.Module) *childModule {
 	size := childRegionBytes
@@ -64,6 +73,9 @@ func createChildModule(root *wasm2go.Module) *childModule {
 	ret := &childModule{mod: child, tlsBasePtr: ptr}
 	runtime.SetFinalizer(ret, func(obj interface{}) {
 		if cm, ok := obj.(*childModule); ok {
+			if cm.scratchPtr != nilWasmPtr {
+				cm.mod.Xfree(int32(cm.scratchPtr))
+			}
 			cm.mod.Xfree(int32(cm.tlsBasePtr))
 		}
 	})
@@ -214,19 +226,13 @@ func release(re *Regexp) {
 	deleteRE(re.abi, re.ptr)
 }
 
-func match(re *Regexp, s cString, matchesPtr wasmPtr, nMatches uint32) bool {
-	res := withModule(func(m *wasm2go.Module) uint64 {
-		return uint64(m.Xcre2_match(int32(re.ptr), int32(s.ptr), int32(s.length), 0, int32(s.length), 0, int32(matchesPtr), int32(nMatches)))
-	})
-
-	return res == 1
+func match(alloc *allocation, re *Regexp, s cString, matchesPtr wasmPtr, nMatches uint32) bool {
+	return matchFrom(alloc, re, s, 0, matchesPtr, nMatches)
 }
 
-func matchFrom(re *Regexp, s cString, startPos int, matchesPtr wasmPtr, nMatches uint32) bool {
-	res := withModule(func(m *wasm2go.Module) uint64 {
-		return uint64(m.Xcre2_match(int32(re.ptr), int32(s.ptr), int32(s.length), int32(startPos), int32(s.length), 0, int32(matchesPtr), int32(nMatches)))
-	})
-
+func matchFrom(alloc *allocation, re *Regexp, s cString, startPos int, matchesPtr wasmPtr, nMatches uint32) bool {
+	m := alloc.module.mod
+	res := m.Xcre2_match(int32(re.ptr), int32(s.ptr), int32(s.length), int32(startPos), int32(s.length), 0, int32(matchesPtr), int32(nMatches))
 	return res == 1
 }
 
@@ -366,11 +372,9 @@ func setCompile(set *Set) int32 {
 	return int32(res)
 }
 
-func setMatch(set *Set, cs cString, matchedPtr wasmPtr, nMatch int) int {
-	var res int32
-	withModuleNoResult(func(m *wasm2go.Module) {
-		res = m.Xcre2_set_match_with_error(int32(set.ptr), int32(cs.ptr), int32(cs.length), int32(matchedPtr), int32(nMatch))
-	})
+func setMatch(alloc *allocation, set *Set, cs cString, matchedPtr wasmPtr, nMatch int) int {
+	m := alloc.module.mod
+	res := m.Xcre2_set_match_with_error(int32(set.ptr), int32(cs.ptr), int32(cs.length), int32(matchedPtr), int32(nMatch))
 	return int(res)
 }
 
@@ -427,20 +431,40 @@ type allocation struct {
 	bufPtr  wasmPtr
 	nextIdx uint32
 	abi     *libre2ABI
+	// module is the child module that runs the calls of this operation. The
+	// operation returns it to the pool when it ends.
+	module *childModule
+	// ownsBuf is true if bufPtr was allocated for this operation alone and
+	// is freed when the operation ends. Otherwise bufPtr is the module's
+	// scratch buffer.
+	ownsBuf bool
 }
 
 func (abi *libre2ABI) reserve(size uint32) allocation {
-	ptr := malloc(abi, size)
-	return allocation{
-		size:    size,
-		bufPtr:  ptr,
-		nextIdx: 0,
-		abi:     abi,
+	cm := getChildModule()
+	if size > maxScratchBytes {
+		ptr := wasmPtr(cm.mod.Xmalloc(int32(size)))
+		return allocation{size: size, bufPtr: ptr, abi: abi, module: cm, ownsBuf: true}
 	}
+	if cm.scratchSize < size || cm.scratchPtr == nilWasmPtr {
+		if cm.scratchPtr != nilWasmPtr {
+			cm.mod.Xfree(int32(cm.scratchPtr))
+		}
+		n := uint32(1024)
+		for n < size {
+			n *= 2
+		}
+		cm.scratchPtr = wasmPtr(cm.mod.Xmalloc(int32(n)))
+		cm.scratchSize = n
+	}
+	return allocation{size: size, bufPtr: cm.scratchPtr, abi: abi, module: cm}
 }
 
 func (a *allocation) free() {
-	free(a.abi, a.bufPtr)
+	if a.ownsBuf {
+		a.module.mod.Xfree(int32(a.bufPtr))
+	}
+	putChildModule(a.module)
 }
 
 func (a *allocation) allocate(size uint32) wasmPtr {

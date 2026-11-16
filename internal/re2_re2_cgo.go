@@ -67,12 +67,12 @@ func release(re *Regexp) {
 	deleteRE(re.abi, re.ptr)
 }
 
-func match(re *Regexp, s cString, matchesPtr wasmPtr, nMatches uint32) bool {
+func match(_ *allocation, re *Regexp, s cString, matchesPtr wasmPtr, nMatches uint32) bool {
 	return cre2.Match(unsafe.Pointer(re.ptr), s.ptr,
 		s.length, 0, s.length, 0, unsafe.Pointer(matchesPtr), int(nMatches))
 }
 
-func matchFrom(re *Regexp, s cString, startPos int, matchesPtr wasmPtr, nMatches uint32) bool {
+func matchFrom(_ *allocation, re *Regexp, s cString, startPos int, matchesPtr wasmPtr, nMatches uint32) bool {
 	return cre2.Match(unsafe.Pointer(re.ptr), s.ptr,
 		s.length, startPos, s.length, 0, unsafe.Pointer(matchesPtr), int(nMatches))
 }
@@ -211,7 +211,7 @@ func setCompile(set *Set) int32 {
 	return int32(cre2.SetCompile(unsafe.Pointer(set.ptr)))
 }
 
-func setMatch(set *Set, cs cString, matchedPtr wasmPtr, nMatch int) int {
+func setMatch(_ *allocation, set *Set, cs cString, matchedPtr wasmPtr, nMatch int) int {
 	return cre2.SetMatchWithError(unsafe.Pointer(set.ptr), cs.ptr, cs.length, unsafe.Pointer(matchedPtr), nMatch)
 }
 
